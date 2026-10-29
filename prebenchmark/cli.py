@@ -2,8 +2,11 @@
 
 La CLI conecta el pipeline existente -- no reimplementa nada.
 Las dependencias pesadas u opcionales (torch mediante :mod:`prebenchmark.runner`) se
-importan de forma diferida dentro del manejador ``run``, de modo que ``generate``, ``compare``,
-``aggregate`` y ``export`` permanecen seguros para importar y libres de red/torch.
+importan de forma diferida dentro del manejador ``run``, de modo que el resto de los
+subcomandos permanece seguro para importar y libre de red/torch.
+
+Todos los subcomandos aceptan ``--experiment-id`` (obligatorio) y ``--root``
+(raíz del store de resultados, por defecto ``results``).
 
 Subcomandos
 ----------
@@ -12,6 +15,7 @@ Subcomandos
 ``compare``   selecciona una línea base y compara cada otra ejecución contra ella
 ``aggregate`` agrupa configuraciones repetidas y resume su variabilidad
 ``export``    escribe todas las tablas de resultados como CSV con marca de tiempo en ``results/exports``
+``analyze``   genera un reporte estadístico HTML (y opcionalmente PDF) desde un snapshot exportado
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ from typing import Sequence
 
 from . import compare, export, space, store
 from .config import ExperimentConfig
-from .identity import compute_config_id
+from .identity import compute_config_id, utc_timestamp
 
 __all__ = ["build_parser", "main"]
 
@@ -46,9 +50,12 @@ def _apply_class_weight(cfg: ExperimentConfig, value: str | None) -> ExperimentC
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="prebenchmark",
-        description="Experimental registration, comparison and export for the neural-network benchmark.",
+        description=(
+            "Experimental registration, execution, comparison, export and analysis "
+            "for the neural-network benchmark."
+        ),
     )
-    subparsers = parser.add_subparsers(dest="command", metavar="{generate,run,compare,aggregate,export}")
+    subparsers = parser.add_subparsers(dest="command", metavar="{generate,run,compare,aggregate,export,analyze}")
 
     def _with_common(sub: argparse.ArgumentParser) -> argparse.ArgumentParser:
         sub.add_argument("--experiment-id", required=True, help="experiment identifier")
@@ -117,12 +124,58 @@ def build_parser() -> argparse.ArgumentParser:
             sub.add_argument("--grouping", choices=("config", "config_id"), default="config")
             sub.add_argument("--min-repetitions", type=int, default=3)
         if name == "export":
-            sub.add_argument("--out", default=None, help="exports root (default: <root>/exports)")
+            sub.add_argument("--out", default=None, help="raíz de exportaciones (por defecto: <root>/exports)")
             sub.add_argument("--no-plots", action="store_true", help="skip optional plots")
 
     subparsers.choices["compare"].set_defaults(handler=_cmd_compare)
     subparsers.choices["aggregate"].set_defaults(handler=_cmd_aggregate)
     subparsers.choices["export"].set_defaults(handler=_cmd_export)
+
+    analyze = _with_common(
+        subparsers.add_parser(
+            "analyze",
+            help="genera un reporte estadístico autocontenido desde los CSV exportados",
+        )
+    )
+    analyze.add_argument(
+        "--export-dir",
+        default=None,
+        help="directorio explícito del snapshot exportado (por defecto: <exports>/<experiment-id>)",
+    )
+    analyze.add_argument(
+        "--exports",
+        default=None,
+        help="raíz de exportaciones (por defecto: <root>/exports)",
+    )
+    analyze.add_argument(
+        "--out",
+        default=None,
+        help="raíz de reportes (por defecto: <root>/reports)",
+    )
+    analyze.add_argument(
+        "--reference-config-id",
+        default=None,
+        help="group_key de referencia o config_id miembro (por defecto: mayor F1 macro medio)",
+    )
+    analyze.add_argument(
+        "--top-curves",
+        type=int,
+        default=6,
+        help="cantidad de configuraciones graficadas en el panel de curvas de convergencia (por defecto: 6)",
+    )
+    analyze.add_argument("--title", default=None, help="título del reporte (sobrescribe el valor por defecto)")
+    analyze.add_argument("--no-figures", action="store_true", help="escribe solo tablas y estadísticas")
+    analyze.add_argument(
+        "--pdf",
+        action="store_true",
+        help="también genera un PDF a partir del HTML con Chrome/Edge headless",
+    )
+    analyze.add_argument(
+        "--browser",
+        default=None,
+        help="ruta explícita a Chrome/Edge para --pdf (por defecto: autodetección)",
+    )
+    analyze.set_defaults(handler=_cmd_analyze)
     return parser
 
 
@@ -233,11 +286,63 @@ def _cmd_export(args: argparse.Namespace) -> int:
     for name, path in result.files.items():
         print(f"  {name}: {Path(path).name} ({result.row_counts.get(name, 0)} rows)")
     for warning in result.warnings:
-        print(f"  warning: {warning}")
+        print(f"  advertencia: {warning}")
+    return 0
+
+
+def _cmd_analyze(args: argparse.Namespace) -> int:
+    from . import analysis, report
+
+    if args.export_dir is not None:
+        export_dir = Path(args.export_dir)
+    else:
+        exports_root = Path(args.exports) if args.exports is not None else Path(args.root) / "exports"
+        export_dir = exports_root / args.experiment_id
+
+    result = analysis.analyze_exports(
+        export_dir,
+        reference_config_id=args.reference_config_id,
+    )
+    reports_root = Path(args.out) if args.out is not None else Path(args.root) / "reports"
+    out_path = reports_root / args.experiment_id / f"analysis_{utc_timestamp()}.html"
+    built = report.build_report(
+        result,
+        out_path,
+        title=args.title,
+        include_figures=not args.no_figures,
+        top_curves=args.top_curves,
+    )
+
+    print(f"analizadas {len(result.runs)} corrida(s) en {len(result.summary)} configuración(es)")
+    print(f"referencia: {result.reference_group_key} ({result.reference_label})")
+    print(f"reporte: {built.path} ({built.bytes_written} bytes, {len(built.figures)} figura(s))")
+    if args.pdf:
+        from . import pdf
+
+        pdf_path = built.path.with_suffix(".pdf")
+        try:
+            generated = pdf.html_to_pdf(built.path, pdf_path, browser=args.browser)
+        except (FileNotFoundError, RuntimeError) as error:
+            print(f"error: no se pudo generar el PDF: {error}", file=sys.stderr)
+            return 1
+        print(f"pdf: {generated} ({generated.stat().st_size} bytes)")
+    for warning in result.warnings:
+        print(f"  nota: {warning}")
+    for warning in built.warnings:
+        print(f"  advertencia: {warning}")
     return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    # Los mensajes nuevos del subcomando ``analyze`` están en español; forzar
+    # UTF-8 evita mojibake en consolas de Windows configuradas en cp1252.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8")
+            except (OSError, ValueError):  # pragma: no cover - stream no reconfigurable
+                pass
     parser = build_parser()
     args = parser.parse_args(argv)
     if getattr(args, "command", None) is None:

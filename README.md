@@ -3,7 +3,7 @@
 Experimental registration, execution, comparison and export infrastructure for the
 neural-network benchmark (pre-benchmark phase).
 
-The pipeline is **register → run → compare → aggregate → export**, all driven by a
+The pipeline is **register → run → compare → aggregate → export → analyze**, all driven by a
 single package and persisted as append-only artifacts so every claim is traceable
 back to the exact configuration and data snapshot that produced it.
 
@@ -36,6 +36,81 @@ python -m prebenchmark aggregate --experiment-id exp-001 --grouping config
 
 # 5. Export all result tables as timestamped CSVs
 python -m prebenchmark export --experiment-id exp-001
+
+# 6. Build a self-contained statistical report from an export snapshot
+python -m prebenchmark analyze --experiment-id exp-001
+```
+
+`analyze` reads the latest `master_*.csv`, `configs_*.csv` and `epochs_*.csv` in
+`results/exports/<experiment-id>/` (override with `--export-dir` or `--exports`)
+and writes a single offline HTML file to
+`results/reports/<experiment-id>/analysis_<timestamp>.html`. It never reads the
+internal store, so the report is reproducible from the exported snapshot alone.
+
+## Statistical analysis report
+
+The report lists every configuration in the export and compares their metrics
+visually and inferentially. Report text, table headers and figure labels are in
+Spanish; the code and CSV column names stay in English:
+
+- **Ranking and distributions** — mean F1 macro per configuration with sample
+  standard deviation, pooled and per-`class_weight` histograms.
+- **Marginal views** — boxplots and Kruskal-Wallis tests by activation,
+  optimizer, learning rate, initialization and `class_weight`.
+- **Convergence** — scatter plots and histograms of `best_epoch`,
+  `epochs_executed` and `time_to_best_epoch`, plus validation-loss curves for
+  the top configurations (mean ± std across seeds, individual seeds in grey).
+- **Activation × optimizer heatmap** — mean F1 per cell, faceted by
+  `class_weight`, with a shared colour scale.
+- **Inferential comparison** — each configuration against a reference
+  (empirical best by mean F1, or `--reference-config-id`), reporting the
+  difference, its 95 % Welch interval, Welch and Mann-Whitney p-values, and
+  Cliff's delta with Romano effect-size labels.
+
+Convergence metrics are derived from the per-epoch history, not guessed:
+
+| Metric | Definition |
+| --- | --- |
+| `best_epoch` | epoch with the lowest `val_loss` (consistent with `restore_best_weights`) |
+| `epochs_executed` | epochs actually trained before early stopping or the epoch cap |
+| `time_to_best_epoch` | cumulative `epoch_time` up to `best_epoch` |
+
+`class_weight` is absent from `master_*.csv`; the analyzer joins it from
+`configs_*.csv` by `config_id`. The comparison unit is the configuration
+**without the seed** (`group_key`), so the five seeds of a configuration are
+treated as repetitions rather than as five different configurations.
+
+With five seeds per configuration the inferential tests have low power. The
+report presents p-values as evidence and recommends reading them together with
+the confidence intervals and effect sizes.
+
+Useful flags: `--no-figures` (tables and statistics only), `--top-curves N`
+(number of configurations in the convergence-curve panel),
+`--reference-config-id` (accepts a `group_key` or any member `config_id`),
+`--out` (reports root) and `--pdf` (also print the HTML to PDF).
+
+### PDF output
+
+`--pdf` prints the generated HTML to a PDF with Chrome or Edge in headless
+mode. The PDF is written next to the HTML with the same base name:
+
+```bash
+python -m prebenchmark analyze --experiment-id exp-001 --pdf
+# results/reports/exp-001/analysis_<timestamp>.html
+# results/reports/exp-001/analysis_<timestamp>.pdf
+```
+
+The browser is auto-detected on Windows, macOS and Linux. If it is installed in
+a non-standard location, pass `--browser "C:\path\to\chrome.exe"`. The PDF uses
+A4 portrait, repeats table headers across pages and splits the wide
+configuration tables into quality (1a) and convergence (1b) halves so nothing is
+clipped.
+
+An existing HTML can also be printed with the generic PowerShell helper:
+
+```powershell
+.\generar-pdf.ps1 -Html "results\reports\exp-001\analysis_<timestamp>.html" `
+                  -Pdf  "results\reports\exp-001\analysis_<timestamp>.pdf"
 ```
 
 ## Persistence location

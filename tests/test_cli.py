@@ -13,8 +13,23 @@ from pathlib import Path
 import pytest
 
 from prebenchmark import store
-from prebenchmark.cli import main
+from prebenchmark.cli import build_parser, main
+from tests.test_analysis import write_export
 from tests.test_export import EXPERIMENT, _build_store
+
+
+def test_cli_docstring_lists_every_registered_subcommand():
+    """Mantiene sincronizados el docstring del módulo y el parser real."""
+    import prebenchmark.cli as cli_module
+
+    parser = build_parser()
+    subparsers = next(action for action in parser._actions if action.dest == "command")
+    registered = set(subparsers.choices)
+    module_docstring = cli_module.__doc__ or ""
+    missing = sorted(
+        command for command in registered if f"``{command}``" not in module_docstring
+    )
+    assert not missing, f"subcomandos sin documentar en el docstring: {missing}"
 
 
 def test_cli_without_command_prints_help():
@@ -61,6 +76,97 @@ def test_cli_compare_and_aggregate(tmp_path: Path):
     _build_store(root)
     assert main(["compare", "--experiment-id", EXPERIMENT, "--root", str(root), "--baseline-run-id", "run-01"]) == 0
     assert main(["aggregate", "--experiment-id", EXPERIMENT, "--root", str(root)]) == 0
+
+
+def test_cli_analyze_writes_report(tmp_path: Path):
+    export_dir = write_export(tmp_path / "exports" / "exp-analysis")
+    out = tmp_path / "reports"
+    code = main(
+        [
+            "analyze",
+            "--experiment-id",
+            "exp-analysis",
+            "--export-dir",
+            str(export_dir),
+            "--out",
+            str(out),
+            "--no-figures",
+        ]
+    )
+    assert code == 0
+    reports = list((out / "exp-analysis").glob("analysis_*.html"))
+    assert len(reports) == 1
+    assert "Tabla 1a. Calidad por configuración" in reports[0].read_text(encoding="utf-8")
+
+
+def test_cli_analyze_pdf_flag_writes_pdf(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from prebenchmark import pdf
+
+    export_dir = write_export(tmp_path / "exports" / "exp-pdf")
+    out = tmp_path / "reports"
+
+    def fake_pdf(html_path, pdf_path, **kwargs):
+        path = Path(pdf_path)
+        path.write_bytes(b"%PDF-1.4\n")
+        return path
+
+    monkeypatch.setattr(pdf, "html_to_pdf", fake_pdf)
+    code = main(
+        [
+            "analyze",
+            "--experiment-id",
+            "exp-pdf",
+            "--export-dir",
+            str(export_dir),
+            "--out",
+            str(out),
+            "--no-figures",
+            "--pdf",
+        ]
+    )
+    assert code == 0
+    assert len(list((out / "exp-pdf").glob("analysis_*.pdf"))) == 1
+
+
+def test_cli_analyze_pdf_failure_returns_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
+    from prebenchmark import pdf
+
+    export_dir = write_export(tmp_path / "exports" / "exp-pdf-fail")
+    out = tmp_path / "reports"
+
+    def failing_pdf(html_path, pdf_path, **kwargs):
+        raise RuntimeError("no browser")
+
+    monkeypatch.setattr(pdf, "html_to_pdf", failing_pdf)
+    code = main(
+        [
+            "analyze",
+            "--experiment-id",
+            "exp-pdf-fail",
+            "--export-dir",
+            str(export_dir),
+            "--out",
+            str(out),
+            "--no-figures",
+            "--pdf",
+        ]
+    )
+    assert code == 1
+    assert "no se pudo generar el PDF" in capsys.readouterr().err
+
+
+def test_cli_analyze_missing_export_returns_error(tmp_path: Path, capsys):
+    code = main(
+        [
+            "analyze",
+            "--experiment-id",
+            "exp-missing",
+            "--root",
+            str(tmp_path / "results"),
+        ]
+    )
+    assert code == 1
+    assert "directorio de exportación no encontrado" in capsys.readouterr().err.lower()
 
 
 def test_cli_compare_without_baseline_returns_error(tmp_path: Path, capsys):

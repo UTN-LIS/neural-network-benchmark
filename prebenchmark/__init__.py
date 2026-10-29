@@ -1,4 +1,4 @@
-"""prebenchmark: infraestructura de registro y comparación experimental.
+"""prebenchmark: infraestructura de registro, comparación, exportación y análisis experimental.
 
 Seguro para importar: este paquete no realiza E/S ni dispara entrenamiento al importarse.
 """
@@ -92,6 +92,21 @@ from .export import (
     export_all,
     persist_baseline,
 )
+from .analysis import (
+    CONVERGENCE_METRICS,
+    DIMENSION_COLUMNS,
+    METRIC_COLUMNS,
+    AnalysisResult,
+    ExportBundle,
+    analyze_exports,
+    compare_to_reference,
+    derive_run_metrics,
+    load_export_bundle,
+    marginal_effects,
+    summarize_configurations,
+)
+from .report import ReportResult, build_report, render_report
+from .pdf import html_to_pdf
 
 __all__ = [
     # configuración
@@ -175,6 +190,23 @@ __all__ = [
     "DECISION_COLUMNS",
     "EPOCH_COLUMNS",
     "WARNINGS_COLUMNS",
+    # análisis
+    "AnalysisResult",
+    "ExportBundle",
+    "CONVERGENCE_METRICS",
+    "DIMENSION_COLUMNS",
+    "METRIC_COLUMNS",
+    "analyze_exports",
+    "compare_to_reference",
+    "derive_run_metrics",
+    "load_export_bundle",
+    "marginal_effects",
+    "summarize_configurations",
+    # reporte
+    "ReportResult",
+    "build_report",
+    "render_report",
+    "html_to_pdf",
 ]
 
 from . import seeds

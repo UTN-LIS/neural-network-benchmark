@@ -1,0 +1,2 @@
+decision_id,run_id,config_id,group_id,decision_type,label,justification,actor,timestamp,evidence
+dec-20261022T002228Z-3725aa,20261021T232015Z-1267a8,cfg-v1-476e21d9555a,,validate,,explicitly selected baseline run 20261021T232015Z-1267a8,export,20261022T002228Z,"{""source"": ""export"", ""state"": ""COMPLETED""}"

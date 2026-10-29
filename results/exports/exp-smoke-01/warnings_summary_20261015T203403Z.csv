@@ -1,0 +1,6 @@
+run_id,config_id,state,category,message,epoch,source
+20261015T203332Z-4eaa6a,cfg-v1-ac494f40189b,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261015T203336Z-65fb30,cfg-v1-c28499a8826e,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261015T203337Z-c7726b,cfg-v1-a029df5de43e,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261015T203338Z-bb76e4,cfg-v1-fb5b98aae07d,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261015T203339Z-bb5c7c,cfg-v1-9c560d5baa7e,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
