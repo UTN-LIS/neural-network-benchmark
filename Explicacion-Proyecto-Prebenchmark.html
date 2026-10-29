@@ -148,8 +148,8 @@
   <ol>
     <li><a href="#s1">Qué es este proyecto, en una frase</a></li>
     <li><a href="#s2">El punto de partida: las scripts legadas en <code>Experimentos/</code></a></li>
-    <li><a href="#s3">El recorrido general: el pipeline de 5 etapas</a></li>
-    <li><a href="#s4">Los módulos, uno por uno</a> <span class="muted">(4.1–4.14)</span></li>
+    <li><a href="#s3">El recorrido general: el pipeline de 6 etapas</a></li>
+    <li><a href="#s4">Los módulos, uno por uno</a> <span class="muted">(4.1–4.17)</span></li>
     <li><a href="#s5">Cómo se relacionan los módulos (mapa mental)</a></li>
     <li><a href="#s6">Las ideas que sostienen todo el diseño</a></li>
     <li><a href="#s7">Decisiones arquitectónicas y consideraciones generales</a>
@@ -176,7 +176,8 @@
         <li><a href="#s9_1">9.1 ¿Dónde queda todo?</a></li>
         <li><a href="#s9_2">9.2 Dentro de cada carpeta de corrida (<code>&lt;run_id&gt;/</code>)</a></li>
         <li><a href="#s9_3">9.3 Los archivos en <code>results/exports/&lt;experiment_id&gt;/</code></a></li>
-        <li><a href="#s9_4">9.4 Cómo leerlo sin cargar todo en memoria</a></li>
+        <li><a href="#s9_4">9.4 Los reportes en <code>results/reports/&lt;experiment_id&gt;/</code></a></li>
+        <li><a href="#s9_5">9.5 Cómo leerlo sin cargar todo en memoria</a></li>
       </ul>
     </li>
     <li><a href="#s10">Cómo interaccionar con el sistema (CLI)</a>
@@ -187,9 +188,10 @@
         <li><a href="#s10_4">10.4 <code>compare</code>: comparar contra una línea base</a></li>
         <li><a href="#s10_5">10.5 <code>aggregate</code>: agrupar repeticiones</a></li>
         <li><a href="#s10_6">10.6 <code>export</code>: generar las tablas CSV</a></li>
-        <li><a href="#s10_7">10.7 Flujos completos de ejemplo</a></li>
-        <li><a href="#s10_8">10.8 Errores frecuentes y cómo resolverlos</a></li>
-        <li><a href="#s10_9">10.9 Referencia rápida</a></li>
+        <li><a href="#s10_7">10.7 <code>analyze</code>: generar el reporte estadístico</a></li>
+        <li><a href="#s10_8">10.8 Flujos completos de ejemplo</a></li>
+        <li><a href="#s10_9">10.9 Errores frecuentes y cómo resolverlos</a></li>
+        <li><a href="#s10_10">10.10 Referencia rápida</a></li>
       </ul>
     </li>
   </ol>
@@ -235,14 +237,13 @@ Esa es la razón de que exista <code>prebenchmark/</code>: no se importa desde l
 <b>reconstruye mejor</b>.
 </p>
 
-<h2 id="s3">3. El recorrido general: el pipeline de 5 etapas</h2>
+<h2 id="s3">3. El recorrido general: el pipeline de 6 etapas</h2>
 <p>
 Todo el paquete gira alrededor de un flujo que se ejecuta en orden, y cada etapa deja un rastro en
 disco. Se puede pensar como una línea de montaje:
 </p>
-<div class="flow">  register ──► run ──► compare ──► aggregate ──► export
-   (definir      (entrenar    (comparar    (agrupar       (tablas
-    la grilla)    cada config)  vs baseline) repeticiones)  CSV)</div>
+<div class="flow">register ──► run ──► compare ──► aggregate ──► export ──► analyze
+  (grilla)    (entrenar) (baseline)  (repeticiones) (CSV)    (HTML/PDF)</div>
 <p>En términos del código, el flujo de datos es este:</p>
 <div class="flow">ParameterSpace ──generate_configs──► [36 ExperimentConfig]
        │
@@ -257,7 +258,11 @@ disco. Se puede pensar como una línea de montaje:
         aggregate (agrupar por config)┤
         decisions (log manual) ───────┤
                                       ▼
-                     export.export_all → results/exports/&lt;experimento&gt;/</div>
+                     export.export_all → results/exports/&lt;experimento&gt;/
+                                       │
+                     analyze.analyze_exports → report.build_report
+                                       ▼
+                     results/reports/&lt;experimento&gt;/{analysis_&lt;ts&gt;.html, .pdf}</div>
 
 <h2 id="s4">4. Los módulos, uno por uno</h2>
 <p>
@@ -515,22 +520,71 @@ importar en cualquier lado y fáciles de testear.
 <div class="module">
   <h3>4.14 <code>cli.py</code>, <code>__init__.py</code> y <code>__main__.py</code> — la puerta de entrada <span class="tag soft">interfaz</span></h3>
   <p class="kv"><b>Qué hacen.</b> <code>cli.py</code> es un punto de entrada <b>delgado</b> por línea
-  de comandos (<code>python -m prebenchmark</code>) con cinco subcomandos que mapean 1:1 con las
+  de comandos (<code>python -m prebenchmark</code>) con seis subcomandos que mapean 1:1 con las
   etapas del pipeline: <code>generate</code>, <code>run</code>, <code>compare</code>,
-  <code>aggregate</code> y <code>export</code>. <code>__main__.py</code> habilita esa invocación, y
+  <code>aggregate</code>, <code>export</code> y <code>analyze</code>. <code>__main__.py</code> habilita esa invocación, y
   <code>__init__.py</code> expone la API pública del paquete. El subcomando <code>run</code> acepta
   <code>--multi-seed</code> (corre cada configuración con el conjunto fijo de 5 semillas),
   <code>--earlyStop</code> (enciende el criterio de corte por convergencia) y
   <code>--class-weight</code> (<code>none</code>/<code>balanced</code>: enciende o apaga el
   balanceo de clases <b>sin tocar el espacio de 36 combinaciones</b>, porque <code>class_weight</code>
-  vive fuera de la <code>space_key</code>).</p>
+  vive fuera de la <code>space_key</code>). El subcomando <code>analyze</code> acepta
+  <code>--pdf</code> para imprimir el reporte HTML a PDF con Chrome/Edge headless.</p>
   <p class="kv"><b>Qué aportan.</b> El CLI <b>no reimplementa</b> lógica: solo cablea los módulos. Un
   detalle de diseño fino: importa torch <b>de forma perezosa</b> solo dentro del subcomando
-  <code>run</code>, de modo que <code>generate</code>, <code>compare</code>, <code>aggregate</code> y
-  <code>export</code> funcionan sin cargar PyTorch ni tocar la red. <code>__init__.py</code> es
+  <code>run</code>, de modo que el resto de los subcomandos —incluido <code>analyze</code>— funcionan
+  sin cargar PyTorch ni tocar la red. <code>__init__.py</code> es
   <b>import-safe</b>: importarlo no dispara entrenamiento ni entrada/salida.</p>
   <p class="kv"><b>Con quién se relaciona.</b> Es la fachada de todo el paquete hacia quien lo usa
   desde una terminal.</p>
+</div>
+
+<div class="module">
+  <h3>4.15 <code>analysis.py</code> — el puente entre los CSV y la estadística <span class="tag">análisis</span></h3>
+  <p class="kv"><b>Qué hace.</b> <code>analyze_exports()</code> toma el snapshot exportado más reciente
+  (<code>master</code>, <code>configs</code> y <code>epochs</code>; <code>aggregates</code> es opcional)
+  y construye tres vistas: un <b>resumen por configuración</b>, una <b>comparación contra una
+  referencia</b> y una tabla de <b>efectos marginales</b>. No lee el store interno: consume el
+  contrato de <code>export.py</code>.</p>
+  <p class="kv"><b>Qué aporta.</b> Es la capa que convierte filas de CSV en estadística reproducible.
+  Une <code>class_weight</code> desde <code>configs</code>, deriva <code>best_epoch</code> (época con
+  menor <code>val_loss</code>), <code>time_to_best_epoch</code> (suma acumulada de
+  <code>epoch_time</code>) y <code>epochs_executed</code>. Agrupa por <code>group_key</code>, que es la
+  configuración <b>sin semilla</b>: así las 5 semillas cuentan como repeticiones y no como 5
+  configuraciones distintas. Calcula media, desvío, IC 95 %, Welch, Mann-Whitney, delta de Cliff y
+  Kruskal-Wallis. Las corridas <code>FAILED</code> se cuentan pero no alimentan las métricas.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Lee lo que produce <code>export.py</code>, alimenta a
+  <code>report.py</code> y se invoca desde <code>cli.py analyze</code>. No importa torch ni entrena:
+  se puede probar con CSV sintéticos.</p>
+</div>
+
+<div class="module">
+  <h3>4.16 <code>report.py</code> — el informe visual, autocontenido <span class="tag soft">salida</span></h3>
+  <p class="kv"><b>Qué hace.</b> <code>build_report()</code> recibe el <code>AnalysisResult</code> y
+  escribe un único HTML: CSS inline, tablas y 8 figuras embebidas como PNG en base64. No hay CSS,
+  fuentes ni imágenes externas; se puede abrir sin red y compartir como un solo archivo.</p>
+  <p class="kv"><b>Qué aporta.</b> Es una capa de <b>presentación</b>: no calcula estadística, solo
+  ordena y explica la que ya produjo <code>analysis.py</code>. Incluye ranking, distribuciones,
+  boxplots, dispersión de convergencia, histogramas, heatmap, curvas de <code>val_loss</code> y forest
+  plot; además de las tablas 1a/1b, 2a/2b y 3a/3b, las observaciones automáticas, las notas de
+  calidad de datos y la sección de método. El CSS de impresión usa A4, repite encabezados de tabla y
+  mantiene figuras y epígrafes juntos. Si una figura falla, el HTML se genera igual.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Consume <code>analysis.py</code>; <code>pdf.py</code>
+  lo imprime a PDF; <code>cli.py analyze</code> lo dispara.</p>
+</div>
+
+<div class="module">
+  <h3>4.17 <code>pdf.py</code> — del HTML al PDF con el navegador <span class="tag soft">soporte</span></h3>
+  <p class="kv"><b>Qué hace.</b> <code>html_to_pdf()</code> ejecuta Chrome o Edge en modo headless con
+  <code>--print-to-pdf</code> y verifica que el archivo se haya creado. Busca el navegador en las
+  ubicaciones habituales de Windows, macOS y Linux; también acepta una ruta explícita con
+  <code>browser=...</code>.</p>
+  <p class="kv"><b>Qué aporta.</b> Evita agregar una dependencia de Python para generar PDF: usa el
+  navegador que ya está instalado. Es <b>opcional y no bloqueante</b>: si no hay navegador, el HTML
+  sigue siendo válido y la CLI lo informa. El PDF hereda el CSS de impresión de
+  <code>report.py</code> (A4, tablas sin cortes, figuras con su epígrafe).</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Consume el HTML de <code>report.py</code> y se invoca
+  desde <code>cli.py analyze --pdf</code>.</p>
 </div>
 
 <h2 id="s5">5. Cómo se relacionan los módulos (mapa mental)</h2>
@@ -559,13 +613,13 @@ Visto como capas, el sistema queda así:
     </tr>
     <tr>
       <td><b>Análisis</b></td>
-      <td><code>compare.py</code>, <code>aggregate.py</code>, <code>decisions.py</code></td>
-      <td>Interpretan los resultados: comparar, medir variabilidad, registrar decisiones.</td>
+      <td><code>compare.py</code>, <code>aggregate.py</code>, <code>decisions.py</code>, <code>analysis.py</code></td>
+      <td>Interpretan los resultados: comparar, medir variabilidad, registrar decisiones y resumir la estadística de los exports.</td>
     </tr>
     <tr>
       <td><b>Salida</b></td>
-      <td><code>export.py</code>, <code>cli.py</code></td>
-      <td>Publican los resultados (CSV) y ofrecen la interfaz de uso.</td>
+      <td><code>export.py</code>, <code>report.py</code>, <code>pdf.py</code>, <code>cli.py</code></td>
+      <td>Publican los resultados (CSV, HTML y PDF) y ofrecen la interfaz de uso.</td>
     </tr>
   </tbody>
 </table>
@@ -899,7 +953,7 @@ comparaciones controladas específicas de <code>class_weight</code>.
 
 <hr>
 <p class="note">
-Documento generado a partir de la lectura directa del código de los 16 módulos del paquete
+Documento generado a partir de la lectura directa del código de los 17 módulos del paquete
 <code>prebenchmark/</code> y del diseño en
 <code>openspec/changes/prebenchmark-infra/design.md</code>. Refleja el estado actual del repositorio.
 </p>
@@ -909,10 +963,11 @@ Documento generado a partir de la lectura directa del código de los 16 módulos
 
 <h3 id="s9_1">9.1 ¿Dónde queda todo?</h3>
 <ul>
-  <li><code>results/&lt;experiment_id&gt;/</code> - todo lo generado para ese experimento.</li>
-  <li><code>results/&lt;experiment_id&gt;/configs.jsonl</code> - definiciones de configuraciones ejecutadas para ese experimento (una línea por <code>config_id</code>/instancia). Incluye metadatos de validación (<code>validation_state</code>, <code>validation_rationale</code>) y <code>space_key</code> para agrupar por espacio.</li>
-  <li><code>results/&lt;experiment_id&gt;/&lt;run_id&gt;/</code> - una carpeta por corrida. Aquí está lo mínimo para reproducir/auditar esa corrida exacta.</li>
+  <li><code>results/experiments/&lt;experiment_id&gt;/</code> - store de corridas en la organización actual del repositorio. Se usa con <code>--root results/experiments</code>; el valor por defecto de la CLI sigue siendo <code>results</code>.</li>
+  <li><code>results/experiments/&lt;experiment_id&gt;/configs.jsonl</code> - definiciones de configuraciones ejecutadas para ese experimento (una línea por <code>config_id</code>/instancia). Incluye metadatos de validación (<code>validation_state</code>, <code>validation_rationale</code>) y <code>space_key</code> para agrupar por espacio.</li>
+  <li><code>results/experiments/&lt;experiment_id&gt;/&lt;run_id&gt;/</code> - una carpeta por corrida. Aquí está lo mínimo para reproducir/auditar esa corrida exacta.</li>
   <li><code>results/exports/&lt;experiment_id&gt;/</code> - artefactos <b>derivados</b> en CSV, con marca de tiempo UTC (no se sobrescriben entre exportaciones).</li>
+  <li><code>results/reports/&lt;experiment_id&gt;/</code> - reportes <b>derivados</b> de los exports: un HTML autocontenido y, opcionalmente, su PDF, también con marca de tiempo.</li>
 </ul>
 
 <h3 id="s9_2">9.2 Dentro de cada carpeta de corrida (<code>&lt;run_id&gt;/</code>)</h3>
@@ -936,24 +991,34 @@ Documento generado a partir de la lectura directa del código de los 16 módulos
   </ul>
 </div>
 
-<h3 id="s9_4">9.4 Cómo leerlo sin cargar todo en memoria</h3>
+<h3 id="s9_4">9.4 Los reportes en <code>results/reports/&lt;experiment_id&gt;/</code></h3>
+<div class="card">
+  <ul>
+    <li><b><code>analysis_&lt;ts&gt;.html</code></b> - reporte autocontenido: CSS inline, tablas y figuras embebidas como PNG en base64. Se abre sin red y se puede compartir como un solo archivo.</li>
+    <li><b><code>analysis_&lt;ts&gt;.pdf</code></b> - la misma versión impresa a PDF con Chrome/Edge headless. Es opcional: se genera con <code>analyze --pdf</code>.</li>
+    <li><b>Origen</b> - ambos se producen a partir de los CSV de <code>results/exports/&lt;experiment_id&gt;/</code>, no del store de corridas. Si se regenera el export, el reporte se puede reconstruir sin volver a entrenar.</li>
+  </ul>
+</div>
+
+<h3 id="s9_5">9.5 Cómo leerlo sin cargar todo en memoria</h3>
 <ul>
   <li><b>Para entender una corrida puntual:</b> mirar <code>metadata.json</code> (snapshot + métricas) + <code>epochs.csv</code> de esa carpeta.</li>
   <li><b>Para comparar muchas corridas:</b> usar <code>master_*.csv</code>.</li>
   <li><b>Para analizar curvas/convergencia:</b> filtrar <code>epochs_*.csv</code> por <code>run_id</code>/<code>config_id</code> (o usar <code>duckdb/polars</code> con filtros).</li>
   <li><b>Para estabilidad entre semillas:</b> mirar <code>aggregates_*.csv</code>.</li>
+  <li><b>Para el panorama visual:</b> abrir el HTML o el PDF de <code>results/reports/&lt;experiment_id&gt;/</code>.</li>
 </ul>
-<p class="muted">Nota: los CSV de <code>exports/</code> son derivados. La fuente primaria sigue siendo <code>results/&lt;exp&gt;/&lt;run_id&gt;/{metadata.json,epochs.*}</code> y <code>configs.jsonl</code>.</p>
+<p class="muted">Nota: los CSV de <code>exports/</code> y los reportes de <code>reports/</code> son derivados. La fuente primaria sigue siendo <code>results/experiments/&lt;exp&gt;/&lt;run_id&gt;/{metadata.json,epochs.*}</code> y <code>configs.jsonl</code>.</p>
 
 <h2 id="s10">10. Cómo interaccionar con el sistema (CLI)</h2>
 <p>
 Toda la infraestructura se maneja desde una única puerta de entrada:
 <code>python -m prebenchmark</code>. La CLI es <b>delgada</b>: no reimplementa entrenamiento,
-persistencia ni análisis; solo valida argumentos y cablea los módulos que ya existen. Sus cinco
+persistencia ni análisis; solo valida argumentos y cablea los módulos que ya existen. Sus seis
 subcomandos siguen el mismo orden del pipeline:
 </p>
-<div class="flow">generate ──► run ──► compare ──► aggregate ──► export
-(registrar)   (ejecutar)  (comparar)   (agrupar)      (publicar)</div>
+<div class="flow">generate ──► run ──► compare ──► aggregate ──► export ──► analyze
+(registrar) (ejecutar) (comparar) (agrupar)  (publicar)  (analizar)</div>
 <p>
 Cada subcomando escribe en un <b>experimento</b> identificado por <code>--experiment-id</code>. El
 experimento es, literalmente, el nombre de la carpeta dentro de la raíz de resultados
@@ -980,7 +1045,7 @@ python -m prebenchmark generate --experiment-id exp-001
 # Alternativa sin activar el entorno:
 &amp; .\.venv\Scripts\python.exe -m prebenchmark generate --experiment-id exp-001</pre>
 <p>La forma general de cualquier comando es:</p>
-<pre>python -m prebenchmark {generate,run,compare,aggregate,export} --experiment-id EXP [--root results]</pre>
+<pre>python -m prebenchmark {generate,run,compare,aggregate,export,analyze} --experiment-id EXP [--root results]</pre>
 <table>
   <thead>
     <tr><th>Opción común</th><th>Obligatoria</th><th>Valor por defecto</th><th>Qué hace</th></tr>
@@ -1040,6 +1105,11 @@ Se pasa <b>como máximo una</b> de las tres. <code>compare</code> la exige; <cod
 usa si se indica y, si no, reutiliza la que quedó guardada en <code>experiment.json</code>;
 <code>aggregate</code> acepta las opciones por compartir el parser, pero <b>no las usa</b>.
 </p>
+<p class="note">
+<code>analyze</code> no usa las opciones de línea base: su referencia se elige con
+<code>--reference-config-id</code> (o, por defecto, la configuración con mejor F1 medio). Tiene su
+propio conjunto de opciones, que se detalla en 10.7.
+</p>
 <p><b>Códigos de salida.</b> La CLI distingue tres situaciones:</p>
 <table>
   <thead>
@@ -1066,8 +1136,9 @@ usa si se indica y, si no, reutiliza la que quedó guardada en <code>experiment.
   </tbody>
 </table>
 <p class="note">
-Los mensajes de consola están en inglés porque provienen directamente de <code>argparse</code> y de
-los <code>print</code> del código. La documentación y los artefactos son independientes de eso.
+La mayoría de los mensajes de consola están en inglés porque provienen directamente de
+<code>argparse</code> y de los <code>print</code> del código. El subcomando <code>analyze</code>
+imprime en español. La documentación y los artefactos son independientes de eso.
 </p>
 <p><b>Lo que la CLI no tiene.</b> No hay un subcomando para listar corridas ni para registrar
 decisiones: los <code>run_id</code> se obtienen de la salida de <code>run</code> o de las carpetas
@@ -1470,7 +1541,100 @@ python -m prebenchmark export --experiment-id exp-001 --out .\salidas --no-plots
   Un fallo de <code>matplotlib</code> no bloquea los CSV.</li>
 </ul>
 
-<h3 id="s10_7">10.7 Flujos completos de ejemplo</h3>
+<h3 id="s10_7">10.7 <code>analyze</code>: generar el reporte estadístico</h3>
+<p>
+<b>Para qué sirve.</b> Lee el snapshot exportado más reciente del experimento
+(<code>master</code>, <code>configs</code> y <code>epochs</code>; <code>aggregates</code> es
+opcional) y escribe un <b>reporte HTML autocontenido</b>. Con <code>--pdf</code> también lo imprime
+a PDF. No entrena ni lee el store interno: consume el contrato de
+<code>results/exports/&lt;EXP&gt;/</code>.
+</p>
+<pre>python -m prebenchmark analyze --experiment-id exp-001
+python -m prebenchmark analyze --experiment-id exp-001 --pdf
+python -m prebenchmark analyze --experiment-id exp-001 --export-dir results/exports/exp-001 --out results/reports
+python -m prebenchmark analyze --experiment-id exp-001 --reference-config-id grp-v1-...
+python -m prebenchmark analyze --experiment-id exp-001 --no-figures --top-curves 9</pre>
+<table>
+  <thead>
+    <tr><th>Opción</th><th>Valor por defecto</th><th>Qué hace</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--export-dir</code></td>
+      <td><code>&lt;exports&gt;/&lt;EXP&gt;</code></td>
+      <td>Directorio explícito del snapshot exportado. Tiene prioridad sobre <code>--exports</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--exports</code></td>
+      <td><code>&lt;root&gt;/exports</code></td>
+      <td>Raíz de exportaciones. El snapshot se busca en <code>&lt;exports&gt;/&lt;EXP&gt;/</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--out</code></td>
+      <td><code>&lt;root&gt;/reports</code></td>
+      <td>Raíz de reportes. El archivo se escribe en <code>&lt;out&gt;/&lt;EXP&gt;/analysis_&lt;ts&gt;.html</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--reference-config-id</code></td>
+      <td>mejor F1 medio</td>
+      <td>Configuración de referencia. Acepta un <code>group_key</code> o cualquier
+      <code>config_id</code> que pertenezca al grupo.</td>
+    </tr>
+    <tr>
+      <td><code>--top-curves</code></td>
+      <td><code>6</code></td>
+      <td>Cantidad de configuraciones que se grafican en el panel de curvas de
+      <code>val_loss</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--title</code></td>
+      <td>título automático</td>
+      <td>Sobrescribe el título del reporte.</td>
+    </tr>
+    <tr>
+      <td><code>--no-figures</code></td>
+      <td>figuras activadas</td>
+      <td>Genera solo tablas y estadísticas, sin figuras.</td>
+    </tr>
+    <tr>
+      <td><code>--pdf</code></td>
+      <td>desactivado</td>
+      <td>También imprime el HTML a PDF con Chrome/Edge headless. El PDF queda al lado del HTML,
+      con el mismo nombre base.</td>
+    </tr>
+    <tr>
+      <td><code>--browser</code></td>
+      <td>autodetección</td>
+      <td>Ruta explícita a Chrome o Edge para <code>--pdf</code>.</td>
+    </tr>
+  </tbody>
+</table>
+<p><b>Salida esperada.</b> Un resumen por consola y los dos archivos en
+<code>results/reports/&lt;EXP&gt;/</code>:</p>
+<pre>analizadas 360 corrida(s) en 72 configuración(es)
+referencia: grp-v1-... (tanh | adam | lr=0.01 | he | cw=balanced)
+reporte: results\reports\exp-001\analysis_&lt;ts&gt;.html (&lt;n&gt; bytes, 8 figura(s))
+pdf: results\reports\exp-001\analysis_&lt;ts&gt;.pdf (&lt;n&gt; bytes)</pre>
+<ul>
+  <li><b>Entrada mínima.</b> El snapshot debe tener <code>master_*.csv</code>,
+  <code>configs_*.csv</code> y <code>epochs_*.csv</code>. Si falta alguna, el comando falla con un
+  error claro y no genera un reporte incompleto.</li>
+  <li><b>Referencia explícita.</b> Si no se pasa <code>--reference-config-id</code>, se usa la
+  configuración con mejor F1 medio como referencia <i>empírica</i>. El reporte documenta esa
+  elección.</li>
+  <li><b>PDF opcional.</b> Si no hay Chrome ni Edge, el HTML se genera igual; el comando devuelve
+  código <code>1</code> y explica cómo indicar un navegador con <code>--browser</code>.</li>
+  <li><b>Idioma.</b> El texto del reporte y las figuras están en español; los nombres de columnas
+  del CSV (<code>f1_macro</code>, <code>best_epoch</code>, etc.) se mantienen en inglés porque son
+  el contrato de datos.</li>
+</ul>
+
+<h3 id="s10_8">10.8 Flujos completos de ejemplo</h3>
+<p class="note">
+En este repositorio las corridas existentes están en <code>results/experiments/</code>. Para
+usarlas, agregá <code>--root results/experiments</code> a todos los comandos. Los ejemplos de abajo
+omiten ese flag para no repetirlo y usan el valor por defecto (<code>results</code>).
+</p>
 <p>
 <b>A. Prueba corta de punta a punta (recomendada para la primera interacción).</b> Usa solo dos
 configuraciones y tres épocas; tarda poco y permite ver todos los artefactos:
@@ -1485,7 +1649,9 @@ python -m prebenchmark compare --experiment-id exp-demo --baseline-run-id 202610
 
 python -m prebenchmark aggregate --experiment-id exp-demo
 
-python -m prebenchmark export --experiment-id exp-demo --baseline-run-id 20261022T143012Z-a1b2c3 --no-plots</pre>
+python -m prebenchmark export --experiment-id exp-demo --baseline-run-id 20261022T143012Z-a1b2c3 --no-plots
+
+python -m prebenchmark analyze --experiment-id exp-demo --pdf</pre>
 <p class="note">
 En este flujo <b>no</b> se puede usar <code>--documented-default</code>: las corridas usaron
 <code>--max-epochs 3</code> y <code>--earlyStop</code>, así que su <code>config_id</code> no es el
@@ -1504,7 +1670,9 @@ python -m prebenchmark compare --experiment-id exp-exploratorio --baseline-run-i
 
 python -m prebenchmark aggregate --experiment-id exp-exploratorio --grouping config
 
-python -m prebenchmark export --experiment-id exp-exploratorio --baseline-run-id 20261022T143012Z-a1b2c3</pre>
+python -m prebenchmark export --experiment-id exp-exploratorio --baseline-run-id 20261022T143012Z-a1b2c3
+
+python -m prebenchmark analyze --experiment-id exp-exploratorio --pdf</pre>
 <p>
 <b>C. Dos brazos con y sin balanceo de clases.</b> El balanceo no divide el espacio de 36, pero sí
 cambia el protocolo y el <code>config_id</code>. Para que el brazo balanceado exista de verdad,
@@ -1517,7 +1685,8 @@ python -m prebenchmark generate --experiment-id exp-balanceado --class-weight ba
 python -m prebenchmark run --experiment-id exp-balanceado --limit 36 --multi-seed --class-weight balanced
 
 python -m prebenchmark aggregate --experiment-id exp-balanceado --grouping config
-python -m prebenchmark export --experiment-id exp-balanceado --baseline-run-id &lt;RUN_ID&gt;</pre>
+python -m prebenchmark export --experiment-id exp-balanceado --baseline-run-id &lt;RUN_ID&gt;
+python -m prebenchmark analyze --experiment-id exp-balanceado --pdf</pre>
 <p class="note">
 Para comparar los dos brazos entre sí, <code>compare</code> solo mira dentro de un mismo
 experimento. Si se quieren deltas entre brazos, hay que reunirlos en el mismo
@@ -1525,7 +1694,7 @@ experimento. Si se quieren deltas entre brazos, hay que reunirlos en el mismo
 analizar los CSV por fuera.
 </p>
 
-<h3 id="s10_8">10.8 Errores frecuentes y cómo resolverlos</h3>
+<h3 id="s10_9">10.9 Errores frecuentes y cómo resolverlos</h3>
 <table>
   <thead>
     <tr><th>Mensaje / síntoma</th><th>Causa</th><th>Solución</th></tr>
@@ -1582,6 +1751,25 @@ analizar los CSV por fuera.
       <code>--root</code>.</td>
     </tr>
     <tr>
+      <td><code>error: directorio de exportación no encontrado: ...</code></td>
+      <td><code>analyze</code> no encontró el snapshot de exports para ese experimento.</td>
+      <td>Ejecutar <code>export</code> primero, o pasar <code>--export-dir</code> con la ruta
+      correcta.</td>
+    </tr>
+    <tr>
+      <td><code>error: al directorio de exportación ... le faltan tablas requeridas: ...</code></td>
+      <td>El snapshot existe pero está incompleto: faltan <code>master</code>, <code>configs</code>
+      o <code>epochs</code>.</td>
+      <td>Volver a ejecutar <code>export</code> para regenerar el snapshot completo.</td>
+    </tr>
+    <tr>
+      <td><code>error: no se pudo generar el PDF: no se encontró Chrome ni Edge...</code></td>
+      <td>Se pidió <code>analyze --pdf</code> pero no hay navegador Chromium instalado o no está en
+      las rutas habituales.</td>
+      <td>Instalar Chrome/Edge o pasar <code>--browser "C:\ruta\a\chrome.exe"</code>. El HTML se
+      genera igual.</td>
+    </tr>
+    <tr>
       <td><code>No module named prebenchmark</code> o <code>can't open file ...</code></td>
       <td>Se ejecutó desde otra carpeta o con un Python que no tiene el paquete.</td>
       <td>Ejecutar desde la raíz del repositorio y usar el Python del entorno virtual
@@ -1596,7 +1784,7 @@ analizar los CSV por fuera.
   </tbody>
 </table>
 
-<h3 id="s10_9">10.9 Referencia rápida</h3>
+<h3 id="s10_10">10.10 Referencia rápida</h3>
 <table>
   <thead>
     <tr><th>Comando</th><th>Propósito</th><th>Opciones principales</th><th>Escribe</th></tr>
@@ -1636,13 +1824,22 @@ analizar los CSV por fuera.
       <td><code>--out</code>, <code>--no-plots</code>, opciones de línea base</td>
       <td><code>&lt;out&gt;/&lt;EXP&gt;/*_&lt;ts&gt;.csv</code> y PNG opcionales</td>
     </tr>
+    <tr>
+      <td><code>analyze</code></td>
+      <td>Generar el reporte estadístico HTML y, opcionalmente, PDF.</td>
+      <td><code>--export-dir</code>, <code>--out</code>, <code>--reference-config-id</code>,
+      <code>--top-curves</code>, <code>--no-figures</code>, <code>--pdf</code>,
+      <code>--browser</code></td>
+      <td><code>&lt;out&gt;/&lt;EXP&gt;/analysis_&lt;ts&gt;.html</code> y <code>.pdf</code> opcional</td>
+    </tr>
   </tbody>
 </table>
 <p class="muted">
 Secuencia recomendada: <code>generate</code> → <code>run</code> → <code>compare</code> →
-<code>aggregate</code> → <code>export</code>. La única dependencia estricta es que
-<code>compare</code> y <code>export</code> necesitan corridas ya persistidas; <code>run</code>
-puede ejecutarse sin <code>generate</code>, porque regenera la grilla por su cuenta.
+<code>aggregate</code> → <code>export</code> → <code>analyze</code>. La única dependencia estricta es
+que <code>compare</code> y <code>export</code> necesitan corridas ya persistidas, y
+<code>analyze</code> necesita el snapshot de <code>export</code>; <code>run</code> puede ejecutarse
+sin <code>generate</code>, porque regenera la grilla por su cuenta.
 </p>
 </body>
 </html>
