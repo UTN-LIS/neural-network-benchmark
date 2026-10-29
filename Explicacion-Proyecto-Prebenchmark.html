@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cómo funciona el proyecto — neural-network-benchmark</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #0b5fa5;
+    --accent-soft: #eaf2fa;
+    --rule: #d8d8d8;
+    --code-bg: #f4f6f8;
+    --code-ink: #24303b;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0 0 40px 0;
+  }
+  h1, h2, h3, h4 { color: var(--accent); line-height: 1.25; }
+  h1 { font-size: 24pt; margin: 0 0 4px 0; }
+  h2 {
+    font-size: 16pt;
+    margin: 26px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--rule);
+  }
+  h3 { font-size: 13pt; margin: 18px 0 4px 0; }
+  h4 { font-size: 11.5pt; margin: 12px 0 2px 0; color: #333; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 22px; padding: 0; }
+  li { margin: 3px 0; }
+  code {
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+    font-size: 9.5pt;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+  pre {
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+    font-size: 9pt;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.4;
+  }
+  .toc { margin: 18px 0 26px 0; border: 1px solid var(--rule); border-radius: 6px; padding: 14px 18px; background: #fbfcfe; }
+  .toc h2 { margin-top: 0; border-bottom: none; padding-bottom: 0; font-size: 14pt; }
+  .toc ol { margin: 8px 0 0 22px; }
+  .toc li { margin: 4px 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc .sub { margin-left: 16px; list-style: none; }
+  .toc .sub li { margin: 2px 0; }
+  .cover {
+    border-bottom: 3px solid var(--accent);
+    padding: 10px 0 18px 0;
+    margin-bottom: 10px;
+  }
+  .subtitle { font-size: 12.5pt; color: var(--muted); margin: 0; }
+  .muted { color: var(--muted); }
+  .meta { font-size: 9.5pt; color: var(--muted); margin-top: 10px; }
+  .lead { font-size: 11pt; }
+  .card {
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    background: #fbfcfe;
+    border-radius: 5px;
+    padding: 10px 14px;
+    margin: 12px 0;
+  }
+  .module {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 4px 16px 12px 16px;
+    margin: 16px 0;
+    page-break-inside: avoid;
+  }
+  .module h3 { margin-top: 12px; }
+  .tag {
+    display: inline-block;
+    font-size: 8.5pt;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 10px;
+    padding: 1px 9px;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  .tag.soft { background: #7a8a99; }
+  .kv { margin: 4px 0; }
+  .kv b { color: #333; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 9.5pt;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 5px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--accent-soft); color: #123; }
+  .flow {
+    font-family: "Cascadia Mono", "Consolas", monospace;
+    font-size: 9pt;
+    border: 1px dashed var(--rule);
+    border-radius: 6px;
+    padding: 12px;
+    background: #fafafa;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .note { font-size: 9.5pt; color: var(--muted); }
+  .principle { margin: 8px 0; }
+  .principle b { color: var(--accent); }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 20px 0; }
+  .avoid-break { page-break-inside: avoid; }
+  @media print {
+    pre { white-space: pre-wrap; overflow-wrap: break-word; overflow-x: visible; }
+  }
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>neural-network-benchmark</h1>
+  <p class="subtitle">Cómo funciona el proyecto, módulo por módulo — y cómo se relacionan entre sí</p>
+  <p class="meta">Explicación en lenguaje natural · Paquete <code>prebenchmark/</code> · Fase de pre-benchmark</p>
+</div>
+<div class="toc">
+  <h2>Índice</h2>
+  <ol>
+    <li><a href="#s1">Qué es este proyecto, en una frase</a></li>
+    <li><a href="#s2">El punto de partida: las scripts legadas en <code>Experimentos/</code></a></li>
+    <li><a href="#s3">El recorrido general: el pipeline de 5 etapas</a></li>
+    <li><a href="#s4">Los módulos, uno por uno</a> <span class="muted">(4.1–4.14)</span></li>
+    <li><a href="#s5">Cómo se relacionan los módulos (mapa mental)</a></li>
+    <li><a href="#s6">Las ideas que sostienen todo el diseño</a></li>
+    <li><a href="#s7">Decisiones arquitectónicas y consideraciones generales</a>
+      <ul class="sub">
+        <li><a href="#s7_1">7.1 Protocolo multi-semilla: cómo medimos la estabilidad</a></li>
+        <li><a href="#s7_2">7.2 Comparación controlada vs. multi-variable ("solo informativo")</a></li>
+        <li><a href="#s7_3">7.3 MLP entrenado por retropropagación, no el perceptrón clásico</a></li>
+        <li><a href="#s7_4">7.4 El criterio de corte (early stopping)</a></li>
+        <li><a href="#s7_5">7.5 Guardar los pesos de la mejor época (<code>restore_best_weights</code>)</a></li>
+      </ul>
+    </li>
+    <li><a href="#s8">Resultados de los análisis obtenidos</a>
+      <ul class="sub">
+        <li><a href="#s8_1">8.1 El early stopping cambió por completo el costo del barrido</a></li>
+        <li><a href="#s8_2">8.2 ¿En cuántas épocas convergen la mayoría de las combinaciones?</a></li>
+        <li><a href="#s8_3">8.3 La familia <code>lr = 0.001</code> + <code>sgd</code>: un problema de convergencia</a></li>
+        <li><a href="#s8_4">8.4 Por qué bajamos el tope por defecto a 500 épocas</a></li>
+        <li><a href="#s8_5">8.5 CPU vs. GPU: por qué la GPU no aportaba mejoras</a></li>
+        <li><a href="#s8_6">8.6 Resumen de tiempos</a></li>
+      </ul>
+    </li>
+    <li><a href="#s9">Cómo registramos los resultados y cómo hacemos el análisis</a>
+      <ul class="sub">
+        <li><a href="#s9_1">9.1 ¿Dónde queda todo?</a></li>
+        <li><a href="#s9_2">9.2 Dentro de cada carpeta de corrida (<code>&lt;run_id&gt;/</code>)</a></li>
+        <li><a href="#s9_3">9.3 Los archivos en <code>results/exports/&lt;experiment_id&gt;/</code></a></li>
+        <li><a href="#s9_4">9.4 Cómo leerlo sin cargar todo en memoria</a></li>
+      </ul>
+    </li>
+    <li><a href="#s10">Cómo interaccionar con el sistema (CLI)</a>
+      <ul class="sub">
+        <li><a href="#s10_1">10.1 Punto de entrada, opciones comunes y códigos de salida</a></li>
+        <li><a href="#s10_2">10.2 <code>generate</code>: registrar la grilla de candidatos</a></li>
+        <li><a href="#s10_3">10.3 <code>run</code>: ejecutar configuraciones</a></li>
+        <li><a href="#s10_4">10.4 <code>compare</code>: comparar contra una línea base</a></li>
+        <li><a href="#s10_5">10.5 <code>aggregate</code>: agrupar repeticiones</a></li>
+        <li><a href="#s10_6">10.6 <code>export</code>: generar las tablas CSV</a></li>
+        <li><a href="#s10_7">10.7 Flujos completos de ejemplo</a></li>
+        <li><a href="#s10_8">10.8 Errores frecuentes y cómo resolverlos</a></li>
+        <li><a href="#s10_9">10.9 Referencia rápida</a></li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<p class="lead">
+Este documento explica, con palabras y no solo con código, <b>qué hace cada módulo del proyecto</b>,
+<b>qué aporta al funcionamiento general</b> y <b>cómo se conecta con los demás</b>. La idea es que
+cualquier persona pueda entender el sistema completo de arriba hacia abajo: primero el propósito,
+después el recorrido de los datos, y finalmente el detalle de cada pieza.
+</p>
+
+<h2 id="s1">1. Qué es este proyecto, en una frase</h2>
+<p>
+El proyecto es una <b>infraestructura experimental</b> para comparar redes neuronales de forma
+ordenada y trazable. No es "una red neuronal": es el <b>laboratorio</b> alrededor de la red. Su
+trabajo es <b>registrar</b> una grilla de configuraciones candidatas, <b>ejecutarlas</b> de manera
+reproducible, <b>guardar</b> cada resultado sin poder sobreescribirlo, <b>compararlas</b> contra una
+línea base, <b>agrupar</b> repeticiones para medir su variabilidad, y <b>exportar</b> todo a tablas
+CSV listas para analizar. La meta de fondo es que cada afirmación ("esta configuración es mejor")
+pueda rastrearse hasta el <b>exacto</b> conjunto de parámetros y la <b>exacta</b> versión del dataset
+que la produjeron.
+</p>
+<p>
+El nombre <code>prebenchmark</code> ("pre-benchmark") refleja su rol: es la etapa previa al benchmark
+formal. Primero se explora y se valida la maquinaria; después vendrá la comparación grande.
+</p>
+
+<h2 id="s2">2. El punto de partida: las scripts legadas en <code>Experimentos/</code></h2>
+<p>
+Antes de este paquete, todo el trabajo vivía en tres scripts monolíticos dentro de
+<code>Experimentos/</code> (<code>wine.py</code>, <code>banknote.py</code>, <code>wine_quality.py</code>).
+Cada script repetía el mismo pipeline de punta a punta: fijar semilla → dividir datos → escalar →
+armar el MLP → inicializar pesos → entrenar → medir métricas → imprimir en pantalla.
+</p>
+<p>
+Ese enfoque funcionaba, pero tenía tres problemas serios: <b>(1)</b> los resultados se
+<b>imprimían</b> y nunca se guardaban de forma estructurada; <b>(2)</b> la lógica estaba
+<b>duplicada</b> en cada script; y <b>(3)</b> no había forma de comparar configuraciones ni de
+registrar una decisión con su justificación. La decisión de diseño fue <b>no tocar</b> esos scripts
+(quedan como referencia histórica) y <b>extraer</b> el pipeline a un paquete nuevo, generalizándolo.
+Esa es la razón de que exista <code>prebenchmark/</code>: no se importa desde lo legado, se
+<b>reconstruye mejor</b>.
+</p>
+
+<h2 id="s3">3. El recorrido general: el pipeline de 5 etapas</h2>
+<p>
+Todo el paquete gira alrededor de un flujo que se ejecuta en orden, y cada etapa deja un rastro en
+disco. Se puede pensar como una línea de montaje:
+</p>
+<div class="flow">  register ──► run ──► compare ──► aggregate ──► export
+   (definir      (entrenar    (comparar    (agrupar       (tablas
+    la grilla)    cada config)  vs baseline) repeticiones)  CSV)</div>
+<p>En términos del código, el flujo de datos es este:</p>
+<div class="flow">ParameterSpace ──generate_configs──► [36 ExperimentConfig]
+       │
+       └── validate_config ──► VALID / WARNING (ejecutable) | INVALID (bloqueado)
+                                      │
+   run_experiment ── new_run_id ──► bucle de entrenamiento ──► RunResult
+       │   data.load_wine_quality → build_splits → build_dataloaders
+       │   build_model → initialize_weights → optimizador → métricas
+       └─────────────────────► store.persist_run (una sola escritura)
+                                      │
+        compare (baseline + guardas) ─┤
+        aggregate (agrupar por config)┤
+        decisions (log manual) ───────┤
+                                      ▼
+                     export.export_all → results/exports/&lt;experimento&gt;/</div>
+
+<h2 id="s4">4. Los módulos, uno por uno</h2>
+<p>
+Cada módulo tiene una responsabilidad clara y un "contrato" (su API pública). La regla de oro del
+diseño es que <b>cada módulo hace una cosa</b> y que las capas puras (config, space, compare,
+aggregate, decisions) <b>no importan</b> torch ni hacen entrada/salida, por lo que son seguras de
+importar en cualquier lado y fáciles de testear.
+</p>
+
+<div class="module">
+  <h3>4.1 <code>config.py</code> — el plano de la obra <span class="tag">núcleo</span></h3>
+  <p class="kv"><b>Qué hace.</b> Define el <b>esquema</b> de una configuración de experimento usando
+  <i>dataclasses</i> tipadas: una clase <code>ExperimentConfig</code> con todos los parámetros, y
+  sub-especificaciones anidadas (<code>DatasetSpec</code>, <code>ArchitectureSpec</code>,
+  <code>SplitSpec</code>, <code>PreprocessingSpec</code>, <code>ConvergenceSpec</code>).</p>
+  <p class="kv"><b>Qué aporta.</b> Es el <b>contrato de datos</b> de todo el sistema. Aquí viven los
+  valores por defecto del protocolo (split 60/20/20, batch 32, 500 épocas, semilla 42) y las
+  <b>constantes de la línea base</b> (ReLU + Adam + lr 0.001 + He). También guarda los
+  <b>registros de nombres válidos</b> (<code>KNOWN_ACTIVATIONS</code>, <code>KNOWN_OPTIMIZERS</code>,
+  etc.) que serán la única fuente de verdad para validar. Incluye <code>to_dict()</code> /
+  <code>from_dict()</code> con orden de campos <b>canónico</b> (clave para calcular huellas de
+  identidad), y <code>resolve_convergence()</code>, que rellena con valores documentados los campos
+  de convergencia que el usuario deje vacíos.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Es la base de casi todo: <code>space.py</code> la usa
+  para generar la grilla, <code>identity.py</code> para calcular hashes, <code>runner.py</code> para
+  entrenar, y <code>store.py</code> para persistir el snapshot. No importa librerías de terceros:
+  es puramente declarativo.</p>
+</div>
+
+<div class="module">
+  <h3>4.2 <code>space.py</code> — la grilla de candidatos y su validación <span class="tag">núcleo</span></h3>
+  <p class="kv"><b>Qué hace.</b> Define el <b>espacio de parámetros</b> (las cuatro dimensiones
+  libres: <i>activation</i>, <i>optimizer</i>, <i>lr</i>, <i>init</i>) y genera la grilla completa
+  como <b>producto cartesiano</b>: 3 × 2 × 3 × 2 = <b>36 configuraciones</b>. Ninguna se escribe a
+  mano. Además expone <code>validate_config()</code>, que clasifica cada configuración en
+  <b>VALID</b>, <b>WARNING</b> o <b>INVALID</b> con una justificación explícita.</p>
+  <p class="kv"><b>Qué aporta.</b> Es el <b>generador y el portero</b> del experimento. Su sistema de
+  reglas distingue dos cosas: errores <b>INVALID</b> (restricciones técnicas reales: un nombre de
+  activación desconocido, dimensiones incompatibles, proporciones que no suman 1, <code>lr</code>
+  ≤ 0) que <b>bloquean</b> la ejecución; y advertencias <b>WARNING</b> (riesgo metodológico:
+  <code>lr</code> alto con Adam o SGD, He con sigmoide/tanh, Xavier con ReLU) que <b>se permiten
+  ejecutar</b> pero se registran. Por defecto, las 36 combinaciones quedan como máximo en WARNING:
+  <b>nada se rechaza por mera convención</b>.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Toma el esquema de <code>config.py</code> y alimenta
+  tanto al <code>runner.py</code> (qué entrenar) como al <code>store.py</code> (qué registrar, con su
+  estado de validación). También define <code>compute_space_key()</code>, la huella de las 4
+  dimensiones que usa <code>identity.py</code>.</p>
+</div>
+
+<div class="module">
+  <h3>4.3 <code>identity.py</code> — las "cédulas" de configuraciones y corridas <span class="tag">núcleo</span></h3>
+  <p class="kv"><b>Qué hace.</b> Genera <b>identificadores estables y únicos</b>. Maneja dos tipos de
+  huella y es clave entender por qué son dos:</p>
+  <ul>
+    <li><code>config_id</code> = <code>cfg-v1-&lt;sha256(config completa)[:12]&gt;</code>. Hashea
+    <b>todos</b> los campos, incluida la semilla y el <code>class_weight</code>. Dos configuraciones
+    idénticas dan el mismo id; cualquier diferencia da otro. Sirve para <b>agrupar repeticiones</b>.</li>
+    <li><code>space_key</code> = <code>space-v1-&lt;hash de las 4 dimensiones&gt;</code>. Solo depende
+    de activation/optimizer/lr/init, así que un cambio de <code>class_weight</code> <b>no parte</b> la
+    grilla de 36.</li>
+  </ul>
+  <p class="kv"><b>Qué aporta.</b> Resuelve el dilema de tener una identidad "fina" (todo el
+  protocolo) y una "gruesa" (solo el espacio). Además crea los <b>run_id</b> como
+  <code>&lt;timestamp UTC&gt;-&lt;6 hex&gt;</code>. Ese id es el <b>nombre de la carpeta</b> en la que
+  se guarda la corrida, y como las carpetas no se pueden crear dos veces, esto convierte el
+  "nunca sobreescribir" en algo <b>estructural</b>, no en una promesa.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Lo usan <code>store.py</code> (nombres de archivos y
+  deduplicación), <code>runner.py</code> (id de cada corrida) y <code>compare.py</code> (agrupar y
+  seleccionar baseline).</p>
+</div>
+
+<div class="module">
+  <h3>4.4 <code>store.py</code> — la memoria del laboratorio <span class="tag">núcleo</span></h3>
+  <p class="kv"><b>Qué hace.</b> Maneja la <b>persistencia en disco</b> mediante la clase
+  <code>ResultsStore</code>. Escribe y lee la estructura de carpetas de cada experimento y ofrece
+  consultas históricas (<code>query_runs</code>) que <b>nunca</b> dependen de lo que haya en memoria
+  del proceso: siempre leen del disco.</p>
+  <p class="kv"><b>Qué aporta.</b> Es el guardián de la <b>inmutabilidad</b>. Cada corrida se crea
+  con operaciones atómicas: primero se crea la carpeta (que falla si ya existe) y luego se escriben
+  <code>metadata.json</code> y <code>epochs.csv</code> <b>una sola vez</b> (con archivo temporal +
+  reemplazo atómico). Los dos logs, <code>configs.jsonl</code> y <code>decisions.jsonl</code>, son
+  <b>append-only</b>: nunca se reescriben. Esto significa que un resultado guardado <b>no se puede
+  modificar</b>, solo agregar cosas nuevas.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Es el punto de contacto con el disco para
+  <code>runner.py</code> (guardar), <code>compare.py</code> y <code>aggregate.py</code> (leer para
+  comparar/agrupar), <code>decisions.py</code> (loguear decisiones) y <code>export.py</code> (leer
+  todo para exportar).</p>
+</div>
+
+<div class="module">
+  <h3>4.5 <code>data.py</code> — los datos: descarga, huella, partición y lotes <span class="tag soft">pipeline</span></h3>
+  <p class="kv"><b>Qué hace.</b> Se ocupa de todo lo relativo a los datos: <code>fetch_wine_quality_csv()</code>
+  descarga el dataset <i>Wine Quality (white)</i> de UCI y lo cachea localmente;
+  <code>load_wine_quality()</code> lo carga; <code>build_splits()</code> arma la partición
+  train/val/test 60/20/20 estratificada y sembrada; y <code>build_dataloaders()</code> escala con
+  <code>StandardScaler</code> y construye los <code>DataLoader</code> de PyTorch.</p>
+  <p class="kv"><b>Qué aporta.</b> Dos cosas valiosas. Primero, la <b>huella del dataset</b>
+  (<code>compute_file_fingerprint</code> / <code>compute_dataframe_fingerprint</code>): un
+  <code>sha256-&lt;digest&gt;</code> del contenido, para poder <b>probar</b> que dos corridas usaron
+  exactamente los mismos datos. Segundo, un escalado correcto: el <code>StandardScaler</code> se
+  ajusta <b>solo con el train</b> y se aplica a val/test, evitando <i>fuga de información</i>. Los
+  lotes usan batch 32 y un generador sembrado para que el mezclado sea reproducible.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Lo usa casi exclusivamente <code>runner.py</code>. Toma
+  los parámetros (split, batch, semilla) de <code>config.py</code> y entrega loaders listos para
+  entrenar.</p>
+</div>
+
+<div class="module">
+  <h3>4.6 <code>model.py</code> — la red y cómo se inicializan sus pesos <span class="tag soft">pipeline</span></h3>
+  <p class="kv"><b>Qué hace.</b> <code>build_model()</code> construye el perceptrón multicapa (MLP)
+  como <code>nn.Sequential</code>, insertando la activación configurada en cada capa oculta y dejando
+  la capa de salida lineal. <code>initialize_weights()</code> inicializa los pesos con
+  <b>He/Kaiming</b> o <b>Xavier/Glorot</b> según la configuración, y pone los <i>biases</i> en cero.</p>
+  <p class="kv"><b>Qué aporta.</b> Materializa la dimensión "arquitectura" + "activación" +
+  "inicialización" del experimento. Aporta además <code>parameters_are_finite()</code>, una
+  comprobación de que ningún peso se volvió <i>NaN</i>/<i>Inf</i>, usada como red de seguridad
+  durante el entrenamiento.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Lo usa <code>runner.py</code>, tomando la
+  <code>ArchitectureSpec</code> y los nombres de activación/inicialización de
+  <code>config.py</code>.</p>
+</div>
+
+<div class="module">
+  <h3>4.7 <code>metrics.py</code> — medir y cuidar la estabilidad numérica <span class="tag soft">pipeline</span></h3>
+  <p class="kv"><b>Qué hace.</b> Calcula las métricas. <code>compute_final_metrics()</code> devuelve
+  exactitud, exactitud balanceada, precisión/recall/F1 macro y la matriz de confusión.
+  <code>epoch_train_step()</code> ejecuta una época de entrenamiento; <code>evaluate()</code> evalúa
+  el modelo sin gradientes.</p>
+  <p class="kv"><b>Qué aporta.</b> Además de las métricas, aporta una <b>defensa numérica</b>
+  importante: ambas funciones detectan valores no finitos (<i>NaN</i>/<i>Inf</i>) y, en el paso de
+  entrenamiento, <b>saltan el paso del optimizador</b> si la pérdida no es finita, para que un
+  gradiente corrupto no envenene los pesos. Devuelven banderas (<code>non_finite</code>,
+  <code>non_finite_batch</code>) con la época y el lote exactos donde falló.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Lo usa <code>runner.py</code> en cada época y en la
+  evaluación final.</p>
+</div>
+
+<div class="module">
+  <h3>4.8 <code>runner.py</code> — el director de orquesta <span class="tag">núcleo</span></h3>
+  <p class="kv"><b>Qué hace.</b> <code>run_experiment()</code> es el corazón ejecutable. Coordina todo:
+  siembra las fuentes aleatorias (NumPy, torch, CUDA) para reproducibilidad; elige el dispositivo
+  (CPU/CUDA); genera <code>run_id</code> y <code>config_id</code>; valida y registra la
+  configuración; resuelve el criterio de convergencia; obtiene la huella del dataset y captura el
+  entorno (ambas de forma "best-effort"); y ejecuta el <b>bucle de entrenamiento</b> época por época.</p>
+  <p class="kv"><b>Qué aporta.</b> Es donde viven las garantías del experimento:</p>
+  <ul>
+    <li><b>Entrenamiento configurable:</b> arma dataloaders, modelo, inicialización, optimizador
+    (SGD/Adam) y pérdida (CrossEntropy, con pesos balanceados si se pidió).</li>
+    <li><b>Parada por convergencia:</b> si está habilitada, aplica el criterio (por defecto
+    <code>val_loss</code>, paciencia 20, min_delta 1e-4) y registra <b>por qué</b> paró.</li>
+    <li><b>Robustez numérica:</b> si detecta <i>NaN</i>/<i>Inf</i> en train, validación o en los
+    propios pesos, <b>aborta</b> la corrida como FAILED, pero <b>igual la guarda</b> con el
+    <i>traceback</i> y la época/lote del fallo.</li>
+    <li><b>Metadatos completos:</b> arma el registro de la corrida con snapshot de la config,
+    versión del dataset, entorno, nota de determinismo, estado de ejecución, advertencias, métricas
+    finales (etiquetadas como evaluadas en <i>test</i>), cantidad de parámetros y tiempo de
+    entrenamiento.</li>
+    <li><b>Épocas inmutables:</b> acumula el historial de épocas en memoria y lo escribe <b>una sola
+    vez</b> al finalizar (o al fallar), garantizando que no se corrompa a mitad de camino.</li>
+  </ul>
+  <p class="kv"><b>Con quién se relaciona.</b> Es el integrador central: usa <code>data</code>,
+  <code>model</code>, <code>metrics</code>, <code>environment</code>, <code>config</code>,
+  <code>identity</code>, <code>space</code> y <code>store</code>. Todo lo demás existe para servirlo
+  a él o para leer lo que él produce.</p>
+</div>
+
+<div class="module">
+  <h3>4.9 <code>environment.py</code> — dejar constancia de dónde se corrió <span class="tag soft">soporte</span></h3>
+  <p class="kv"><b>Qué hace.</b> Captura el <b>entorno de ejecución</b>: sistema operativo, CPU,
+  disponibilidad de CUDA y nombre de las GPUs, y las versiones de Python, torch, numpy, pandas,
+  scikit-learn, scipy y matplotlib.</p>
+  <p class="kv"><b>Qué aporta.</b> <b>Reproducibilidad</b>. Saber con qué se corrió permite razonar
+  sobre un resultado más tarde. Cada sonda está envuelta defensivamente: si algo no está disponible,
+  devuelve <code>None</code> y <b>nunca</b> hace fallar la corrida.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Lo invoca <code>runner.py</code> y su salida se guarda
+  en los metadatos de cada corrida.</p>
+</div>
+
+<div class="module">
+  <h3>4.10 <code>compare.py</code> — comparar contra una línea base, con honestidad <span class="tag">análisis</span></h3>
+  <p class="kv"><b>Qué hace.</b> Compara corridas contra una baseline. Es un módulo de
+  <b>funciones puras</b>: no hace entrada/salida ni usa torch, solo opera sobre los metadatos de las
+  corridas. <code>select_baseline()</code> elige la línea base <b>de forma explícita</b> (por id de
+  corrida, por id de config, o activando el default documentado): <b>nunca adivina</b>.
+  <code>check_comparability()</code> verifica que dos corridas sean realmente comparables.
+  <code>compare_to_baseline()</code> calcula las diferencias.</p>
+  <p class="kv"><b>Qué aporta.</b> Es la <b>conciencia metodológica</b> del proyecto. Antes de emitir
+  un número, comprueba que dataset (nombre + versión), arquitectura, partición, épocas, convergencia,
+  tipo de corrida y conjunto de evaluación coincidan. Si algo no coincide, <b>niega las diferencias</b>
+  y marca la fila como <code>non_comparable</code> en lugar de inventar un valor. Distingue
+  comparaciones <b>controladas</b> (cambia exactamente una de las 4 dimensiones) de
+  <b>multi-variable</b> (cambian varias, y entonces lo marca como "solo informativo"). Y
+  deliberadamente <b>no</b> calcula un score compuesto: preserva el perfil completo de métricas con
+  sus <i>trade-offs</i>.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Lee los metadatos persistidos por <code>store.py</code>
+  (que produce <code>runner.py</code>) y expone una <b>superficie de normalización</b>
+  (<code>run_state</code>, <code>run_config</code>, <code>run_field</code>…) que reutilizan
+  <code>aggregate.py</code> y <code>export.py</code> para leer los registros <b>de la misma forma</b>.</p>
+</div>
+
+<div class="module">
+  <h3>4.11 <code>aggregate.py</code> — medir la variabilidad de las repeticiones <span class="tag">análisis</span></h3>
+  <p class="kv"><b>Qué hace.</b> Toma un conjunto de corridas, las <b>agrupa por identidad de
+  configuración</b> y calcula estadísticas por grupo. Por defecto agrupa por configuración
+  <b>normalizada por semilla</b> (le quita la semilla), para que varias corridas del mismo protocolo
+  con distinta semilla caigan en un mismo grupo. También ofrece el modo estricto
+  <code>grouping="config_id"</code>.</p>
+  <p class="kv"><b>Qué aporta.</b> Responde a la pregunta "¿qué tan estable es esta configuración?".
+  Por cada métrica calcula <code>n</code>, media, desvío estándar muestral (<code>ddof=1</code>),
+  mínimo, máximo y rango. Con honestidad estadística: reporta <code>n_total</code>,
+  <code>n_valid</code>, <code>n_failed</code> y <code>n_unstable</code> con sus proporciones; las
+  corridas fallidas se excluyen de las estadísticas pero <b>nunca se esconden</b>; y si hay menos
+  repeticiones que el mínimo (por defecto <b>3</b>), marca el grupo como <b>"repeticiones
+  insuficientes"</b> y sus valores no se presentan como confiables.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Reutiliza la superficie de normalización de
+  <code>compare.py</code>, toma los vocabularios de <code>decisions.py</code> y alimenta la tabla de
+  agregados de <code>export.py</code>.</p>
+</div>
+
+<div class="module">
+  <h3>4.12 <code>decisions.py</code> — el registro de decisiones, manual y con justificación <span class="tag soft">gobernanza</span></h3>
+  <p class="kv"><b>Qué hace.</b> Administra un <b>log de decisiones manual</b> (append-only).
+  <code>record_decision()</code> agrega una entrada que exige una <b>justificación no vacía</b>, un
+  <b>actor</b> y una referencia a la entidad afectada (corrida, config o grupo).</p>
+  <p class="kv"><b>Qué aporta.</b> Mantiene <b>dos clasificaciones independientes</b>: el
+  <b>estado técnico de ejecución</b> (COMPLETED / COMPLETED_WITH_WARNINGS / UNSTABLE / FAILED /
+  INCOMPLETE), que escribe el runner y el log nunca reescribe; y la <b>etiqueta exploratoria</b>
+  (VIABLE / INTERESTING / UNSTABLE / NON_VIABLE / PENDING_REVIEW), que decide una persona. Si alguien
+  intenta usar un estado técnico como etiqueta exploratoria, el sistema lo <b>rechaza</b>: así se
+  garantiza que lo que "pasó" (técnico) nunca se confunda con lo que "opinamos" (exploratorio). No
+  hay ningún motor automático de clasificación; la decisión siempre es humana y queda registrada.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Escribe a través de <code>store.py</code> y sus
+  vocabularios los consumen <code>aggregate.py</code> y <code>export.py</code>.</p>
+</div>
+
+<div class="module">
+  <h3>4.13 <code>export.py</code> — las tablas finales para analizar <span class="tag soft">salida</span></h3>
+  <p class="kv"><b>Qué hace.</b> <code>export_all()</code> produce un conjunto de <b>CSVs
+  con marca de tiempo</b> en <code>results/exports/&lt;experimento&gt;/</code>: un <code>master</code>
+  (todas las corridas), <code>baseline_comparison</code> (diferencias vs baseline),
+  <code>aggregates</code> (estadísticas por grupo), <code>epochs</code> (historial por época),
+  <code>configs</code> (definiciones + validación), <code>decisions</code> y
+  <code>warnings_summary</code>.</p>
+  <p class="kv"><b>Qué aporta.</b> Es una capa de <b>composición</b>: no reimplementa nada, junta lo
+  que produjeron <code>store</code>, <code>compare</code>, <code>aggregate</code> y
+  <code>decisions</code>. Su regla de oro es la <b>honestidad de los datos faltantes</b>: todo valor
+  ausente se escribe como el marcador literal <code>N/A</code>, <b>nunca</b> como un <code>0</code>
+  inventado. Los gráficos opcionales son <i>no bloqueantes</i>: si fallan, se registra una advertencia
+  y los CSV se generan igual.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Es la etapa final del pipeline; lee todo desde
+  <code>store.py</code> y reutiliza <code>compare.py</code>, <code>aggregate.py</code> y
+  <code>decisions.py</code>.</p>
+</div>
+
+<div class="module">
+  <h3>4.14 <code>cli.py</code>, <code>__init__.py</code> y <code>__main__.py</code> — la puerta de entrada <span class="tag soft">interfaz</span></h3>
+  <p class="kv"><b>Qué hacen.</b> <code>cli.py</code> es un punto de entrada <b>delgado</b> por línea
+  de comandos (<code>python -m prebenchmark</code>) con cinco subcomandos que mapean 1:1 con las
+  etapas del pipeline: <code>generate</code>, <code>run</code>, <code>compare</code>,
+  <code>aggregate</code> y <code>export</code>. <code>__main__.py</code> habilita esa invocación, y
+  <code>__init__.py</code> expone la API pública del paquete. El subcomando <code>run</code> acepta
+  <code>--multi-seed</code> (corre cada configuración con el conjunto fijo de 5 semillas),
+  <code>--earlyStop</code> (enciende el criterio de corte por convergencia) y
+  <code>--class-weight</code> (<code>none</code>/<code>balanced</code>: enciende o apaga el
+  balanceo de clases <b>sin tocar el espacio de 36 combinaciones</b>, porque <code>class_weight</code>
+  vive fuera de la <code>space_key</code>).</p>
+  <p class="kv"><b>Qué aportan.</b> El CLI <b>no reimplementa</b> lógica: solo cablea los módulos. Un
+  detalle de diseño fino: importa torch <b>de forma perezosa</b> solo dentro del subcomando
+  <code>run</code>, de modo que <code>generate</code>, <code>compare</code>, <code>aggregate</code> y
+  <code>export</code> funcionan sin cargar PyTorch ni tocar la red. <code>__init__.py</code> es
+  <b>import-safe</b>: importarlo no dispara entrenamiento ni entrada/salida.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Es la fachada de todo el paquete hacia quien lo usa
+  desde una terminal.</p>
+</div>
+
+<h2 id="s5">5. Cómo se relacionan los módulos (mapa mental)</h2>
+<p>
+Visto como capas, el sistema queda así:
+</p>
+<table>
+  <thead>
+    <tr><th>Capa</th><th>Módulos</th><th>Rol</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Definición</b></td>
+      <td><code>config.py</code>, <code>space.py</code>, <code>identity.py</code></td>
+      <td>Definen el <i>qué</i>: esquema, grilla de 36 configuraciones, validación e identidades.</td>
+    </tr>
+    <tr>
+      <td><b>Ejecución</b></td>
+      <td><code>data.py</code>, <code>model.py</code>, <code>metrics.py</code>, <code>runner.py</code>, <code>environment.py</code></td>
+      <td>Hacen el <i>trabajo</i>: cargar datos, armar y entrenar la red, medir, y registrar el entorno.</td>
+    </tr>
+    <tr>
+      <td><b>Persistencia</b></td>
+      <td><code>store.py</code></td>
+      <td>Garantiza que nada se pierda y nada se sobreescriba.</td>
+    </tr>
+    <tr>
+      <td><b>Análisis</b></td>
+      <td><code>compare.py</code>, <code>aggregate.py</code>, <code>decisions.py</code></td>
+      <td>Interpretan los resultados: comparar, medir variabilidad, registrar decisiones.</td>
+    </tr>
+    <tr>
+      <td><b>Salida</b></td>
+      <td><code>export.py</code>, <code>cli.py</code></td>
+      <td>Publican los resultados (CSV) y ofrecen la interfaz de uso.</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+El flujo de dependencias es en un solo sentido: las capas de definición no conocen a las de
+ejecución, y el análisis solo mira lo que quedó persistido en disco. Eso hace que cada pieza sea
+testeable por separado: las capas puras (<code>config</code>, <code>space</code>,
+<code>compare</code>, <code>aggregate</code>, <code>decisions</code>) se prueban sin entrenar, y solo
+la capa de ejecución necesita PyTorch.
+</p>
+
+<h2 id="s6">6. Las ideas que sostienen todo el diseño</h2>
+<p class="principle"><b>Trazabilidad total.</b> Cada resultado guarda el snapshot completo de su
+configuración, la versión exacta del dataset y el entorno. Se puede reconstruir de dónde salió cada
+número.</p>
+<p class="principle"><b>Inmutabilidad estructural.</b> Las corridas se escriben una sola vez y su
+carpeta no puede reutilizarse; los logs son append-only. No hay API para modificar un resultado
+pasado.</p>
+<p class="principle"><b>Explicitud por encima de los valores ocultos.</b> Todo valor por defecto
+(convergencia, baseline, mínimo de repeticiones) está declarado, es configurable y queda registrado.
+Nada es un umbral mágico.</p>
+<p class="principle"><b>Honestidad metodológica.</b> Si dos corridas no son comparables, se dice y no
+se emite el número; si faltan datos, se escribe <code>N/A</code> y no un cero; si falla una corrida,
+se guarda y se reporta el fallo en vez de esconderlo.</p>
+<p class="principle"><b>Determinismo y reproducibilidad.</b> Semillas fijas para NumPy, torch y CUDA;
+generadores sembrados en los dataloaders; y una nota que aclara los límites (por ejemplo, que ciertos
+<i>kernels</i> de cuDNN pueden seguir siendo no deterministas).</p>
+
+<h2 id="s7">7. Decisiones arquitectónicas y consideraciones generales</h2>
+<p>
+Además de las decisiones de <i>código</i>, el proyecto tomó un conjunto de <b>decisiones
+metodológicas</b>: cómo comparar configuraciones de forma justa, cómo medir su estabilidad, qué red
+usar y con qué técnica de aprendizaje, y cuándo detener el entrenamiento. Este apartado reúne esas
+definiciones y el razonamiento detrás de cada una.
+</p>
+
+<h3 id="s7_1">7.1 Protocolo multi-semilla: cómo medimos la estabilidad</h3>
+<p>
+Una configuración que "gana" por un margen chico puede haber ganado por casualidad de la semilla
+inicial. Para separar señal de ruido, la etapa exploratoria corre cada configuración con un
+<b>conjunto fijo de 5 semillas</b>:
+</p>
+<pre>EXPLORATORY_SEEDS = (42, 123, 7, 2025, 999)   # prebenchmark/seeds.py</pre>
+<ul>
+  <li><b>Cantidad (5).</b> Es un compromiso razonable: alcanza para estimar la dispersión sin
+  multiplicar el costo por 10 o 20. Las semillas son <b>fijas</b> (no aleatorias) para que el barrido
+  sea reproducible y comparable entre corridas.</li>
+  <li><b>Cómo se comparan.</b> Cada configuración (protocolo) se agrupa <i>ignorando</i> la semilla y
+  se resume con <b>media ± desvío estándar muestral</b> (<code>ddof=1</code>) sobre <code>val_loss</code>
+  y <code>val_accuracy</code>. Una configuración es <b>estable</b> cuando su dispersión entre semillas
+  es chica.</li>
+  <li><b>Agrupación.</b> El <code>config_id</code> es sensible a la semilla, pero la agrupación por
+  defecto (<code>grouping="config"</code>) la normaliza, de modo que las 5 corridas caen en el mismo
+  grupo. El modo estricto <code>grouping="config_id"</code> las mantiene separadas.</li>
+  <li><b>Implementación.</b> El flag <code>--multi-seed</code> del subcomando <code>run</code> expande
+  cada configuración del espacio a las 5 semillas. Sin él, <code>run</code> ejecuta una configuración con una
+  sola semilla (<code>--seed</code>).</li>
+</ul>
+<p class="note">
+Importante: comparar dos <i>semillas de la misma configuración</i> <b>no</b> es una comparación
+multi-variable (ver 7.2). La semilla se promedia; no es una de las cuatro dimensiones del espacio.
+</p>
+
+<h3 id="s7_2">7.2 Comparación controlada vs. multi-variable ("solo informativo")</h3>
+<p>
+No todas las diferencias son igual de interpretables. <code>compare.py</code> distingue dos casos:
+</p>
+<ul>
+  <li><b>Controlada.</b> La comparación cambia <b>exactamente una</b> de las cuatro dimensiones del
+  espacio (activation, optimizer, lr, init). El delta es <b>atribuible</b> a ese único cambio: por
+  ejemplo, "pasar de SGD a Adam mejoró la pérdida".</li>
+  <li><b>Multi-variable.</b> Cambian <b>varias</b> dimensiones a la vez. El delta igual se calcula,
+  pero se marca como <b>"solo informativo"</b>: no se puede atribuir a un solo factor, porque los
+  cambios se mezclan y sus efectos se confunden (no hay control experimental).</li>
+</ul>
+<p>
+La etiqueta "solo informativo" es una forma de <b>no mentir con los números</b>: se muestra el dato,
+pero se aclara que no admite lectura causal. Antes de emitir <i>cualquier</i> diferencia, el módulo
+comprueba además que las dos corridas sean realmente comparables (mismo dataset y versión,
+arquitectura, partición, épocas, convergencia, tipo de corrida y conjunto de evaluación); si algo no
+coincide, la fila queda marcada como <code>non_comparable</code> y no se emite el número.
+</p>
+
+<h3 id="s7_3">7.3 MLP entrenado por retropropagación, no el perceptrón clásico</h3>
+<p>
+El <b>perceptrón clásico</b> (la regla de aprendizaje de Rosenblatt) es un modelo de <b>una sola
+capa</b> que solo puede aprender fronteras de decisión <b>lineales</b>. Su límite es histórico y
+documentado: no resuelve problemas que no son linealmente separables (el ejemplo canónico es XOR), y
+no se extiende de forma natural a varias capas apiladas.
+</p>
+<p>
+Nuestro problema es de <b>clasificación multiclase no lineal</b> (la calidad del vino se reparte en
+varias clases que no se separan con una recta en el espacio de las 11 variables). Por eso usamos un
+<b>perceptrón multicapa (MLP)</b> —capas ocultas con activaciones no lineales— entrenado por
+<b>retropropagación (backpropagation)</b>: el error se propaga hacia atrás por la red y los pesos de
+<i>todas</i> las capas se ajustan con el gradiente de la función de pérdida. Ese mecanismo es lo que
+permite aprender representaciones no lineales capa por capa, algo que la regla clásica del
+perceptrón no puede hacer.
+</p>
+
+<h3 id="s7_4">7.4 El criterio de corte (early stopping)</h3>
+<p>
+La convergencia está <b>apagada por defecto</b>; se enciende con el flag <code>--earlyStop</code>. Al
+encenderse, los campos que no especifiquemos se completan con los valores documentados:
+</p>
+<table>
+  <thead><tr><th>Parámetro</th><th>Valor</th><th>Qué significa</th></tr></thead>
+  <tbody>
+    <tr><td><code>metric</code></td><td><code>val_loss</code></td><td>Qué se vigila para decidir el corte.</td></tr>
+    <tr><td><code>patience</code></td><td><code>20</code></td><td>Cuántas épocas sin mejora se toleran antes de cortar.</td></tr>
+    <tr><td><code>min_delta</code></td><td><code>1e-4</code></td><td>Cuánto tiene que mejorar para contar como "mejora".</td></tr>
+    <tr><td><code>mode</code></td><td><code>min</code></td><td>Menor pérdida es mejor.</td></tr>
+    <tr><td><code>restore_best_weights</code></td><td><code>True</code></td><td>Al cortar, restaura los mejores pesos (ver 7.5).</td></tr>
+  </tbody>
+</table>
+<p>
+<b>¿Por qué se mide la pérdida del conjunto de validación y no la del entrenamiento?</b> Porque la
+pérdida de <b>entrenamiento casi siempre baja</b>: el modelo se ajusta a los datos que ve. Si
+cortáramos por ella, no cortaríamos nunca, porque el modelo seguiría "mejorando" en el train mientras
+<b>sobreajusta</b> y empeora en datos nuevos. La pérdida de <b>validación</b> se calcula con datos que
+el modelo <b>no</b> usa para ajustar sus pesos, así que refleja <b>capacidad de generalización</b>.
+Cuando la validación deja de mejorar, seguir entrenando solo agrega sobreajuste. Por eso el corte
+honesto se basa en <code>val_loss</code>.
+</p>
+<p class="note">
+La paciencia (20) existe porque <code>val_loss</code> no baja de forma perfectamente monótona: puede
+subir un poco por ruido y luego volver a bajar. Exigir 20 épocas sin mejorar evita cortar por una
+fluctuación pasajera. El <code>min_delta</code> (1e-4) evita considerar "mejora" a variaciones
+insignificantes.
+</p>
+
+<h3 id="s7_5">7.5 Guardar los pesos de la mejor época (<code>restore_best_weights</code>)</h3>
+<p>
+Cuando el criterio está habilitado, se guarda el <b>estado de los pesos en la época de menor</b>
+<code>val_loss</code> y, al terminar el bucle, se <b>restauran</b> antes de evaluar en test. Es la
+semántica de <code>restore_best_weights=True</code> de Keras.
+</p>
+<p>
+El motivo: la última época <b>no</b> es necesariamente la mejor. Con early stopping el entrenamiento
+se detiene justo cuando la validación dejó de mejorar, así que la última época puede estar peor que
+el mejor punto anterior. Si evaluáramos el test con los pesos de la última época, reportaríamos un
+resultado <b>peor del que la configuración realmente logró</b>. Restaurar los mejores pesos hace que
+las métricas finales correspondan al mejor punto alcanzado. Aplica tanto si la corrida corta por
+convergencia como si llega al tope de épocas.
+</p>
+
+<h2 id="s8">8. Resultados de los análisis obtenidos</h2>
+<p>
+Antes de lanzar el barrido completo (36 configuraciones × 5 semillas = <b>180 corridas</b>), corrimos
+una serie de <b>pruebas exploratorias</b> para dimensionar el experimento y tomar decisiones con
+datos en la mano. Estos son los hallazgos.
+</p>
+
+<h3 id="s8_1">8.1 El early stopping cambió por completo el costo del barrido</h3>
+<p>
+Primero medimos el costo de entrenar <b>sin</b> criterio de corte. Con el tope de 1000 épocas por
+corrida, el barrido completo (180.000 épocas en total) se estimaba en <b>~11,5 horas</b> en esta
+máquina, con el proceso corriendo en un solo hilo de CPU.
+</p>
+<p>
+Después activamos el early stopping sobre una muestra de configuraciones representativas y volvimos a
+medir. El resultado fue contundente: <b>la enorme mayoría de las configuraciones corta mucho antes de
+las 1000 épocas</b>, así que el barrido completo bajó a un orden de <b>~1,8 horas</b> (rango
+aproximado de 0,6 a 2,5 h según qué tan temprano converge cada familia).
+</p>
+<table>
+  <thead><tr><th>Escenario</th><th>Tiempo estimado del barrido completo (180 corridas)</th></tr></thead>
+  <tbody>
+    <tr><td>Sin early stopping (tope 1000 épocas)</td><td>~11,5 h</td></tr>
+    <tr><td>Con early stopping</td><td>~1,8 h</td></tr>
+  </tbody>
+</table>
+<p class="note">
+La conclusión práctica: el early stopping no es un detalle de optimización, es lo que hace <b>viable</b>
+el barrido. Multiplica por ~6 la velocidad efectiva del experimento sin sacrificar la calidad del
+resultado (al contrario: evita evaluar modelos sobreajustados).
+</p>
+
+<h3 id="s8_2">8.2 ¿En cuántas épocas convergen la mayoría de las combinaciones?</h3>
+<p>
+Sobre una muestra balanceada de 9 configuraciones con early stopping, las épocas de parada fueron
+estas:
+</p>
+<table>
+  <thead><tr><th>Configuración (activation / optimizer / lr / init)</th><th>Época de parada</th></tr></thead>
+  <tbody>
+    <tr><td>relu / adam / 0.01 / he</td><td>36</td></tr>
+    <tr><td>tanh / sgd / 0.1 / he</td><td>40</td></tr>
+    <tr><td>relu / sgd / 0.1 / xavier</td><td>41</td></tr>
+    <tr><td>sigmoid / adam / 0.01 / xavier</td><td>47</td></tr>
+    <tr><td>tanh / adam / 0.001 / xavier</td><td>80</td></tr>
+    <tr><td>sigmoid / sgd / 0.1 / he</td><td>154</td></tr>
+    <tr><td>tanh / sgd / 0.01 / he</td><td>191</td></tr>
+    <tr><td>sigmoid / adam / 0.001 / xavier</td><td>323</td></tr>
+    <tr><td>relu / sgd / 0.001 / xavier</td><td>1000 (no cortó)</td></tr>
+  </tbody>
+</table>
+<p>
+El resumen: mediana <b>80 épocas</b>, mínimo 36, y 8 de 9 configuraciones cortaron solas. Las que
+"ganan" convergen muy temprano —los mejores resultados aparecen en las épocas <b>16 a 303</b>—,
+mientras que una única familia se fue hasta el tope.
+</p>
+
+<h3 id="s8_3">8.3 La familia <code>lr = 0.001</code> + <code>sgd</code>: un problema de convergencia</h3>
+<p>
+La excepción de la sección anterior no fue casual: <b>toda</b> la familia que combina una tasa de
+aprendizaje muy baja (0.001) con SGD resultó patológica en este problema. Estas son las 6
+configuraciones de esa familia, todas forzadas a correr hasta el tope:
+</p>
+<table>
+  <thead><tr><th>Configuración (activation / init)</th><th>Época de parada</th><th>Mejor <code>val_loss</code></th></tr></thead>
+  <tbody>
+    <tr><td>relu / xavier</td><td>1000</td><td>1.0550</td></tr>
+    <tr><td>relu / he</td><td>1000</td><td>1.0675</td></tr>
+    <tr><td>tanh / xavier</td><td>988</td><td>1.0680</td></tr>
+    <tr><td>tanh / he</td><td>1000</td><td>1.0716</td></tr>
+    <tr><td>sigmoid / xavier</td><td>1000</td><td>1.1646</td></tr>
+    <tr><td>sigmoid / he</td><td>1000</td><td>1.1680</td></tr>
+  </tbody>
+</table>
+<p>
+Dos observaciones clave. Primero, <b>5 de 6 llegaron al tope con la mejor época pegada al final</b>
+(<code>best_epoch ≈ 1000</code>): no convergieron, sino que la curva todavía estaba bajando y el
+límite de épocas las <b>truncó</b>. Segundo, ninguna se acerca a las mejores configuraciones: una
+configuración rápida como <code>relu / sgd / 0.1 / xavier</code> alcanza <code>val_loss ≈ 1.029</code>
+en <b>21 épocas</b>, mejor que lo que esta familia logra en 1000. Es decir, <b>esta familia no es
+competitiva</b>, y su mala convergencia es una propiedad real del espacio de búsqueda, no un artefacto
+del tope de épocas.
+</p>
+
+<h3 id="s8_4">8.4 Por qué bajamos el tope por defecto a 500 épocas</h3>
+<p>
+Con esos datos, dejar el tope en 1000 épocas no tenía sentido: los resultados competitivos aparecen
+entre las épocas 16 y 303, y la única familia que llega a 1000 <b>no mejora el ranking</b> aunque se
+entrene más. Por eso el valor por defecto pasó de <b>1000 a 500 épocas</b>.
+</p>
+<p>
+El tope no es una meta de entrenamiento, es un <b>presupuesto de terminación</b>: un límite de
+seguridad para las configuraciones que no convergen. Bajarlo a 500 recorta tiempo en el peor caso sin
+afectar a las configuraciones que compiten. El <code>min_delta</code> del criterio de corte se dejó
+intencionalmente sin cambios.
+</p>
+
+<h3 id="s8_5">8.5 CPU vs. GPU: por qué la GPU no aportaba mejoras</h3>
+<p>
+La máquina tiene una <b>NVIDIA RTX 4050 Laptop</b> (6 GB), pero el entorno de PyTorch instalado es
+<b>CPU-only</b> (<code>torch 2.14.1+cpu</code>, <code>cuda.is_available() = False</code>), así que la
+GPU no era usable sin reinstalar. Más allá de eso, <b>aunque estuviera disponible, no ayudaría</b>:
+</p>
+<ul>
+  <li>El modelo es <b>minúsculo</b>: un MLP de unos <b>1031 parámetros</b> (11 → 32 → 16 → 7).</li>
+  <li>Los lotes son chicos (batch 32) y el dataset también, así que una época son apenas ~153 lotes.</li>
+  <li>Cada paso es tan chico que el tiempo no lo domina el cálculo (FLOPs) sino el <b>overhead de
+  despacho</b> (lanzar operaciones, mover datos).</li>
+</ul>
+<p>
+En un caso así, mover el cómputo a la GPU agrega <b>lanzamiento de kernels y transferencias
+host↔device</b> que ni siquiera se amortizan: para redes tan chicas y lotes tan chicos, la GPU suele
+<i>empatar</i> o incluso <i>ir más lento</i> que la CPU. La conclusión fue <b>descartar la GPU</b> y
+optimizar donde sí había margen: reduciendo el costo por corrida (early stopping y tope de épocas).
+</p>
+
+<h3 id="s8_6">8.6 Resumen de tiempos</h3>
+<table>
+  <thead><tr><th>Medición</th><th>Valor</th></tr></thead>
+  <tbody>
+    <tr><td>Costo por época (CPU, esta máquina)</td><td>~0,067 – 0,23 s (varía por sesión)</td></tr>
+    <tr><td>Overhead por corrida</td><td>~0,5 s</td></tr>
+    <tr><td>Arranque del proceso</td><td>~15 – 20 s</td></tr>
+    <tr><td>Barrido completo sin early stopping (tope 1000)</td><td>~11,5 h</td></tr>
+    <tr><td>Barrido completo con early stopping</td><td>~1,8 h</td></tr>
+    <tr><td>Época mediana de convergencia (muestra)</td><td>80 épocas</td></tr>
+    <tr><td>Época de mejor resultado (configuraciones ganadoras)</td><td>16 – 303</td></tr>
+  </tbody>
+</table>
+<p class="note">
+Todas las corridas del barrido se ejecutan en <b>un solo proceso</b> (con <code>--limit 36
+--multi-seed</code>), de manera que el arranque se paga una sola vez y no una vez por configuración.
+</p>
+
+<h3 id="s8_7">8.7 Barrido con/sin balanceo de clases (dos brazos) sobre wine_quality</h3>
+<p>
+El dataset <code>wine_quality</code> (UCI winequality-white, 4898×12) presenta un desbalance extremo entre 7 clases
+(quality 3–9): proporciones desde 0,10% (clase 9) hasta 44,88% (clase 6), con ratio máximo ~440:1.
+Antes del barrido completo de 36 configuraciones × 5 semillas se verificó que el código <b>no aplicaba</b>
+<code>class_weight</code> (queda en <code>None</code> por construcción) y que existía una fuga: el <code>criterion</code>
+ponderado se reutilizaba en validación/test. Se corrigió para separar <code>criterion</code> de entrenamiento
+(ponderado con pesos por frecuencia sobre <code>y_train</code>) y evaluación/early stopping (siempre sin ponderar),
+se añadió <code>--class-weight {none,balanced}</code> a <code>generate/run</code> y <code>compare</code> pasó a tratar
+<code>class_weight</code> como dimensión controlada.
+</p>
+<p>
+Se ejecutó el experimento <code>exp-sweep-01</code> con early stopping (<code>metric=val_loss, patience=20, min_delta=1e-4</code>)
+en <b>dos brazos secuenciales</b>: 36 configs × 5 semillas = <b>180 corridas</b> sin balanceo (<code>class_weight=None</code>)
+y <b>180 corridas</b> con balanceo por frecuencia (<code>class_weight=balanced</code>), total <b>360 corridas</b>
+completadas en ~1h07m.
+</p>
+<table>
+  <thead><tr><th>Arm</th><th>accuracy (media ± std)</th><th>balanced_accuracy (media ± std)</th><th>precision_macro</th><th>recall_macro</th><th>f1_macro</th><th>loss (sin ponderar)</th><th>Épocas (media/mediana/max)</th><th>Tiempo total</th></tr></thead>
+  <tbody>
+    <tr><td>Sin balanceo (<code>none</code>)</td><td>0.5470 ± 0.0272</td><td>0.2396 ± 0.0256</td><td>0.2890 ± 0.0636</td><td>0.2396 ± 0.0256</td><td>0.2402 ± 0.0360</td><td>1.0719 ± 0.0517</td><td>182.4 / 70 / 500</td><td>39.3 min</td></tr>
+    <tr><td>Con balanceo (<code>balanced</code>)</td><td>0.4245 ± 0.0487</td><td>0.3034 ± 0.0627</td><td>0.2484 ± 0.0581</td><td>0.3034 ± 0.0627</td><td>0.2486 ± 0.0575</td><td>1.3331 ± 0.1145</td><td>123.0 / 68 / 500</td><td>27.2 min</td></tr>
+    <tr><td><b>Diferencia (balanced - none)</b></td><td><b>-0.1225</b></td><td><b>+0.0638</b></td><td><b>-0.0406</b></td><td><b>+0.0638</b></td><td><b>+0.0084</b></td><td><b>+0.2612</b></td><td>-59.4</td><td>-12.1 min</td></tr>
+  </tbody>
+</table>
+<p class="note">
+Comparación pareada por (configuración del espacio, semilla): <b>balanced_accuracy</b> gana en <b>166/180</b> pares
+(mediana +0.0666), <b>f1_macro</b> en <b>119/180</b> (mediana +0.0147). El <b>accuracy</b> cae sistemáticamente
+(-0.1225 medio) porque el clasificador deja de favorecer mayoritariamente la clase 6. El <code>loss</code> reportado en
+test/validación es siempre <b>sin ponderar</b> (tras la corrección) para mantener comparabilidad entre brazos.
+</p>
+<table>
+  <thead><tr><th>Rank (bal_acc)</th><th>Configuración</th><th>Arm</th><th>balanced_accuracy</th><th>accuracy</th><th>f1_macro</th><th>loss</th><th>épocas</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>(tanh, adam, 0.001, xavier)</td><td>balanced</td><td>0.3666 ± 0.0567</td><td>0.4351</td><td>0.2830</td><td>1.2584</td><td>116</td></tr>
+    <tr><td>2</td><td>(tanh, adam, 0.01, he)</td><td>balanced</td><td>0.3609 ± 0.0422</td><td>0.4610</td><td>0.3034</td><td>1.2373</td><td>46</td></tr>
+    <tr><td>3</td><td>(tanh, sgd, 0.1, he)</td><td>balanced</td><td>0.3557 ± 0.0451</td><td>0.4571</td><td>0.2953</td><td>1.2412</td><td>50</td></tr>
+    <tr><td>4</td><td>(relu, adam, 0.001, he)</td><td>balanced</td><td>0.3508 ± 0.0108</td><td>0.4499</td><td>0.2840</td><td>1.2696</td><td>216</td></tr>
+    <tr><td>5</td><td>(relu, adam, 0.01, he)</td><td>balanced</td><td>0.3504 ± 0.0938</td><td>0.4372</td><td>0.2849</td><td>1.3042</td><td>148</td></tr>
+    <tr><td>Mejor sin balanceo</td><td>(tanh, adam, 0.001, xavier)</td><td>none</td><td>0.2606 ± 0.0136</td><td>0.5584</td><td>0.2714</td><td>1.0350</td><td>78</td></tr>
+  </tbody>
+</table>
+<p>
+La agregación por <code>config_id</code> del espacio generó <b>72 grupos</b> (36 configuraciones × 2 brazos) con
+5 semillas válidas cada uno. Las comparaciones cruzadas entre brazos fueron marcadas como <b>controladas</b>
+por <code>class_weight</code> por <code>prebenchmark/compare.py</code>. Los artefactos exportados quedaron en
+<code>results/exports/exp-sweep-01/</code> (<code>master</code>, <code>baseline_comparison</code>, <code>aggregates</code>,
+<code>epochs</code>, <code>configs</code>, <code>decisions</code>, <code>warnings_summary</code>), incluyendo
+comparaciones controladas específicas de <code>class_weight</code>.
+</p>
+
+<hr>
+<p class="note">
+Documento generado a partir de la lectura directa del código de los 16 módulos del paquete
+<code>prebenchmark/</code> y del diseño en
+<code>openspec/changes/prebenchmark-infra/design.md</code>. Refleja el estado actual del repositorio.
+</p>
+
+<h2 id="s9">9. Cómo registramos los resultados y cómo hacemos el análisis</h2>
+<p>El diseño es intencionalmente simple: una capa <b>primaria</b> (lo que escribe el <code>runner</code>) y una capa <b>derivada</b> (lo que genera <code>export.py</code> para analizar rápido).</p>
+
+<h3 id="s9_1">9.1 ¿Dónde queda todo?</h3>
+<ul>
+  <li><code>results/&lt;experiment_id&gt;/</code> - todo lo generado para ese experimento.</li>
+  <li><code>results/&lt;experiment_id&gt;/configs.jsonl</code> - definiciones de configuraciones ejecutadas para ese experimento (una línea por <code>config_id</code>/instancia). Incluye metadatos de validación (<code>validation_state</code>, <code>validation_rationale</code>) y <code>space_key</code> para agrupar por espacio.</li>
+  <li><code>results/&lt;experiment_id&gt;/&lt;run_id&gt;/</code> - una carpeta por corrida. Aquí está lo mínimo para reproducir/auditar esa corrida exacta.</li>
+  <li><code>results/exports/&lt;experiment_id&gt;/</code> - artefactos <b>derivados</b> en CSV, con marca de tiempo UTC (no se sobrescriben entre exportaciones).</li>
+</ul>
+
+<h3 id="s9_2">9.2 Dentro de cada carpeta de corrida (<code>&lt;run_id&gt;/</code>)</h3>
+<div class="card">
+  <ul>
+    <li><b><code>metadata.json</code></b> - <b>Snapshot completo de la corrida</b>. Contiene <code>config_snapshot</code> (el <code>ExperimentConfig</code> tal como se usó, <code>cfg.to_dict()</code>), campos denormalizados a nivel raíz (<code>dataset</code>, <code>architecture</code>, <code>seed</code>, <code>activation</code>, <code>optimizer</code>, <code>lr</code>, <code>init</code>, <code>batch_size</code>, <code>max_epochs</code>, <code>split</code>, <code>preprocessing</code>, <code>convergence</code>), estado de ejecución (<code>execution_state</code>), contexto (<code>hardware</code>, <code>library_versions</code>, <code>determinism</code>), métricas finales (<code>final_metrics</code> en test), <code>validation_metrics</code> (mejor época según <code>val_loss</code>), <code>convergence_trigger</code> (criterio resuelto + razón/parada), parámetros <code>n_params</code>, <code>training_time</code>, etc. La duplicación es intencional (provenance + acceso rápido para agregación/export).</li>
+    <li><b><code>epochs.csv</code></b> - historial por época (<code>run_id</code>, <code>config_id</code>, <code>epoch</code>, <code>train_loss</code>/<code>train_acc</code>, <code>val_loss</code>/<code>val_acc</code>, <code>epoch_time</code>). Permite ver curvas, justificar el <code>best_epoch</code> del <code>validation_metrics</code> y auditar <code>early_stopping</code>. Con <code>--earlyStop</code> queda mucho más compacto que correr a <code>max_epochs</code>.</li>
+  </ul>
+</div>
+
+<h3 id="s9_3">9.3 Los archivos en <code>results/exports/&lt;experiment_id&gt;/</code></h3>
+<div class="card">
+  <ul>
+    <li><b><code>configs_&lt;ts&gt;.csv</code></b> - Vista aplanada de las configuraciones ejecutadas. Ideal para ver el espacio sin abrir JSON.</li>
+    <li><b><code>epochs_&lt;ts&gt;.csv</code></b> - Historial plano por época para todo el experimento (long format). <b>Nota:</b> puede crecer, pero con early stopping es manejable (herramientas como <code>polars</code> o <code>duckdb</code> permiten filtrar sin cargar todo).</li>
+    <li><b><code>master_&lt;ts&gt;.csv</code></b> - Tabla maestra: une config + corrida + métricas finales. <b>El más práctico</b> para comparar muchas corridas de un vistazo.</li>
+    <li><b><code>aggregates_&lt;ts&gt;.csv</code></b> - Agregados por grupo de repeticiones (media/desvío/mín/máx) generados por <code>aggregate.py</code>. Sirven para ver estabilidad entre semillas.</li>
+    <li><b><code>baseline_comparison_&lt;ts&gt;.csv</code></b> - Comparación vs la línea base (generado por <code>compare.py</code>). Incluye deltas/diferencias para evaluar mejoras/degradaciones.</li>
+    <li><b><code>decisions_&lt;ts&gt;.csv</code></b> - Registro de decisiones de validación/gobernanza (proveniente de <code>decisions.py</code>), con justificación.</li>
+    <li><b><code>warnings_summary_&lt;ts&gt;.csv</code></b> - Resumen rápido de <code>warnings</code>, fallos o ejecuciones a revisar.</li>
+  </ul>
+</div>
+
+<h3 id="s9_4">9.4 Cómo leerlo sin cargar todo en memoria</h3>
+<ul>
+  <li><b>Para entender una corrida puntual:</b> mirar <code>metadata.json</code> (snapshot + métricas) + <code>epochs.csv</code> de esa carpeta.</li>
+  <li><b>Para comparar muchas corridas:</b> usar <code>master_*.csv</code>.</li>
+  <li><b>Para analizar curvas/convergencia:</b> filtrar <code>epochs_*.csv</code> por <code>run_id</code>/<code>config_id</code> (o usar <code>duckdb/polars</code> con filtros).</li>
+  <li><b>Para estabilidad entre semillas:</b> mirar <code>aggregates_*.csv</code>.</li>
+</ul>
+<p class="muted">Nota: los CSV de <code>exports/</code> son derivados. La fuente primaria sigue siendo <code>results/&lt;exp&gt;/&lt;run_id&gt;/{metadata.json,epochs.*}</code> y <code>configs.jsonl</code>.</p>
+
+<h2 id="s10">10. Cómo interaccionar con el sistema (CLI)</h2>
+<p>
+Toda la infraestructura se maneja desde una única puerta de entrada:
+<code>python -m prebenchmark</code>. La CLI es <b>delgada</b>: no reimplementa entrenamiento,
+persistencia ni análisis; solo valida argumentos y cablea los módulos que ya existen. Sus cinco
+subcomandos siguen el mismo orden del pipeline:
+</p>
+<div class="flow">generate ──► run ──► compare ──► aggregate ──► export
+(registrar)   (ejecutar)  (comparar)   (agrupar)      (publicar)</div>
+<p>
+Cada subcomando escribe en un <b>experimento</b> identificado por <code>--experiment-id</code>. El
+experimento es, literalmente, el nombre de la carpeta dentro de la raíz de resultados
+(<code>results/</code> por defecto). Por eso conviene usar identificadores estables, cortos y sin
+barras ni caracteres reservados del sistema de archivos.
+</p>
+<div class="card">
+  <p class="kv"><b>Regla de oro.</b> Los comandos <b>no comparten estado en memoria</b>: cada uno
+  vuelve a leer del disco lo que dejó el anterior. Se pueden ejecutar en sesiones distintas, en
+  otro orden parcial o repetir sin miedo, porque las corridas y los logs son inmutables o
+  <i>append-only</i>. Lo único que cambia es qué habrá disponible para leer.</p>
+</div>
+
+<h3 id="s10_1">10.1 Punto de entrada, opciones comunes y códigos de salida</h3>
+<p>
+Se ejecuta desde la raíz del repositorio, con el entorno virtual activado (o llamado directamente):
+</p>
+<pre>python -m prebenchmark --help
+python -m prebenchmark &lt;subcomando&gt; --help</pre>
+<p>En Windows/PowerShell, si el entorno no está activado:</p>
+<pre>.\.venv\Scripts\Activate.ps1
+python -m prebenchmark generate --experiment-id exp-001
+
+# Alternativa sin activar el entorno:
+&amp; .\.venv\Scripts\python.exe -m prebenchmark generate --experiment-id exp-001</pre>
+<p>La forma general de cualquier comando es:</p>
+<pre>python -m prebenchmark {generate,run,compare,aggregate,export} --experiment-id EXP [--root results]</pre>
+<table>
+  <thead>
+    <tr><th>Opción común</th><th>Obligatoria</th><th>Valor por defecto</th><th>Qué hace</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--experiment-id</code></td>
+      <td>Sí, en todos</td>
+      <td>—</td>
+      <td>Selecciona (o crea) el experimento. Es el nombre de la carpeta
+      <code>results/&lt;EXP&gt;/</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--root</code></td>
+      <td>No</td>
+      <td><code>results</code></td>
+      <td>Raíz del almacén de resultados. Cambiarla permite tener laboratorios separados
+      (por ejemplo, <code>--root pruebas</code>) sin mezclar corridas.</td>
+    </tr>
+    <tr>
+      <td><code>--help</code> / <code>-h</code></td>
+      <td>No</td>
+      <td>—</td>
+      <td>Muestra la ayuda del comando y termina.</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+Los comandos de análisis (<code>compare</code>, <code>aggregate</code> y <code>export</code>)
+comparten además tres opciones de línea base. Su intención es que la línea base <b>nunca se
+adivine</b>: hay que elegirla explícitamente.
+</p>
+<table>
+  <thead>
+    <tr><th>Opción de línea base</th><th>Efecto</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--baseline-run-id &lt;RUN_ID&gt;</code></td>
+      <td>Usa exactamente esa corrida como línea base. Debe existir y no estar <code>FAILED</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--baseline-config-id &lt;CONFIG_ID&gt;</code></td>
+      <td>Busca corridas con ese <code>config_id</code> y elige la más temprana (por
+      <code>start_time</code>). Esa corrida no debe estar <code>FAILED</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--documented-default</code></td>
+      <td>Opta por la línea base documentada del repositorio: <b>ReLU + Adam + lr 0.001 + He +
+      CrossEntropy + wine_quality</b>. Solo funciona si existe una corrida con <i>exactamente</i>
+      ese protocolo (semilla 42, 500 épocas, sin early stopping y sin <code>class_weight</code>).</td>
+    </tr>
+  </tbody>
+</table>
+<p class="note">
+Se pasa <b>como máximo una</b> de las tres. <code>compare</code> la exige; <code>export</code> la
+usa si se indica y, si no, reutiliza la que quedó guardada en <code>experiment.json</code>;
+<code>aggregate</code> acepta las opciones por compartir el parser, pero <b>no las usa</b>.
+</p>
+<p><b>Códigos de salida.</b> La CLI distingue tres situaciones:</p>
+<table>
+  <thead>
+    <tr><th>Código</th><th>Cuándo ocurre</th><th>Qué significa</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0</code></td>
+      <td>El comando terminó su trabajo.</td>
+      <td>Éxito del <i>comando</i>. Ojo: en <code>run</code>, una corrida puede quedar
+      <code>FAILED</code> y el comando igualmente devuelve <code>0</code>.</td>
+    </tr>
+    <tr>
+      <td><code>1</code></td>
+      <td>Error controlado: <code>ValueError</code> o <code>FileNotFoundError</code>.</td>
+      <td>Se imprime <code>error: &lt;motivo&gt;</code> en <b>stderr</b>. Por ejemplo, una línea base
+      inexistente o un <code>--config-id</code> que no pertenece a la grilla.</td>
+    </tr>
+    <tr>
+      <td><code>2</code></td>
+      <td>No se indicó subcomando, o los argumentos son inválidos.</td>
+      <td>Se muestra la ayuda (o el error de <code>argparse</code>) y no se ejecuta nada.</td>
+    </tr>
+  </tbody>
+</table>
+<p class="note">
+Los mensajes de consola están en inglés porque provienen directamente de <code>argparse</code> y de
+los <code>print</code> del código. La documentación y los artefactos son independientes de eso.
+</p>
+<p><b>Lo que la CLI no tiene.</b> No hay un subcomando para listar corridas ni para registrar
+decisiones: los <code>run_id</code> se obtienen de la salida de <code>run</code> o de las carpetas
+<code>results/&lt;EXP&gt;/</code>, y las decisiones se registran por API
+(<code>ResultsStore.append_decision</code>) o como efecto de <code>compare</code>/<code>export</code>.
+Tampoco hay un flag para forzar <code>device</code>; eso vive en la configuración del experimento.
+</p>
+
+<h3 id="s10_2">10.2 <code>generate</code>: registrar la grilla de candidatos</h3>
+<p>
+<b>Para qué sirve.</b> Genera el producto cartesiano de las cuatro dimensiones libres
+(<code>activation</code> × <code>optimizer</code> × <code>lr</code> × <code>init</code>), valida
+cada combinación y la registra en el experimento. Es la etapa de <b>pre-registro</b>: deja
+constancia de qué se va a probar y con qué estado de validación, antes de gastar tiempo de cómputo.
+</p>
+<pre>python -m prebenchmark generate --experiment-id exp-001
+python -m prebenchmark generate --experiment-id exp-001 --limit 6
+python -m prebenchmark generate --experiment-id exp-001 --class-weight balanced</pre>
+<table>
+  <thead>
+    <tr><th>Opción</th><th>Valor</th><th>Qué hace</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--limit</code></td>
+      <td>entero, opcional</td>
+      <td>Registra solo las primeras <i>N</i> combinaciones de la grilla, en el orden del producto
+      cartesiano. Sin <code>--limit</code> se registran las 36.</td>
+    </tr>
+    <tr>
+      <td><code>--class-weight</code></td>
+      <td><code>none</code> o <code>balanced</code></td>
+      <td>Sustituye <code>preprocessing.class_weight</code> en lo que se registra. Omitirlo deja el
+      valor tal como lo genera el espacio (sin balanceo). <code>none</code> lo desactiva
+      explícitamente; <code>balanced</code> lo activa.</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+<b>Qué hace exactamente.</b> Recorre la grilla completa en el orden
+<code>activation → optimizer → lr → init</code>. Por eso las primeras combinaciones son
+<code>relu/sgd/0.001/xavier</code>, <code>relu/sgd/0.001/he</code>,
+<code>relu/sgd/0.01/xavier</code>, etc. Para cada una aplica el override de
+<code>class_weight</code>, ejecuta <code>validate_config</code> y llama a
+<code>ResultsStore.register_config</code>. El registro es <b>append-only y deduplicado por
+<code>config_id</code></b>: volver a registrar la misma configuración no la duplica ni la
+reescribe.
+</p>
+<p><b>Salida esperada.</b> Una línea con el total registrado y el conteo por estado de validación:</p>
+<pre>registered 36 configuration(s) into 'exp-001': {'WARNING': 24, 'VALID': 12}</pre>
+<p>
+Los números son un ejemplo de la grilla completa: por defecto, 24 combinaciones quedan en
+<code>WARNING</code> (ejecutables, con un riesgo metodológico registrado) y 12 en
+<code>VALID</code>. Con <code>--limit</code>, el total baja y los conteos cambian. Con
+<code>--class-weight</code>, los estados no cambian, pero sí cambia el <code>config_id</code> de
+cada configuración.
+</p>
+<p><b>Qué deja en disco.</b> Solo <code>results/&lt;EXP&gt;/configs.jsonl</code>. No crea carpetas de
+corrida ni entrena nada; por eso es seguro ejecutarlo sin PyTorch cargado.</p>
+<ul>
+  <li><b>El registro no es la ejecución.</b> <code>run</code> vuelve a generar la grilla por su
+  cuenta; no lee <code>configs.jsonl</code>. <code>generate</code> sirve para dejar la intención
+  registrada y para inspeccionar la validación, no como requisito técnico para entrenar.</li>
+  <li><b>Si vas a ejecutar un brazo con balanceo</b>, repetí <code>--class-weight balanced</code>
+  también en <code>run</code>. El <code>config_id</code> cambia con el balanceo, pero la
+  <code>space_key</code> no: el espacio de 36 sigue siendo el mismo.</li>
+  <li><b>No acepta</b> <code>--max-epochs</code>, <code>--seed</code> ni <code>--earlyStop</code>.
+  Las variantes de protocolo se registran recién cuando se ejecutan, con su propio
+  <code>config_id</code>.</li>
+</ul>
+
+<h3 id="s10_3">10.3 <code>run</code>: ejecutar configuraciones</h3>
+<p>
+<b>Para qué sirve.</b> Entrena una o más configuraciones de la grilla y persiste cada corrida con
+su snapshot, su historial de épocas y sus métricas. Internamente regenera el espacio con
+<code>space.generate_configs()</code>, aplica los overrides de la CLI y llama a
+<code>runner.run_experiment</code>.
+</p>
+<pre>python -m prebenchmark run --experiment-id exp-001
+python -m prebenchmark run --experiment-id exp-001 --limit 36 --max-epochs 200 --earlyStop
+python -m prebenchmark run --experiment-id exp-001 --limit 36 --multi-seed
+python -m prebenchmark run --experiment-id exp-001 --limit 1 --class-weight balanced
+python -m prebenchmark run --experiment-id exp-001 --config-id cfg-v1-118298388a87</pre>
+<table>
+  <thead>
+    <tr><th>Opción</th><th>Valor por defecto</th><th>Qué hace</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--limit</code></td>
+      <td><code>1</code></td>
+      <td>Cantidad de <b>configuraciones</b> a ejecutar, no de corridas. El total de corridas es
+      <code>limit × semillas</code>. El valor por defecto es deliberadamente conservador: una
+      configuración si no se indica nada.</td>
+    </tr>
+    <tr>
+      <td><code>--config-id</code></td>
+      <td>—</td>
+      <td>Ejecuta solo la configuración de la grilla generada cuyo <code>config_id</code> coincida.
+      Se aplica <b>antes</b> de los overrides de semilla, épocas y convergencia (ver limitaciones).</td>
+    </tr>
+    <tr>
+      <td><code>--max-epochs</code></td>
+      <td><code>500</code></td>
+      <td>Override del tope de épocas. Es un presupuesto de terminación, no una garantía de
+      convergencia.</td>
+    </tr>
+    <tr>
+      <td><code>--seed</code></td>
+      <td><code>42</code></td>
+      <td>Override de la semilla aleatoria para una corrida única.</td>
+    </tr>
+    <tr>
+      <td><code>--multi-seed</code></td>
+      <td>desactivado</td>
+      <td>Ejecuta cada configuración una vez por cada semilla del conjunto fijo
+      <code>(42, 123, 7, 2025, 999)</code>. Si se usa junto con <code>--seed</code>, gana
+      <code>--multi-seed</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--earlyStop</code></td>
+      <td>desactivado</td>
+      <td>Enciende el criterio de convergencia. Los campos no especificados se resuelven con los
+      defaults documentados: <code>val_loss</code>, paciencia 20, <code>min_delta</code>
+      <code>1e-4</code>, modo <code>min</code>, <code>restore_best_weights=True</code>. El nombre
+      lleva mayúscula en la <b>S</b>.</td>
+    </tr>
+    <tr>
+      <td><code>--class-weight</code></td>
+      <td>sin cambio</td>
+      <td><code>none</code> desactiva el balanceo; <code>balanced</code> lo activa. El balanceo se
+      aplica <b>solo al entrenamiento</b>; validación y prueba se evalúan siempre sin ponderar.</td>
+    </tr>
+  </tbody>
+</table>
+<p><b>Salida esperada.</b> Una línea por corrida y un resumen final:</p>
+<pre>run 20261022T143012Z-a1b2c3 config cfg-v1-118298388a87 seed 42 state COMPLETED epochs 187
+executed 1 run(s) for 'exp-001'</pre>
+<p>
+La forma exacta de cada línea es:
+<code>run &lt;run_id&gt; config &lt;config_id&gt; seed &lt;semilla&gt; state &lt;estado&gt; epochs &lt;épocas ejecutadas&gt;</code>.
+Con <code>--multi-seed</code> se imprime una línea por cada semilla y el resumen final cuenta todas
+las corridas. Los estados que produce el runner son <code>COMPLETED</code>,
+<code>COMPLETED_WITH_WARNINGS</code> y <code>FAILED</code>.
+</p>
+<p><b>Qué deja en disco.</b> Por cada corrida, una carpeta
+<code>results/&lt;EXP&gt;/&lt;run_id&gt;/</code> con <code>metadata.json</code> y
+<code>epochs.csv</code>; además, la configuración ejecutada se registra en
+<code>configs.jsonl</code> (con deduplicación por <code>config_id</code>). El
+<code>metadata.json</code> incluye el snapshot completo, la versión del dataset, el entorno, el
+estado de ejecución, las métricas finales sobre <code>test</code>, las métricas de la mejor época
+sobre <code>validation</code> y el disparador de convergencia.
+</p>
+<ul>
+  <li><b>Límite de <code>--config-id</code>.</b> El filtro se aplica sobre la grilla recién
+  generada, con sus valores por defecto (semilla 42, 500 épocas, sin convergencia, sin
+  <code>class_weight</code>). No busca en las corridas ya persistidas. Por eso un
+  <code>config_id</code> obtenido de una corrida con <code>--seed</code>,
+  <code>--max-epochs</code>, <code>--earlyStop</code> o <code>--class-weight</code> <b>no
+  coincide</b> y el comando falla con <code>no generated configuration has config_id ...</code>.
+  En esos casos, usá <code>--limit</code> o la API programática.</li>
+  <li><b>Un fallo no detiene el lote.</b> El runner captura la excepción, persiste la corrida como
+  <code>FAILED</code> con el motivo y el traceback, y el bucle continúa con la siguiente
+  configuración. Por eso el código de salida sigue siendo <code>0</code>: hay que mirar los
+  estados, no solo el exit code.</li>
+  <li><b>Costo.</b> La grilla completa con <code>--multi-seed</code> son 36 × 5 = <b>180
+  corridas</b>, cada una con hasta 500 épocas si no se usa <code>--earlyStop</code>. Para una
+  primera prueba conviene <code>--limit</code> bajo y <code>--max-epochs</code> bajo.</li>
+  <li><b>Datos.</b> La primera corrida descarga <i>Wine Quality (white)</i> de UCI y lo cachea en
+  <code>.cache/prebenchmark/winequality-white.csv</code>. Después del primer uso, el pipeline puede
+  correr sin red.</li>
+</ul>
+
+<h3 id="s10_4">10.4 <code>compare</code>: comparar contra una línea base</h3>
+<p>
+<b>Para qué sirve.</b> Elige una línea base y compara <b>todas las demás corridas</b> del
+experimento contra ella, aplicando primero las guardas de comparabilidad. No calcula un ranking ni
+una puntuación compuesta: produce una tabla de filas con el tipo de comparación y el veredicto de
+comparabilidad.
+</p>
+<pre>python -m prebenchmark compare --experiment-id exp-001 --baseline-run-id 20261022T143012Z-a1b2c3
+python -m prebenchmark compare --experiment-id exp-001 --baseline-config-id cfg-v1-118298388a87
+python -m prebenchmark compare --experiment-id exp-001 --documented-default</pre>
+<p><b>Reglas de selección de la línea base.</b></p>
+<ul>
+  <li>Hay que indicar <b>exactamente una</b> de las tres opciones. Sin ninguna,
+  <code>compare</code> termina con error y código <code>1</code>.</li>
+  <li>Con <code>--baseline-run-id</code>, la corrida debe existir y no estar <code>FAILED</code>.</li>
+  <li>Con <code>--baseline-config-id</code>, se elige la corrida <b>más temprana</b> que tenga ese
+  <code>config_id</code>. Si esa corrida está <code>FAILED</code>, la comparación se rechaza: no se
+  salta automáticamente a la siguiente.</li>
+  <li>Con <code>--documented-default</code>, se busca el <code>config_id</code> exacto de la
+  configuración documentada. Si las corridas usaron <code>--max-epochs</code>,
+  <code>--earlyStop</code>, otra semilla o <code>class_weight</code>, ese id <b>no va a
+  existir</b>; en ese caso hay que usar <code>--baseline-run-id</code>.</li>
+</ul>
+<p><b>Salida esperada.</b> Primero la línea base elegida con su justificación; después, una línea
+por candidata:</p>
+<pre>baseline 20261022T143012Z-a1b2c3 (cfg-v1-118298388a87): documented default baseline: ReLU + Adam + lr 0.001 + He + CrossEntropy + wine_quality architecture (the only configuration previously run in this repository)
+  20261022T150233Z-d4e5f6 state=COMPLETED type=controlled comparable=True
+  20261022T151044Z-0a1b2c state=COMPLETED type=multi_variable comparable=True
+  20261022T152155Z-7c8d9e state=FAILED type=non_comparable comparable=False</pre>
+<p>El campo <code>type</code> resume la relación entre candidata y línea base:</p>
+<table>
+  <thead>
+    <tr><th><code>comparison_type</code></th><th>Significado</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>identical</code></td>
+      <td>No difiere ninguna dimensión abierta ni <code>class_weight</code>.</td>
+    </tr>
+    <tr>
+      <td><code>controlled</code></td>
+      <td>Difiere <b>exactamente una</b> dimensión (activation, optimizer, lr, init o
+      <code>class_weight</code>). Es la comparación atribuible a una sola causa.</td>
+    </tr>
+    <tr>
+      <td><code>multi_variable</code></td>
+      <td>Difieren dos o más dimensiones. Los deltas siguen mostrándose, pero son
+      <b>solo informativos</b>: no se puede atribuir la diferencia a una única variable.</td>
+    </tr>
+    <tr>
+      <td><code>non_comparable</code></td>
+      <td>Falló alguna guarda: dataset o versión distintos, arquitectura distinta, split distinto,
+      <code>max_epochs</code> distinto, convergencia distinta, <code>run_type</code> distinto,
+      conjunto de evaluación no etiquetado o corrida <code>FAILED</code>. No se emiten deltas.</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+<b>Qué deja en disco.</b> La selección de línea base se guarda en
+<code>results/&lt;EXP&gt;/experiment.json</code> y se agrega una decisión de validación a
+<code>decisions.jsonl</code>. Ese registro es justamente el que después reutiliza
+<code>export</code> si no se le pasa una línea base explícita. La tabla de deltas en sí <b>no</b> se
+imprime en consola: se materializa recién en <code>baseline_comparison_&lt;ts&gt;.csv</code> al
+exportar. <code>compare</code> no escribe ninguna carpeta de corrida.
+</p>
+<p class="note">
+Las corridas candidatas fallidas se listan con <code>type=non_comparable</code> y
+<code>comparable=False</code>, pero nunca aportan diferencias. Una línea base fallida se rechaza
+directamente.
+</p>
+
+<h3 id="s10_5">10.5 <code>aggregate</code>: agrupar repeticiones</h3>
+<p>
+<b>Para qué sirve.</b> Agrupa las corridas que representan el mismo protocolo y calcula, por grupo,
+cuántas repeticiones hay, cuántas son válidas y si alcanzan el mínimo configurado. Es la vista de
+<b>estabilidad</b>: sirve para saber si una configuración se corrió suficientes veces y si su
+dispersión es analizable.
+</p>
+<pre>python -m prebenchmark aggregate --experiment-id exp-001
+python -m prebenchmark aggregate --experiment-id exp-001 --grouping config_id
+python -m prebenchmark aggregate --experiment-id exp-001 --grouping config --min-repetitions 5</pre>
+<table>
+  <thead>
+    <tr><th>Opción</th><th>Valor por defecto</th><th>Qué hace</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--grouping</code></td>
+      <td><code>config</code></td>
+      <td><code>config</code> agrupa por configuración <b>normalizada por semilla</b>: las 5
+      repeticiones multi-semilla del mismo protocolo caen en un solo grupo. <code>config_id</code>
+      es el modo estricto y sensible a la semilla: cada semilla queda en su propio grupo.</td>
+    </tr>
+    <tr>
+      <td><code>--min-repetitions</code></td>
+      <td><code>3</code></td>
+      <td>Mínimo de corridas válidas para considerar suficiente el grupo. Si hay menos, se marca
+      <code>insufficient=True</code>, pero los valores siguen mostrándose.</td>
+    </tr>
+  </tbody>
+</table>
+<p><b>Salida esperada.</b> Una línea por grupo y un total:</p>
+<pre>group grp-v1-9f8e7d6c5b4a config cfg-v1-118298388a87 n_valid=5/5 insufficient=False
+group grp-v1-1a2b3c4d5e6f config cfg-v1-f415bb95bbbc n_valid=3/5 insufficient=False
+2 repetition group(s) for 'exp-001'</pre>
+<p>
+La forma es
+<code>group &lt;group_key&gt; config &lt;config_id&gt; n_valid=&lt;válidas&gt;/&lt;totales&gt; insufficient=&lt;True|False&gt;</code>.
+<code>n_valid</code> excluye las corridas <code>FAILED</code>; <code>n_total</code> las incluye.
+Las corridas inestables (si fueron etiquetadas como tales) sí contribuyen a las estadísticas, pero
+se divulgan por separado en el CSV.
+</p>
+<p>
+<b>Qué deja en disco.</b> Nada: <code>aggregate</code> es una vista de consola. Las estadísticas
+completas (n, media, desvío estándar muestral, mínimo, máximo y rango para cada métrica) se
+escriben en <code>aggregates_&lt;ts&gt;.csv</code> durante <code>export</code>. Las métricas
+agregadas son exactitud, exactitud balanceada, precisión/recall/F1 macro, pérdida, tiempo de
+entrenamiento y las métricas de validación de la mejor época (<code>val_loss</code>,
+<code>val_accuracy</code>).
+</p>
+<ul>
+  <li>Las opciones de línea base se aceptan pero <b>se ignoran</b> en este comando.</li>
+  <li><code>export</code> no expone <code>--grouping</code> ni <code>--min-repetitions</code>:
+  siempre exporta con <code>grouping="config"</code> y mínimo 3. Si necesitás otra agrupación para
+  el CSV, hay que llamar a la API de <code>export_all</code>.</li>
+</ul>
+
+<h3 id="s10_6">10.6 <code>export</code>: generar las tablas CSV</h3>
+<p>
+<b>Para qué sirve.</b> Lee todo lo persistido del experimento y escribe las tablas derivadas en
+CSV, con marca de tiempo UTC, para analizarlas con cualquier herramienta. Es la etapa de
+publicación; no modifica las corridas.
+</p>
+<pre>python -m prebenchmark export --experiment-id exp-001
+python -m prebenchmark export --experiment-id exp-001 --documented-default
+python -m prebenchmark export --experiment-id exp-001 --baseline-run-id 20261022T143012Z-a1b2c3
+python -m prebenchmark export --experiment-id exp-001 --out .\salidas --no-plots</pre>
+<table>
+  <thead>
+    <tr><th>Opción</th><th>Valor por defecto</th><th>Qué hace</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--out</code></td>
+      <td><code>&lt;root&gt;/exports</code></td>
+      <td>Raíz de exportaciones. Los archivos se escriben en
+      <code>&lt;out&gt;/&lt;EXP&gt;/</code>.</td>
+    </tr>
+    <tr>
+      <td><code>--no-plots</code></td>
+      <td>gráficos activados</td>
+      <td>Omite los PNG opcionales. Los gráficos son de mejor esfuerzo: si fallan, se registra una
+      advertencia y los CSV se generan igual.</td>
+    </tr>
+    <tr>
+      <td>Opciones de línea base</td>
+      <td>ninguna</td>
+      <td>Si se indica una, se usa y se persiste. Si no, se reutiliza la guardada en
+      <code>experiment.json</code>. Si tampoco hay, <code>baseline_comparison</code> se exporta
+      sin deltas y se emite una advertencia.</td>
+    </tr>
+  </tbody>
+</table>
+<p><b>Salida esperada.</b> Una línea con el total y el detalle de cada tabla:</p>
+<pre>exported 7 table(s) to results\exports\exp-001
+  master: master_20261022T153500Z.csv (&lt;n&gt; rows)
+  baseline_comparison: baseline_comparison_20261022T153500Z.csv (&lt;n&gt; rows)
+  aggregates: aggregates_20261022T153500Z.csv (&lt;n&gt; rows)
+  epochs: epochs_20261022T153500Z.csv (&lt;n&gt; rows)
+  configs: configs_20261022T153500Z.csv (&lt;n&gt; rows)
+  decisions: decisions_20261022T153500Z.csv (&lt;n&gt; rows)
+  warnings_summary: warnings_20261022T153500Z.csv (&lt;n&gt; rows)</pre>
+<p>Las siete tablas y su contenido son:</p>
+<table>
+  <thead>
+    <tr><th>Archivo</th><th>Contenido</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>master_&lt;ts&gt;.csv</code></td>
+      <td>Una fila por corrida (incluidas las <code>FAILED</code>): configuración, estado, entorno
+      mínimo, métricas finales de <code>test</code> y métricas de validación de la mejor época. Es
+      la tabla más práctica para comparar de un vistazo.</td>
+    </tr>
+    <tr>
+      <td><code>baseline_comparison_&lt;ts&gt;.csv</code></td>
+      <td>Deltas absolutos y relativos frente a la línea base, más el tipo de comparación, la
+      variable controlada, las advertencias y el veredicto de comparabilidad.</td>
+    </tr>
+    <tr>
+      <td><code>aggregates_&lt;ts&gt;.csv</code></td>
+      <td>Estadísticas por grupo de repeticiones: n, media, desvío muestral, mínimo, máximo y
+      rango para cada métrica agregada.</td>
+    </tr>
+    <tr>
+      <td><code>epochs_&lt;ts&gt;.csv</code></td>
+      <td>Historial plano por época de todas las corridas (formato largo), útil para curvas y para
+      auditar el <code>best_epoch</code>.</td>
+    </tr>
+    <tr>
+      <td><code>configs_&lt;ts&gt;.csv</code></td>
+      <td>Vista aplanada de las configuraciones registradas, con estado y justificación de
+      validación, <code>space_key</code> y todos los parámetros del protocolo.</td>
+    </tr>
+    <tr>
+      <td><code>decisions_&lt;ts&gt;.csv</code></td>
+      <td>Registro de decisiones manuales y de validación, con actor, justificación y evidencia.</td>
+    </tr>
+    <tr>
+      <td><code>warnings_summary_&lt;ts&gt;.csv</code></td>
+      <td>Advertencias por corrida, fallos y decisiones pendientes de revisión
+      (<code>PENDING_REVIEW</code>).</td>
+    </tr>
+  </tbody>
+</table>
+<ul>
+  <li><b>Exportaciones separadas por marca de tiempo.</b> Cada exportación lleva un sufijo UTC
+  (<code>AAAAMMDDThhmmssZ</code>), así que dos exportaciones en segundos distintos dejan dos juegos
+  de archivos. Si se lanzan dos dentro del mismo segundo, el sufijo coincide; conviene espaciarlas.</li>
+  <li><b>Los faltantes son <code>N/A</code>.</b> Un delta no comparable, una métrica ausente o una
+  configuración desconocida se escribe como el literal <code>N/A</code>, nunca como <code>0</code>.</li>
+  <li><b>La exportación no infiere la línea base.</b> Si no se pasó una y no hay una guardada,
+  <code>baseline_comparison</code> queda sin deltas y aparece
+  <code>warning: baseline not selected; baseline_comparison exported without deltas</code>.</li>
+  <li><b>Dos PNG opcionales</b> (<code>epoch_loss_&lt;ts&gt;.png</code> y
+  <code>metric_accuracy_&lt;ts&gt;.png</code>) se agregan salvo que se use <code>--no-plots</code>.
+  Un fallo de <code>matplotlib</code> no bloquea los CSV.</li>
+</ul>
+
+<h3 id="s10_7">10.7 Flujos completos de ejemplo</h3>
+<p>
+<b>A. Prueba corta de punta a punta (recomendada para la primera interacción).</b> Usa solo dos
+configuraciones y tres épocas; tarda poco y permite ver todos los artefactos:
+</p>
+<pre>python -m prebenchmark generate --experiment-id exp-demo --limit 2
+
+python -m prebenchmark run --experiment-id exp-demo --limit 2 --max-epochs 3 --earlyStop
+# Copiar de la salida el run_id de la primera corrida, por ejemplo:
+# run 20261022T143012Z-a1b2c3 config cfg-v1-... seed 42 state COMPLETED epochs 3
+
+python -m prebenchmark compare --experiment-id exp-demo --baseline-run-id 20261022T143012Z-a1b2c3
+
+python -m prebenchmark aggregate --experiment-id exp-demo
+
+python -m prebenchmark export --experiment-id exp-demo --baseline-run-id 20261022T143012Z-a1b2c3 --no-plots</pre>
+<p class="note">
+En este flujo <b>no</b> se puede usar <code>--documented-default</code>: las corridas usaron
+<code>--max-epochs 3</code> y <code>--earlyStop</code>, así que su <code>config_id</code> no es el
+de la configuración documentada. Por eso la línea base se pasa por <code>run_id</code>.
+</p>
+<p>
+<b>B. Barrido exploratorio multi-semilla.</b> Aquí sí se aprovecha el protocolo de estabilidad,
+pero el costo crece: 36 configuraciones × 5 semillas = 180 corridas.
+</p>
+<pre>python -m prebenchmark generate --experiment-id exp-exploratorio
+
+python -m prebenchmark run --experiment-id exp-exploratorio --limit 36 --max-epochs 200 --earlyStop --multi-seed
+
+# Elegir una corrida completada como baseline (copiar su run_id de la salida de run):
+python -m prebenchmark compare --experiment-id exp-exploratorio --baseline-run-id 20261022T143012Z-a1b2c3
+
+python -m prebenchmark aggregate --experiment-id exp-exploratorio --grouping config
+
+python -m prebenchmark export --experiment-id exp-exploratorio --baseline-run-id 20261022T143012Z-a1b2c3</pre>
+<p>
+<b>C. Dos brazos con y sin balanceo de clases.</b> El balanceo no divide el espacio de 36, pero sí
+cambia el protocolo y el <code>config_id</code>. Para que el brazo balanceado exista de verdad,
+hay que indicar el flag tanto al registrar como al ejecutar:
+</p>
+<pre>python -m prebenchmark generate --experiment-id exp-plano
+python -m prebenchmark run --experiment-id exp-plano --limit 36 --multi-seed
+
+python -m prebenchmark generate --experiment-id exp-balanceado --class-weight balanced
+python -m prebenchmark run --experiment-id exp-balanceado --limit 36 --multi-seed --class-weight balanced
+
+python -m prebenchmark aggregate --experiment-id exp-balanceado --grouping config
+python -m prebenchmark export --experiment-id exp-balanceado --baseline-run-id &lt;RUN_ID&gt;</pre>
+<p class="note">
+Para comparar los dos brazos entre sí, <code>compare</code> solo mira dentro de un mismo
+experimento. Si se quieren deltas entre brazos, hay que reunirlos en el mismo
+<code>--experiment-id</code> (por ejemplo, corriendo ambas variantes en el mismo experimento) o
+analizar los CSV por fuera.
+</p>
+
+<h3 id="s10_8">10.8 Errores frecuentes y cómo resolverlos</h3>
+<table>
+  <thead>
+    <tr><th>Mensaje / síntoma</th><th>Causa</th><th>Solución</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>error: baseline must be selected explicitly: pass baseline_run_id, baseline_config_id, or use_documented_default=True</code></td>
+      <td><code>compare</code> se ejecutó sin ninguna opción de línea base.</td>
+      <td>Pasar una de las tres. La elección nunca es implícita.</td>
+    </tr>
+    <tr>
+      <td><code>error: pass exactly one of baseline_run_id / baseline_config_id</code></td>
+      <td>Se pasaron dos opciones de línea base a la vez.</td>
+      <td>Dejar solo una; <code>--documented-default</code> tampoco se combina con las otras.</td>
+    </tr>
+    <tr>
+      <td><code>error: no run found for baseline config_id '...'</code></td>
+      <td>No hay ninguna corrida con ese <code>config_id</code>. Es lo habitual con
+      <code>--documented-default</code> después de usar <code>--max-epochs</code>,
+      <code>--earlyStop</code>, otra semilla o <code>class_weight</code>.</td>
+      <td>Usar <code>--baseline-run-id</code> con una corrida realmente existente.</td>
+    </tr>
+    <tr>
+      <td><code>error: baseline run '...' is FAILED; cannot compare against it</code></td>
+      <td>La línea base elegida falló.</td>
+      <td>Elegir una corrida <code>COMPLETED</code> o <code>COMPLETED_WITH_WARNINGS</code>.</td>
+    </tr>
+    <tr>
+      <td><code>error: no generated configuration has config_id '...'</code></td>
+      <td>El <code>config_id</code> no pertenece a la grilla generada con el protocolo por
+      defecto, o se obtuvo de una corrida con overrides.</td>
+      <td>No usar <code>--config-id</code> en ese caso; usar <code>--limit</code> o la API
+      programática.</td>
+    </tr>
+    <tr>
+      <td><code>run</code> imprime <code>state FAILED</code> pero el proceso termina con código
+      <code>0</code>.</td>
+      <td>El runner captura el fallo y lo persiste; el lote continúa.</td>
+      <td>Revisar <code>failure</code> en <code>metadata.json</code> o
+      <code>warnings_summary_&lt;ts&gt;.csv</code>. El exit code no refleja fallos de corridas.</td>
+    </tr>
+    <tr>
+      <td><code>warning: baseline not selected; baseline_comparison exported without deltas</code></td>
+      <td><code>export</code> no recibió línea base y no había una guardada en
+      <code>experiment.json</code>.</td>
+      <td>Ejecutar <code>compare</code> antes, o pasar <code>--baseline-run-id</code> /
+      <code>--baseline-config-id</code> / <code>--documented-default</code> a <code>export</code>.</td>
+    </tr>
+    <tr>
+      <td><code>export</code> genera tablas con 0 filas.</td>
+      <td>No hay corridas en ese <code>--experiment-id</code> y <code>--root</code>, o el id está
+      mal escrito.</td>
+      <td>Verificar que exista <code>results/&lt;EXP&gt;/&lt;run_id&gt;/metadata.json</code>; revisar
+      <code>--root</code>.</td>
+    </tr>
+    <tr>
+      <td><code>No module named prebenchmark</code> o <code>can't open file ...</code></td>
+      <td>Se ejecutó desde otra carpeta o con un Python que no tiene el paquete.</td>
+      <td>Ejecutar desde la raíz del repositorio y usar el Python del entorno virtual
+      (<code>.\.venv\Scripts\python.exe</code>).</td>
+    </tr>
+    <tr>
+      <td>El brazo balanceado no aparece en los resultados.</td>
+      <td>Se pasó <code>--class-weight balanced</code> a <code>generate</code> pero no a
+      <code>run</code>; <code>run</code> regenera la grilla sin leer el registro.</td>
+      <td>Repetir el flag en <code>run</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="s10_9">10.9 Referencia rápida</h3>
+<table>
+  <thead>
+    <tr><th>Comando</th><th>Propósito</th><th>Opciones principales</th><th>Escribe</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>generate</code></td>
+      <td>Registrar y validar la grilla de candidatos.</td>
+      <td><code>--limit</code>, <code>--class-weight</code></td>
+      <td><code>configs.jsonl</code></td>
+    </tr>
+    <tr>
+      <td><code>run</code></td>
+      <td>Entrenar configuraciones y persistir cada corrida.</td>
+      <td><code>--limit</code>, <code>--config-id</code>, <code>--max-epochs</code>,
+      <code>--seed</code>, <code>--multi-seed</code>, <code>--earlyStop</code>,
+      <code>--class-weight</code></td>
+      <td><code>&lt;run_id&gt;/metadata.json</code>, <code>&lt;run_id&gt;/epochs.csv</code>,
+      <code>configs.jsonl</code></td>
+    </tr>
+    <tr>
+      <td><code>compare</code></td>
+      <td>Comparar todas las corridas contra una línea base explícita.</td>
+      <td><code>--baseline-run-id</code> | <code>--baseline-config-id</code> |
+      <code>--documented-default</code></td>
+      <td><code>experiment.json</code> (baseline), <code>decisions.jsonl</code></td>
+    </tr>
+    <tr>
+      <td><code>aggregate</code></td>
+      <td>Agrupar repeticiones y verificar suficiencia.</td>
+      <td><code>--grouping</code>, <code>--min-repetitions</code></td>
+      <td>Nada (solo consola)</td>
+    </tr>
+    <tr>
+      <td><code>export</code></td>
+      <td>Publicar las tablas CSV (y PNG opcionales).</td>
+      <td><code>--out</code>, <code>--no-plots</code>, opciones de línea base</td>
+      <td><code>&lt;out&gt;/&lt;EXP&gt;/*_&lt;ts&gt;.csv</code> y PNG opcionales</td>
+    </tr>
+  </tbody>
+</table>
+<p class="muted">
+Secuencia recomendada: <code>generate</code> → <code>run</code> → <code>compare</code> →
+<code>aggregate</code> → <code>export</code>. La única dependencia estricta es que
+<code>compare</code> y <code>export</code> necesitan corridas ya persistidas; <code>run</code>
+puede ejecutarse sin <code>generate</code>, porque regenera la grilla por su cuenta.
+</p>
+</body>
+</html>

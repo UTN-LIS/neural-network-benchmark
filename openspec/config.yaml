@@ -1,0 +1,69 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Python 3.13.5 (.venv), PyTorch 2.14.1, scikit-learn 1.9.1, pandas 3.0.6, numpy 2.5.3, matplotlib 3.11.2
+  Architecture: Script-based experiment suite under Experimentos/ (monolithic top-level scripts, module-level execution)
+  Testing: No test runner, no tests, no coverage or quality tooling detected
+  Style: PEP 8; Spanish section banners/comments; SEED=42 reproducibility convention
+  Persistence: openspec file artifacts
+
+strict_tdd: false
+
+testing:
+  strict_tdd: false
+  strict_tdd_reason: >-
+    No test runner detected: no test files, no pytest/unittest configuration,
+    no test dependencies in requirements.txt or .venv.
+  detected: "2026-10-08"
+  test_runner:
+    command: ""
+    framework: "none"
+  test_layers:
+    unit:
+      available: false
+      tool: ""
+    integration:
+      available: false
+      tool: ""
+    e2e:
+      available: false
+      tool: ""
+  coverage:
+    available: false
+    command: ""
+  quality_tools:
+    linter:
+      available: false
+      command: ""
+    type_checker:
+      available: false
+      command: ""
+    formatter:
+      available: false
+      command: ""
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Reference existing scripts under Experimentos/ when a change touches experiment code
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Document architecture decisions with rationale
+    - Keep reproducibility guarantees explicit (SEED=42, fixed splits)
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+      - "Scripts run top-level: keep side effects out of import paths when refactoring"
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

@@ -20,3 +20,7 @@ dist/
 # Editores
 .vscode/
 .idea/
+
+#Resultados de experimentos
+results/
+.cache/
