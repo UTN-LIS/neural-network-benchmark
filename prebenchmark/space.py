@@ -20,6 +20,7 @@ from .config import (
     BASELINE_INIT,
     BASELINE_LR,
     BASELINE_OPTIMIZER,
+    DEFAULT_DATASET,
     KNOWN_ACTIVATIONS,
     KNOWN_CONVERGENCE_METRICS,
     KNOWN_CONVERGENCE_MODES,
@@ -378,14 +379,25 @@ class ParameterSpace:
         }
 
 
-def default_space() -> ParameterSpace:
-    """Devuelve el espacio de protocolo inicial (la plantilla de línea base x 36)."""
-    base = ExperimentConfig(
-        activation=BASELINE_ACTIVATION,
-        optimizer=BASELINE_OPTIMIZER,
-        lr=BASELINE_LR,
-        init=BASELINE_INIT,
-    )
+def default_space(dataset: str | None = None) -> ParameterSpace:
+    """Devuelve el espacio de protocolo inicial para ``dataset``.
+
+    Sin argumento (o con ``wine_quality``) conserva exactamente los valores
+    históricos y no toca la red ni el disco. Para cualquier otro dataset
+    registrado, deriva ``input_dim``/``output_dim`` del CSV en caché mediante
+    :func:`prebenchmark.data.dataset_base_config`.
+    """
+    if dataset is None or dataset == DEFAULT_DATASET:
+        base = ExperimentConfig(
+            activation=BASELINE_ACTIVATION,
+            optimizer=BASELINE_OPTIMIZER,
+            lr=BASELINE_LR,
+            init=BASELINE_INIT,
+        )
+    else:
+        from . import data  # import diferido: torch/scikit-learn solo si hace falta
+
+        base = data.dataset_base_config(dataset)
     return ParameterSpace(base=base)
 
 

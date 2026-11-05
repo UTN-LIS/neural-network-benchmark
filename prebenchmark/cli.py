@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Sequence
 
 from . import compare, export, space, store
-from .config import ExperimentConfig
+from .config import DEFAULT_DATASET, KNOWN_DATASETS, ExperimentConfig
 from .identity import compute_config_id, utc_timestamp
 
 __all__ = ["build_parser", "main"]
@@ -67,6 +67,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     generate.add_argument("--limit", type=int, default=None, help="only the first N combinations")
     generate.add_argument(
+        "--dataset",
+        choices=KNOWN_DATASETS,
+        default=DEFAULT_DATASET,
+        help=(
+            "registered dataset to generate configurations for "
+            "(default: wine_quality; the input/output dimensions are derived from it)"
+        ),
+    )
+    generate.add_argument(
         "--class-weight",
         choices=("none", "balanced"),
         default=None,
@@ -80,6 +89,15 @@ def build_parser() -> argparse.ArgumentParser:
     run = _with_common(subparsers.add_parser("run", help="execute generated configurations"))
     run.add_argument("--limit", type=int, default=1, help="number of configurations to run (default: 1)")
     run.add_argument("--config-id", default=None, help="run only the configuration with this config_id")
+    run.add_argument(
+        "--dataset",
+        choices=KNOWN_DATASETS,
+        default=DEFAULT_DATASET,
+        help=(
+            "registered dataset to train on (default: wine_quality; must match "
+            "the dataset used by generate)"
+        ),
+    )
     run.add_argument("--max-epochs", type=int, default=None, help="override max_epochs")
     run.add_argument("--seed", type=int, default=None, help="override the random seed")
     run.add_argument(
@@ -181,7 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _cmd_generate(args: argparse.Namespace) -> int:
     results = store.ResultsStore(args.root)
-    configs = space.generate_configs()
+    configs = space.generate_configs(space.default_space(args.dataset))
     if args.limit is not None:
         configs = configs[: args.limit]
     configs = [_apply_class_weight(cfg, args.class_weight) for cfg in configs]
@@ -199,7 +217,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     from .seeds import EXPLORATORY_SEEDS
 
     results = store.ResultsStore(args.root)
-    configs = space.generate_configs()
+    configs = space.generate_configs(space.default_space(args.dataset))
     if args.config_id is not None:
         configs = [cfg for cfg in configs if compute_config_id(cfg) == args.config_id]
         if not configs:

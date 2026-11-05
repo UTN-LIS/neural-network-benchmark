@@ -47,6 +47,34 @@ and writes a single offline HTML file to
 `results/reports/<experiment-id>/analysis_<timestamp>.html`. It never reads the
 internal store, so the report is reproducible from the exported snapshot alone.
 
+## Datasets
+
+`generate` and `run` accept `--dataset NAME` (default `wine_quality`). The
+registry lives in `prebenchmark/data.py`; `input_dim` and `output_dim` are
+derived from the loaded dataset, never hardcoded. Every dataset is cached as a
+canonical CSV under `.cache/prebenchmark/` so `dataset_version` remains a stable
+`sha256-<digest>` fingerprint.
+
+| Name | Source | Samples | Features | Classes | Max/min class |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `wine_quality` | UCI winequality-white | 4,898 | 11 | 7 | 439.6 |
+| `satimage` | OpenML satimage v1 | 6,430 | 36 | 6 | 2.45 |
+| `vehicle` | OpenML vehicle v1 | 846 | 18 | 4 | 1.10 |
+| `waveform_5000` | OpenML waveform-5000 v1 | 5,000 | 40 | 3 | 1.02 |
+| `segment` | OpenML segment v1 | 2,310 | 19 | 7 | 1.00 |
+| `digits` | scikit-learn `load_digits` | 1,797 | 64 | 10 | 1.05 |
+
+```bash
+# Full sweep on a registered dataset
+python -m prebenchmark generate --experiment-id exp-sweep-02 --dataset satimage
+python -m prebenchmark run --experiment-id exp-sweep-02 --dataset satimage \
+  --multi-seed --earlyStop --class-weight none
+```
+
+`wine_quality` keeps the historical UCI download and dimensions, so existing
+experiments remain reproducible. The other datasets require network access only
+on their first load; afterwards they are served from the cache.
+
 ## Statistical analysis report
 
 The report lists every configuration in the export and compares their metrics

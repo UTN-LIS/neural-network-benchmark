@@ -203,3 +203,39 @@ def test_runner_balanced_run_records_class_weight_and_unweighted_loss():
         assert meta["final_metrics"]["accuracy"] is not None
 
 
+def test_runner_supports_a_registered_dataset_with_generic_target_column():
+    """El runner debe usar cfg.dataset.target y las dimensiones derivadas del dataset."""
+    rng = np.random.default_rng(0)
+    n = 120
+    labels = np.array([i % 3 for i in range(n)])
+    frame = pd.DataFrame(
+        {
+            "x0": rng.normal(size=n) + labels,
+            "x1": rng.normal(size=n) - labels,
+            "x2": rng.normal(size=n),
+            "x3": rng.normal(size=n),
+            "target": labels,
+        }
+    )
+    cfg = config.ExperimentConfig(
+        dataset=config.DatasetSpec(name="toy", source="test", target="target", n_features=4),
+        architecture=config.ArchitectureSpec(
+            name="toy_mlp", input_dim=4, hidden_layers=[8, 4], output_dim=3
+        ),
+        max_epochs=2,
+        seed=42,
+    )
+    with tempfile.TemporaryDirectory() as td:
+        st = store.ResultsStore(td)
+        res = runner.run_experiment(cfg, experiment_id="exp-generic", store=st, df=frame)
+        assert res["state"] == "COMPLETED"
+        meta = res["metadata"]
+        assert meta["dataset"]["name"] == "toy"
+        assert meta["dataset"]["version"].startswith("sha256-")
+        assert meta["architecture"]["input_dim"] == 4
+        assert meta["architecture"]["output_dim"] == 3
+        assert meta["epochs_executed"] == 2
+        assert meta["final_metrics"]["f1_macro"] >= 0.0
+
+
+

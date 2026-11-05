@@ -54,7 +54,7 @@ from .config import (
     BASELINE_OPTIMIZER,
     ExperimentConfig,
 )
-from .identity import compute_config_id, utc_timestamp
+from .identity import utc_timestamp
 from .space import SPACE_DIMENSIONS
 
 __all__ = [
@@ -127,11 +127,10 @@ _SPLIT_TOLERANCE = 1e-9
 def documented_baseline_config() -> ExperimentConfig:
     """La configuración de referencia documentada.
 
-    ReLU + Adam + lr 0.001 + He + CrossEntropyLoss + arquitectura
-    ``wine_quality`` -- la única configuración que se ha ejecutado en este
-    repositorio (``Experimentos/wine_quality.py``). Se expone para que los
+    ReLU + Adam + lr 0.001 + He + CrossEntropyLoss. Se expone para que los
     llamadores puedan optar por ella de forma explícita; nunca se asume de
-    forma implícita.
+    forma implícita. El dataset y la arquitectura concretos se toman de las
+    ejecuciones al seleccionar la línea base.
     """
     return ExperimentConfig(
         activation=BASELINE_ACTIVATION,
@@ -140,6 +139,30 @@ def documented_baseline_config() -> ExperimentConfig:
         init=BASELINE_INIT,
         loss="cross_entropy",
     )
+
+
+def _matches_documented_default(meta: Mapping[str, Any]) -> bool:
+    """Verdadero cuando la ejecución usa las cuatro dimensiones de la línea base.
+
+    Se compara por dimensiones (no por ``config_id``) para que la selección
+    funcione con cualquier dataset, arquitectura o protocolo de convergencia.
+    """
+    expected: tuple[tuple[str, Any], ...] = (
+        ("activation", BASELINE_ACTIVATION),
+        ("optimizer", BASELINE_OPTIMIZER),
+        ("lr", BASELINE_LR),
+        ("init", BASELINE_INIT),
+    )
+    for key, expected_value in expected:
+        value = _field(meta, key)
+        if key == "lr":
+            try:
+                value = float(value)
+            except (TypeError, ValueError):
+                return False
+        if value != expected_value:
+            return False
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -372,11 +395,12 @@ def select_baseline(
     Se requiere exactamente uno de los siguientes: ``baseline_run_id`` o
     ``baseline_config_id``, o bien ``use_documented_default=True`` para optar
     por la configuración predeterminada documentada (ReLU + Adam + lr 0.001 +
-    He + CrossEntropy + wine_quality). En caso contrario, se genera un
-    ``ValueError``. Cuando varias ejecuciones comparten el mismo
-    ``baseline_config_id``, se selecciona la más temprana (según
-    ``start_time``) y la selección registra su justificación y una marca de
-    tiempo UTC.
+    He + CrossEntropy), seleccionada por sus cuatro dimensiones libres para que
+    funcione con cualquier dataset, arquitectura o protocolo de convergencia. En
+    caso contrario, se genera un ``ValueError``. Cuando varias ejecuciones
+    comparten el mismo ``baseline_config_id``, se selecciona la más temprana
+    (según ``start_time``) y la selección registra su justificación y una marca
+    de tiempo UTC.
     """
     if baseline_run_id is not None and baseline_config_id is not None:
         raise ValueError("pass exactly one of baseline_run_id / baseline_config_id")
@@ -389,18 +413,27 @@ def select_baseline(
             "baseline must be selected explicitly: pass baseline_run_id, "
             "baseline_config_id, or use_documented_default=True"
         )
-    if baseline_run_id is None and baseline_config_id is None:
-        baseline_config_id = compute_config_id(documented_baseline_config())
 
     if baseline_run_id is not None:
         matches = [m for m in runs if m.get("run_id") == baseline_run_id]
         if not matches:
             raise ValueError(f"baseline run '{baseline_run_id}' not found")
         chosen = matches[0]
-    else:
+    elif baseline_config_id is not None:
         matches = [m for m in runs if m.get("config_id") == baseline_config_id]
         if not matches:
             raise ValueError(f"no run found for baseline config_id '{baseline_config_id}'")
+        chosen = sorted(
+            matches,
+            key=lambda m: (m.get("start_time") or "", m.get("run_id") or ""),
+        )[0]
+    else:
+        matches = [m for m in runs if _matches_documented_default(m)]
+        if not matches:
+            raise ValueError(
+                "no run found matching the documented default baseline "
+                "(ReLU + Adam + lr 0.001 + He)"
+            )
         chosen = sorted(
             matches,
             key=lambda m: (m.get("start_time") or "", m.get("run_id") or ""),
@@ -416,10 +449,10 @@ def select_baseline(
         if baseline_run_id is not None:
             rationale = f"explicitly selected baseline run {chosen.get('run_id')}"
         elif use_documented_default:
+            dataset_name = (_config(chosen).get("dataset") or {}).get("name") or "unknown"
             rationale = (
-                "documented default baseline: ReLU + Adam + lr 0.001 + He + "
-                "CrossEntropy + wine_quality architecture (the only "
-                "configuration previously run in this repository)"
+                "documented default baseline: ReLU + Adam + lr 0.001 + He "
+                f"(matched by the four free dimensions; dataset: {dataset_name})"
             )
         else:
             rationale = (

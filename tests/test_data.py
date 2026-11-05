@@ -95,3 +95,111 @@ def test_file_fingerprint_matches_dataframe_fingerprint(tmp_path):
     path = tmp_path / "winequality-white.csv"
     df.to_csv(path, sep=";", index=False, lineterminator="\n")
     assert data.compute_file_fingerprint(path) == data.compute_dataframe_fingerprint(df)
+
+
+def _toy_definition() -> "data.DatasetDefinition":
+    import numpy as np
+    import pandas as pd
+
+    def loader() -> pd.DataFrame:
+        return pd.DataFrame(
+            {
+                "x0": np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0]),
+                "x1": np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
+                "target": np.array([0, 1, 0, 1, 2, 2]),
+            }
+        )
+
+    return data.DatasetDefinition(
+        name="toy",
+        source="in-memory test fixture",
+        target=data.GENERIC_TARGET_COLUMN,
+        cache_filename="toy.csv",
+        loader=loader,
+    )
+
+
+def test_dataset_registry_matches_known_datasets():
+    from prebenchmark.config import KNOWN_DATASETS
+
+    assert set(data.DATASETS) == set(KNOWN_DATASETS)
+
+
+def test_registered_dataset_is_cached_and_described(tmp_path, monkeypatch):
+    definition = _toy_definition()
+    calls = []
+
+    def counting_loader():
+        calls.append(1)
+        return definition.loader()
+
+    monkeypatch.setitem(
+        data.DATASETS,
+        "toy",
+        data.DatasetDefinition(
+            name=definition.name,
+            source=definition.source,
+            target=definition.target,
+            cache_filename=definition.cache_filename,
+            loader=counting_loader,
+        ),
+    )
+
+    first = data.fetch_dataset_csv("toy", cache_dir=tmp_path)
+    second = data.fetch_dataset_csv("toy", cache_dir=tmp_path)
+    assert first == second
+    assert len(calls) == 1
+
+    loaded = data.load_dataset("toy", cache_dir=tmp_path)
+    assert loaded.shape == (6, 3)
+
+    info = data.describe_dataset("toy", cache_dir=tmp_path)
+    assert info.n_samples == 6
+    assert info.n_features == 2
+    assert info.n_classes == 3
+    assert info.target == data.GENERIC_TARGET_COLUMN
+
+
+def test_dataset_base_config_derives_dimensions(tmp_path, monkeypatch):
+    monkeypatch.setitem(data.DATASETS, "toy", _toy_definition())
+
+    base = data.dataset_base_config("toy", cache_dir=tmp_path)
+    assert base.dataset.name == "toy"
+    assert base.dataset.target == data.GENERIC_TARGET_COLUMN
+    assert base.dataset.n_features == 2
+    assert base.architecture.input_dim == 2
+    assert base.architecture.output_dim == 3
+    assert base.architecture.hidden_layers == [32, 16]
+
+
+def test_build_splits_uses_configured_target_column(tmp_path, monkeypatch):
+    import numpy as np
+    import pandas as pd
+
+    monkeypatch.setitem(data.DATASETS, "toy", _toy_definition())
+    cfg = data.dataset_base_config("toy", cache_dir=tmp_path)
+    cfg.split = config.SplitSpec(train=0.5, val=0.25, test=0.25)
+
+    rng = np.random.default_rng(42)
+    n = 60
+    df = pd.DataFrame(
+        {
+            "x0": rng.normal(size=n),
+            "x1": rng.normal(size=n),
+            "target": np.array([i % 3 for i in range(n)]),
+        }
+    )
+    splits = data.build_splits(cfg, df=df)
+    assert len(splits["y_train"]) + len(splits["y_val"]) + len(splits["y_test"]) == n
+    assert set(np.unique(splits["y_train"])) <= {0, 1, 2}
+
+
+def test_default_space_for_wine_quality_keeps_historic_dimensions():
+    from prebenchmark import space
+
+    base = space.default_space("wine_quality").base
+    assert base.dataset.n_features == 11
+    assert base.architecture.input_dim == 11
+    assert base.architecture.output_dim == 7
+    assert base.dataset.target == "quality"
+

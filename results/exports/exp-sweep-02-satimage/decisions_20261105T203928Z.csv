@@ -1,0 +1,2 @@
+decision_id,run_id,config_id,group_id,decision_type,label,justification,actor,timestamp,evidence
+dec-20261105T191817Z-135ffd,20261105T185900Z-417772,cfg-v1-d802a28b52b6,,validate,,documented default baseline: ReLU + Adam + lr 0.001 + He (matched by the four free dimensions; dataset: satimage),export,20261105T191817Z,"{""source"": ""export"", ""state"": ""COMPLETED""}"

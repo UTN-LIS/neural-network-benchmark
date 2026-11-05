@@ -49,6 +49,20 @@ def test_cli_generate_registers_limited_space(tmp_path: Path):
     assert all(config["validation_state"] in {"VALID", "WARNING"} for config in configs)
 
 
+def test_cli_dataset_flag_defaults_to_wine_quality_and_is_forwarded(tmp_path: Path):
+    parser = build_parser()
+    args = parser.parse_args(["generate", "--experiment-id", "exp-gen"])
+    assert args.dataset == "wine_quality"
+    args = parser.parse_args(
+        ["run", "--experiment-id", "exp-run", "--dataset", "satimage", "--limit", "1"]
+    )
+    assert args.dataset == "satimage"
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["run", "--experiment-id", "exp-run", "--dataset", "unknown"])
+
+
+
 def test_cli_export_writes_tables(tmp_path: Path):
     root = tmp_path / "results"
     _build_store(root)

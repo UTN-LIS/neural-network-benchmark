@@ -17,7 +17,12 @@ from prebenchmark.compare import (
     filter_runs,
     select_baseline,
 )
-from prebenchmark.config import ExperimentConfig
+from prebenchmark.config import (
+    ArchitectureSpec,
+    ConvergenceSpec,
+    DatasetSpec,
+    ExperimentConfig,
+)
 from prebenchmark.identity import compute_config_id
 
 BASE = ExperimentConfig()
@@ -115,6 +120,38 @@ def test_select_baseline_documented_default_is_explicit() -> None:
     assert baseline.run_id == "run-baseline"
     assert baseline.config_id == compute_config_id(documented_baseline_config())
     assert "documented default" in baseline.rationale
+
+
+def test_select_baseline_documented_default_matches_across_dataset_and_protocol() -> None:
+    """La línea base documentada se define por sus dimensiones, no por el dataset ni el protocolo."""
+    cfg = replace(
+        BASE,
+        dataset=DatasetSpec(
+            name="satimage",
+            source="OpenML satimage v1",
+            target="target",
+            n_features=36,
+        ),
+        architecture=ArchitectureSpec(
+            name="satimage_mlp",
+            input_dim=36,
+            hidden_layers=[32, 16],
+            output_dim=6,
+        ),
+        convergence=ConvergenceSpec(
+            enabled=True,
+            metric="val_loss",
+            patience=20,
+            min_delta=1e-4,
+            mode="min",
+        ),
+    )
+    run = make_run(cfg, "run-satimage")
+    baseline = select_baseline([run], use_documented_default=True)
+    assert baseline.run_id == "run-satimage"
+    assert baseline.config_id == compute_config_id(cfg)
+    assert "dataset: satimage" in baseline.rationale
+
 
 
 def test_select_baseline_requires_explicit_choice() -> None:

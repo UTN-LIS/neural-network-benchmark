@@ -115,7 +115,7 @@ def run_experiment(
     warnings: list[str] = list(validation.rationale) if validation.rationale else []
     dataset_meta = cfg.dataset.to_dict()
     try:
-        dataset_meta["version"] = data.resolve_dataset_version(df)
+        dataset_meta["version"] = data.resolve_dataset_version(df, cfg.dataset.name)
     except Exception as error:  # pragma: no cover - defensivo: problemas de red/caché
         warnings.append(f"dataset version unavailable: {error}")
 

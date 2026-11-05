@@ -1,0 +1,151 @@
+run_id,config_id,state,category,message,epoch,source
+20261105T185527Z-8aad70,cfg-v1-7b21b9e7fa45,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T185701Z-67f11e,cfg-v1-76dac16b54de,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T185829Z-239e8c,cfg-v1-6f43b4f61924,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T185829Z-239e8c,cfg-v1-6f43b4f61924,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T185837Z-3cd9a7,cfg-v1-d68908d93e1e,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T185846Z-694618,cfg-v1-0c697d08ef78,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T185915Z-7894cc,cfg-v1-fcb73ecaabff,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T185922Z-6cbadd,cfg-v1-ca33eb0b355b,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T185922Z-6cbadd,cfg-v1-ca33eb0b355b,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T185925Z-db9b7f,cfg-v1-7198e5d96317,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T190011Z-c5a0e2,cfg-v1-47bf74fd7145,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190134Z-9b0979,cfg-v1-4e2863ec5b55,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190216Z-d2e37c,cfg-v1-191ddd5f8c60,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T190238Z-54c515,cfg-v1-8df2631ec135,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T190238Z-54c515,cfg-v1-8df2631ec135,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190355Z-bbb297,cfg-v1-e4639ad56789,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190421Z-5f886e,cfg-v1-d3811fa4bc39,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190425Z-3a7099,cfg-v1-0447d0c8fdac,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T190430Z-2f6650,cfg-v1-ab92142a700b,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T190430Z-2f6650,cfg-v1-ab92142a700b,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190536Z-5e7944,cfg-v1-9ef8ddac542a,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190808Z-7a5695,cfg-v1-f6a0fcfe192e,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190850Z-931fad,cfg-v1-188d38c1aa90,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T190900Z-d6d2f7,cfg-v1-4680bc556a54,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T190900Z-d6d2f7,cfg-v1-4680bc556a54,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190924Z-411165,cfg-v1-53dae626d580,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190949Z-3c281c,cfg-v1-60d9fd3e1c51,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T190956Z-3ce70e,cfg-v1-fd3d24817dfe,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T191003Z-d5733d,cfg-v1-a38c362a9862,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T191003Z-d5733d,cfg-v1-a38c362a9862,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T191309Z-09807f,cfg-v1-7287951736c4,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T191438Z-63154e,cfg-v1-69a4ec2baee4,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T191513Z-806c19,cfg-v1-fb67abb19c94,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T191513Z-806c19,cfg-v1-fb67abb19c94,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T191517Z-c4c87a,cfg-v1-26eeb9e0e8b6,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T191523Z-785581,cfg-v1-22f097df025d,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T191541Z-ca6102,cfg-v1-e2b7e2abb4a5,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T191549Z-9e3b77,cfg-v1-97fe53025f6f,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T191549Z-9e3b77,cfg-v1-97fe53025f6f,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T191551Z-7d948d,cfg-v1-fbdbc18c3fd8,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T191637Z-fa7f6e,cfg-v1-2172f88d7880,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T191945Z-eb8a3b,cfg-v1-2252b19181aa,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192103Z-ca34aa,cfg-v1-5084783183cd,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T192120Z-8f05a6,cfg-v1-ef831b521910,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T192120Z-8f05a6,cfg-v1-ef831b521910,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192200Z-b86a03,cfg-v1-b960775ebdae,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192225Z-11703e,cfg-v1-44cf88ed164e,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192230Z-30356e,cfg-v1-b6e396f4a311,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T192233Z-923f25,cfg-v1-40335819c13c,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T192233Z-923f25,cfg-v1-40335819c13c,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192318Z-888234,cfg-v1-cce0d4fe0aaf,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192434Z-446807,cfg-v1-2765684c84c5,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192459Z-5337dd,cfg-v1-a61783d6a33f,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T192511Z-679726,cfg-v1-2ed2bbc78f3b,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T192511Z-679726,cfg-v1-2ed2bbc78f3b,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192542Z-575f14,cfg-v1-9db1c84eec3a,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192611Z-f092db,cfg-v1-e8686443d311,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192618Z-fa4e84,cfg-v1-4d8ce9b29de2,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T192627Z-ce9c0b,cfg-v1-b69d6b57a137,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T192627Z-ce9c0b,cfg-v1-b69d6b57a137,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T192643Z-a592d6,cfg-v1-1d262899dfa9,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T192908Z-2f276b,cfg-v1-32b892ee757a,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T193026Z-4b593b,cfg-v1-2d6490fa5ac4,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T193026Z-4b593b,cfg-v1-2d6490fa5ac4,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T193039Z-9c5bfc,cfg-v1-5eaed8a7ef63,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T193049Z-4d6143,cfg-v1-1f626bfcef21,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T193122Z-ad6242,cfg-v1-780fc5904e46,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T193143Z-502cdf,cfg-v1-de514a0baf88,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T193143Z-502cdf,cfg-v1-de514a0baf88,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T193150Z-8d7934,cfg-v1-ab6a79cd4d2b,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T193313Z-1481a3,cfg-v1-05b2028a9cfd,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193437Z-f53a9a,cfg-v1-4e16625c1c72,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193518Z-2cd37b,cfg-v1-39821a6b2030,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T193533Z-a3cce7,cfg-v1-6138e6c2223d,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T193533Z-a3cce7,cfg-v1-6138e6c2223d,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193626Z-d0c4a2,cfg-v1-696975616873,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193657Z-2ecfac,cfg-v1-e415c9cc3ba9,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193703Z-5a456a,cfg-v1-a30981d7ba26,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T193706Z-ebe69f,cfg-v1-e231dfb9aed9,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T193706Z-ebe69f,cfg-v1-e231dfb9aed9,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193756Z-7cfb2c,cfg-v1-4c7015e606ec,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193858Z-cf5592,cfg-v1-066e77114a9e,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193921Z-ce68a8,cfg-v1-2e97dc64e302,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T193927Z-1dd183,cfg-v1-b0624fd4d62f,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T193927Z-1dd183,cfg-v1-b0624fd4d62f,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193942Z-ca5dd1,cfg-v1-6c84c79a7b33,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193955Z-f6fe6c,cfg-v1-c59a65965ab2,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T193959Z-aef06c,cfg-v1-7ae6c401154b,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T194001Z-055077,cfg-v1-aa5516db1bbe,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T194001Z-055077,cfg-v1-aa5516db1bbe,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T194011Z-70ebae,cfg-v1-857fb7bceda4,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T194137Z-10d054,cfg-v1-c9479ba78fa0,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T194222Z-bd2daf,cfg-v1-9f815fe5ea58,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T194222Z-bd2daf,cfg-v1-9f815fe5ea58,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T194229Z-60a087,cfg-v1-2e0997d97e17,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T194237Z-f54355,cfg-v1-b83d4b73aadf,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T194258Z-63a6fa,cfg-v1-6a88e4c65c9e,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T194311Z-a014e5,cfg-v1-dd07584c0e94,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T194311Z-a014e5,cfg-v1-dd07584c0e94,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T194315Z-48aeda,cfg-v1-720c5f447e0e,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T194415Z-406cf5,cfg-v1-9a338419ff45,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T194623Z-ee8360,cfg-v1-12f76f8cd550,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T194724Z-f9d2d6,cfg-v1-47ea022d3eac,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T194757Z-c36d4a,cfg-v1-5dc746152fd0,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T194757Z-c36d4a,cfg-v1-5dc746152fd0,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T194905Z-de6de2,cfg-v1-a0f64d18b971,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T194938Z-336ee7,cfg-v1-79be362ca894,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T194946Z-6bd878,cfg-v1-5e0427b363f6,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T194954Z-9389c8,cfg-v1-f0cba5b4a2cb,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T194954Z-9389c8,cfg-v1-f0cba5b4a2cb,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195047Z-011dfa,cfg-v1-8774cd3cc15f,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195150Z-e29dd5,cfg-v1-9ef13b33bc52,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195209Z-d2663b,cfg-v1-dd7dbc0f5e89,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T195213Z-8ff039,cfg-v1-9790602857e0,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T195213Z-8ff039,cfg-v1-9790602857e0,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195226Z-fd8b37,cfg-v1-ab8da6a8204c,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195238Z-998748,cfg-v1-328f840e806e,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195241Z-ab4854,cfg-v1-9d65d22b0310,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T195247Z-d56006,cfg-v1-72bb2f3d0591,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T195247Z-d56006,cfg-v1-72bb2f3d0591,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195254Z-744d5f,cfg-v1-108fdd326c19,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T195433Z-f3ce04,cfg-v1-f66eb8540e69,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T195506Z-605eca,cfg-v1-db62fe5705d3,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T195506Z-605eca,cfg-v1-db62fe5705d3,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T195511Z-2aa3b4,cfg-v1-7747750d51fd,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T195516Z-100b15,cfg-v1-f3625dd574f6,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T195532Z-e202c5,cfg-v1-fc734d915f4e,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T195540Z-6eb1ac,cfg-v1-4704dfbb851f,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T195540Z-6eb1ac,cfg-v1-4704dfbb851f,COMPLETED_WITH_WARNINGS,warning,Xavier/Glorot initialization is not conventionally recommended for ReLU activations,N/A,run
+20261105T195543Z-1a6db2,cfg-v1-f88b3daee5bd,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T195625Z-f284a9,cfg-v1-12990cfadc02,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195743Z-44466d,cfg-v1-7dce0acd1cc0,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195823Z-d445d2,cfg-v1-264050e2bd52,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T195841Z-d62bd4,cfg-v1-7aeaea44b737,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T195841Z-d62bd4,cfg-v1-7aeaea44b737,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195920Z-4fc9cd,cfg-v1-94655e5fe151,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195944Z-a0b535,cfg-v1-5e160532f956,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T195949Z-98541d,cfg-v1-f3335e3645df,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T195955Z-4fe070,cfg-v1-49e89da594de,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T195955Z-4fe070,cfg-v1-49e89da594de,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T200040Z-1dfb4d,cfg-v1-c6e5af7445a2,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T200140Z-d42ea3,cfg-v1-97a2ecff8df0,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T200203Z-fb2e0e,cfg-v1-2682711ca6bb,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T200208Z-e8d293,cfg-v1-22f739ca2fdf,COMPLETED_WITH_WARNINGS,warning,SGD with learning rate >= 0.1 may diverge,N/A,run
+20261105T200208Z-e8d293,cfg-v1-22f739ca2fdf,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T200220Z-8ae62a,cfg-v1-bd7a1f6e1559,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T200231Z-7e269d,cfg-v1-de5034ee0a12,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run
+20261105T200235Z-ef4c41,cfg-v1-2792b9630670,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T200239Z-13d189,cfg-v1-ec271ae70a45,COMPLETED_WITH_WARNINGS,warning,Adam with learning rate >= 0.1 may be unstable,N/A,run
+20261105T200239Z-13d189,cfg-v1-ec271ae70a45,COMPLETED_WITH_WARNINGS,warning,He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations,N/A,run

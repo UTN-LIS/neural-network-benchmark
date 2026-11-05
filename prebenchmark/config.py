@@ -27,6 +27,20 @@ KNOWN_INITIALIZATIONS: tuple[str, ...] = ("xavier", "he")
 KNOWN_LOSSES: tuple[str, ...] = ("cross_entropy",)
 KNOWN_SCALERS: tuple[str, ...] = ("standard",)
 KNOWN_RUN_TYPES: tuple[str, ...] = ("prebenchmark", "benchmark")
+
+# Registro de datasets soportados. ``prebenchmark.data`` es la fuente de verdad
+# de los loaders; esta tupla existe para que la CLI y la validación puedan
+# ofrecer las opciones sin importar torch/scikit-learn. Un test verifica que
+# ambas listas coincidan.
+DEFAULT_DATASET = "wine_quality"
+KNOWN_DATASETS: tuple[str, ...] = (
+    "wine_quality",
+    "satimage",
+    "vehicle",
+    "waveform_5000",
+    "segment",
+    "digits",
+)
 KNOWN_DEVICES: tuple[str, ...] = ("auto", "cpu", "cuda")
 KNOWN_CONVERGENCE_METRICS: tuple[str, ...] = ("val_loss", "train_loss")
 KNOWN_CONVERGENCE_MODES: tuple[str, ...] = ("min", "max")
