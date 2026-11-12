@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prebenchmark UI — Prototipo</title>
+<style>
+:root{
+  --azul:#0b5fa5; --azul-soft:#93c5fd; --ambar:#d97706; --gris:#6b7280;
+  --rojo:#b91c1c; --verde:#0f766e; --tinta:#111827; --fondo:#f7f8fa;
+  --borde:#e3e6ea; --panel:#ffffff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);
+  font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif}
+header{background:var(--panel);border-bottom:1px solid var(--borde);padding:18px 26px}
+h1{margin:0;font-size:20px;letter-spacing:-.2px}
+h2{font-size:16px;margin:0 0 10px}
+h3{font-size:14px;margin:18px 0 8px;color:var(--azul);text-transform:uppercase;letter-spacing:.6px}
+.sub{margin:4px 0 0;color:var(--gris);font-size:13px}
+nav{display:flex;gap:6px;padding:0 26px;background:var(--panel);border-bottom:1px solid var(--borde)}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:12px 16px;
+  font:inherit;font-weight:600;color:var(--gris);cursor:pointer}
+nav button[aria-selected="true"]{color:var(--azul);border-bottom-color:var(--azul)}
+nav button:disabled{color:#b6bcc4;cursor:not-allowed}
+main{padding:22px 26px 60px;max-width:1320px;margin:0 auto}
+.banner{background:#fff8e6;border:1px solid #f0d795;border-left:4px solid var(--ambar);
+  padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:20px}
+.grid{display:grid;gap:18px}
+.g-2{grid-template-columns:minmax(340px,420px) 1fr}
+.g-3{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.panel{background:var(--panel);border:1px solid var(--borde);border-radius:10px;padding:16px 18px}
+.dim{margin-bottom:16px}
+.dim > label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--gris);margin-bottom:6px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{flex:1 1 auto;min-width:74px;background:#fff;border:1px solid var(--borde);
+  border-radius:7px;padding:8px 10px;font:inherit;font-size:13px;cursor:pointer;color:var(--tinta)}
+.seg button:hover{border-color:var(--azul-soft)}
+.seg button[aria-pressed="true"]{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
+.seg button small{display:block;font-size:11px;opacity:.75;font-weight:400}
+select{width:100%;padding:8px 10px;border:1px solid var(--borde);border-radius:7px;font:inherit;background:#fff}
+.hint{font-size:12px;color:var(--gris);margin-top:6px}
+.stat{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;border-bottom:1px dashed #eef0f3}
+.stat:last-child{border-bottom:0}
+.stat b{font-variant-numeric:tabular-nums}
+.alert{border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:10px;border:1px solid}
+.alert.bad{background:#fdecec;border-color:#f3bcbc;color:#7f1d1d}
+.alert.warn{background:#fff8e6;border-color:#f0d795;color:#7c4a03}
+.alert.ok{background:#eaf6f3;border-color:#bfe0d8;color:#0b4f45}
+.alert .t{font-weight:700;display:block;margin-bottom:3px}
+.btn{background:var(--azul);color:#fff;border:0;border-radius:8px;padding:11px 18px;
+  font:inherit;font-weight:600;cursor:pointer;width:100%}
+.btn:disabled{background:#a8b4c0;cursor:progress}
+.btn.ghost{background:#fff;color:var(--azul);border:1px solid var(--azul)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:10px}
+.metric{background:#fbfcfd;border:1px solid var(--borde);border-radius:8px;padding:10px 12px}
+.metric .k{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gris)}
+.metric .v{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25}
+.metric .n{font-size:11px;color:var(--gris)}
+.metric.primary{background:#eef4fb;border-color:#cfe0f2}
+.metric.primary .v{color:var(--azul)}
+.bar{height:8px;background:#e9edf2;border-radius:99px;overflow:hidden;margin:10px 0 6px}
+.bar > i{display:block;height:100%;width:0;background:var(--azul);transition:width .12s linear}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--borde)}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gris);background:#fbfcfd}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.flag{background:#fff8f6}
+details{border:1px solid var(--borde);border-radius:8px;padding:0;background:#fbfcfd;margin-top:12px}
+details summary{cursor:pointer;padding:10px 13px;font-size:13px;font-weight:600;color:var(--gris)}
+details[open] summary{border-bottom:1px solid var(--borde);color:var(--azul)}
+pre{margin:0;padding:13px;overflow:auto;font:12px/1.5 Consolas,Menlo,monospace;max-height:420px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;
+  background:#eef2f7;color:var(--gris);border:1px solid var(--borde);margin-left:6px}
+.tag.ok{background:#eaf6f3;color:#0b4f45;border-color:#bfe0d8}
+.tag.bad{background:#fdecec;color:#7f1d1d;border-color:#f3bcbc}
+.card{border:1px solid var(--borde);border-radius:10px;padding:15px 17px;background:var(--panel)}
+.card h2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kv{font-size:13px;color:var(--gris);margin:2px 0}
+a{color:var(--azul)}
+.cm{display:grid;gap:2px;margin-top:8px}
+.cm div{text-align:center;font-size:10px;border-radius:3px;padding:4px 0;color:#fff;font-variant-numeric:tabular-nums}
+.empty{color:var(--gris);font-size:13px;font-style:italic;padding:14px 0}
+svg text{font:11px "Segoe UI",system-ui,sans-serif}
+.pill{font-size:11px;padding:2px 7px;border-radius:99px;background:#eef2f7;color:var(--gris)}
+.footer{margin-top:34px;padding-top:14px;border-top:1px solid var(--borde);font-size:12px;color:var(--gris)}
+code{background:#f0f2f5;padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Prebenchmark — Banco de pruebas de redes neuronales</h1>
+  <p class="sub">Prototipo de interfaz · corrida individual de configuraciones y comparación general de la suite completa</p>
+</header>
+
+<nav role="tablist">
+  <button role="tab" id="tab-btn-run" aria-selected="true" data-tab="run">1 · Corrida individual</button>
+  <button role="tab" id="tab-btn-compare" aria-selected="false" data-tab="compare">2 · Comparación general</button>
+  <button role="tab" id="tab-btn-act" aria-selected="false" data-tab="act" disabled title="Planificado para una etapa posterior">3 · Funciones de activación <span class="tag">planificado</span></button>
+</nav>
+
+<main>
+<div class="banner">
+  <b>PROTOTIPO sin backend.</b> La pestaña 2 usa <b>datos reales</b> de <code>results/exports/</code>
+  (exp-sweep-01 y exp-sweep-02-satimage). La pestaña 1 <b>simula</b> el entrenamiento: las curvas son
+  generadas en el navegador, pero los valores finales están anclados a las medias reales medidas por
+  familia de hiperparámetros en esas dos corridas.
+</div>
+
+<!-- ============ PESTAÑA 1: CORRIDA INDIVIDUAL ============ -->
+<section id="tab-run" role="tabpanel" aria-labelledby="tab-btn-run">
+<div class="grid g-2">
+
+  <!-- Columna izquierda: controles -->
+  <div>
+    <div class="panel">
+      <h2>Configuración del experimento</h2>
+
+      <div class="dim">
+        <label for="dataset">Dataset</label>
+        <select id="dataset"></select>
+        <div id="dataset-stats" style="margin-top:10px"></div>
+      </div>
+
+      <h3>Las 4 dimensiones libres del espacio</h3>
+
+      <div class="dim">
+        <label>Función de activación</label>
+        <div class="seg" id="seg-activation"></div>
+        <div class="hint">Determina la no linealidad de las capas ocultas.</div>
+      </div>
+
+      <div class="dim">
+        <label>Optimizador</label>
+        <div class="seg" id="seg-optimizer"></div>
+        <div class="hint">Adam adapta el paso por parámetro; SGD usa un paso único.</div>
+      </div>
+
+      <div class="dim">
+        <label>Tasa de aprendizaje (lr)</label>
+        <div class="seg" id="seg-lr"></div>
+        <div class="hint">El hiperparámetro más sensible: define si la red converge, colapsa o no avanza.</div>
+      </div>
+
+      <div class="dim">
+        <label>Inicialización de pesos</label>
+        <div class="seg" id="seg-init"></div>
+        <div class="hint">He/Kaiming acompaña a ReLU; Xavier/Glorot a tanh y sigmoid.</div>
+      </div>
+
+      <details>
+        <summary>Protocolo y ponderación de clases (no son dimensiones libres)</summary>
+        <div style="padding:12px 13px">
+          <div class="dim">
+            <label>class_weight</label>
+            <div class="seg" id="seg-cw"></div>
+            <div class="hint">Dispositivo de <b>entrenamiento</b>: pondera la pérdida. La validación y la
+              prueba siempre usan entropía cruzada sin ponderar, para que las métricas sean comparables.</div>
+          </div>
+          <div id="protocol"></div>
+        </div>
+      </details>
+
+      <div style="margin-top:16px">
+        <button class="btn" id="run-btn">▶ Correr combinación</button>
+        <div class="hint" id="estimate"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h2>Arquitectura de la red</h2>
+      <div id="arch"></div>
+      <div class="hint" id="arch-note"></div>
+    </div>
+  </div>
+
+  <!-- Columna derecha: avisos + resultados -->
+  <div>
+    <div id="warnings"></div>
+
+    <div class="panel">
+      <h2>Entrenamiento <span class="tag" id="run-state">en espera</span></h2>
+      <div class="bar"><i id="progress"></i></div>
+      <div class="hint" id="progress-text">Seleccioná una configuración y presioná «Correr combinación».</div>
+      <div id="curve" style="margin-top:12px"></div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h2>Resultados <span class="tag" id="res-tag">sin corrida</span></h2>
+      <div id="results"><div class="empty">Todavía no se ejecutó ninguna configuración.</div></div>
+
+      <details id="meta-box" style="display:none">
+        <summary>Configuración completa de la corrida (metadata.json)</summary>
+        <pre id="meta-json"></pre>
+      </details>
+
+      <details id="test-box" style="display:none">
+        <summary>Evaluación final sobre el set de prueba (test) — uso reservado</summary>
+        <div style="padding:12px 13px">
+          <div class="alert warn">
+            <span class="t">Cuidado metodológico</span>
+            El set de prueba está <b>reservado para la evaluación final</b>. Si se usan sus métricas para
+            elegir configuraciones, el test deja de ser una estimación imparcial del rendimiento.
+            Para comparar hiperparámetros, la métrica de decisión es la de <b>validación</b>.
+          </div>
+          <div id="test-metrics" class="metrics"></div>
+          <div id="cm-wrap"></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h2>Comparación rápida <span class="tag" id="cmp-count">0 / 3</span></h2>
+      <div class="hint" style="margin-bottom:10px">
+        Se conservan las últimas 3 corridas para compararlas entre sí. La comparación es descriptiva:
+        con una sola semilla por configuración no hay inferencia estadística posible.
+      </div>
+      <div id="compare"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ PESTAÑA 2: COMPARACIÓN GENERAL ============ -->
+<section id="tab-compare" role="tabpanel" aria-labelledby="tab-btn-compare" hidden>
+  <div class="grid g-3" id="exp-cards"></div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Familias de hiperparámetros: optimizador × tasa de aprendizaje</h2>
+    <p class="sub" style="margin-top:0">
+      Medias reales de F1 macro por familia, calculadas sobre las corridas completadas de cada suite
+      (5 semillas por configuración). Los valores entre paréntesis son las épocas medias ejecutadas y el
+      tiempo medio por corrida.
+    </p>
+    <div id="family-table"></div>
+    <div class="alert warn" style="margin-top:14px">
+      <span class="t">Las dos familias problemáticas no fallan por la misma razón</span>
+      <b>adam + lr=0.1</b> colapsa: la tasa es tan alta que la red se estabiliza en una solución
+      degenerada y el early stopping la corta en ~33-42 épocas (es rápida y mala).
+      <b>sgd + lr=0.001</b> no llega: avanza tan despacio que consume el tope de 500 épocas
+      (40 de 180 corridas de satimage tocaron el tope) y es 8 a 10 veces más lenta.
+      Una es «lr demasiado alta», la otra «lr demasiado baja»: el mismo síntoma visible
+      (F1 bajo) con causas opuestas.
+    </div>
+  </div>
+
+  <div class="grid g-2" style="margin-top:18px">
+    <div class="panel">
+      <h2>Mejores configuraciones por dataset</h2>
+      <div id="best-table"></div>
+      <div class="hint">Media ± desvío muestral de F1 macro sobre 5 semillas.</div>
+    </div>
+    <div class="panel">
+      <h2>Peores configuraciones por dataset</h2>
+      <div id="worst-table"></div>
+      <div class="hint">Se mantienen visibles a propósito: son evidencia, no ruido a ocultar.</div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Cobertura de datasets y costo de completar las suites</h2>
+    <div id="coverage"></div>
+    <div class="alert ok" style="margin-top:14px">
+      <span class="t">Observación sobre el costo</span>
+      Las dos suites medidas tardaron casi lo mismo en CPU (12 núcleos) a pesar de tener tamaños muy
+      distintos: <b>1.11 h</b> para wine_quality (4.898 × 11, 360 corridas) y <b>1.07 h</b> para satimage
+      (6.430 × 36, 180 corridas). El tiempo está dominado por <b>cuántas épocas ejecuta cada familia</b>,
+      no por el tamaño del dataset. Completar los 4 datasets restantes debería estar en el orden de
+      1 a 2 horas cada uno.
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Advertencias para la lectura cruzada</h2>
+    <ul style="margin:0;padding-left:20px;font-size:13.5px">
+      <li><b>Las dos suites no son directamente comparables.</b> exp-sweep-01 cubre 2 variantes de
+        <code>class_weight</code> (360 corridas, 72 grupos); exp-sweep-02-satimage cubre solo
+        <code>none</code> (180 corridas, 36 grupos).</li>
+      <li><b>El efecto de class_weight es real pero acotado en wine_quality:</b> F1 medio 0.249
+        (balanced) contra 0.240 (none); donde más se nota es en las épocas (123 contra 182) y en el peor
+        caso (F1 mínimo 0.043 contra 0.091).</li>
+      <li><b>Con 5 semillas la potencia estadística es baja.</b> Los p-valores deben leerse junto con los
+        intervalos de confianza y los tamaños del efecto, como ya indica el informe generado.</li>
+      <li><b>En wine_quality todas las configuraciones son malas en términos absolutos</b> (F1 máximo
+        0.346). Las diferencias entre familias son pequeñas frente a lo bajo del techo: el dataset, muy
+        desbalanceado (razón 439.6), es el factor dominante.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ PESTAÑA 3 ============ -->
+<section id="tab-act" role="tabpanel" aria-labelledby="tab-btn-act" hidden>
+  <div class="panel">
+    <h2>Prueba de funciones de activación</h2>
+    <p class="sub">Apartado planificado desde el diseño original del proyecto. Se deja fuera del alcance
+      de esta etapa: primero la corrida individual y la comparación general.</p>
+  </div>
+</section>
+
+<div class="footer">
+  Prototipo estático · paleta y convenciones tomadas de <code>prebenchmark/report.py</code> ·
+  datos reales: <code>results/exports/exp-sweep-01</code>, <code>results/exports/exp-sweep-02-satimage</code> ·
+  informes: <code>results/reports/</code>
+</div>
+</main>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   DATOS REALES extraídos de results/exports (verificados sobre los CSV)
+   ========================================================================= */
+
+const DATASETS = {
+  wine_quality:  {label:"Wine Quality (white)", source:"UCI winequality-white", samples:4898, features:11, classes:7,  imbalance:439.6, hidden:[32,16], sweep:"exp-sweep-01",          report:"../results/reports/exp-sweep-01/analysis_20261029T214944Z.html",          pdf:"../results/reports/exp-sweep-01/analysis_20261029T214944Z.pdf"},
+  satimage:      {label:"Satimage",             source:"OpenML satimage v1",     samples:6430, features:36, classes:6,  imbalance:2.45,  hidden:[32,16], sweep:"exp-sweep-02-satimage", report:"../results/reports/exp-sweep-02-satimage/analysis_20261105T203942Z.html", pdf:"../results/reports/exp-sweep-02-satimage/analysis_20261105T203942Z.pdf"},
+  vehicle:       {label:"Vehicle",              source:"OpenML vehicle v1 (Statlog)", samples:846,  features:18, classes:4,  imbalance:1.10, hidden:[32,16], sweep:null},
+  waveform_5000: {label:"Waveform-5000",        source:"OpenML waveform-5000 v1",     samples:5000, features:40, classes:3,  imbalance:1.02, hidden:[32,16], sweep:null},
+  segment:       {label:"Segment",              source:"OpenML segment v1",           samples:2310, features:19, classes:7,  imbalance:1.00, hidden:[32,16], sweep:null},
+  digits:        {label:"Digits",               source:"scikit-learn load_digits",    samples:1797, features:64, classes:10, imbalance:1.05, hidden:[32,16], sweep:null}
+};
+
+// Medias reales por familia (optimizer|lr) sobre las corridas COMPLETED de cada suite.
+// f1 = F1 macro medio, acc = accuracy media, ep = épocas medias ejecutadas, t = segundos medios.
+const FAMILIES = {
+  wine_quality: {
+    "adam|0.1":   {f1:0.192, acc:0.457, ep:37.6,  t:3.4},
+    "sgd|0.001":  {f1:0.211, acc:0.456, ep:414.2, t:28.2},
+    "sgd|0.01":   {f1:0.254, acc:0.488, ep:222.7, t:15.1},
+    "adam|0.001": {f1:0.268, acc:0.497, ep:118.1, t:10.5},
+    "adam|0.01":  {f1:0.269, acc:0.507, ep:39.8,  t:3.6},
+    "sgd|0.1":    {f1:0.272, acc:0.509, ep:83.8,  t:5.7}
+  },
+  satimage: {
+    "adam|0.1":   {f1:0.785, acc:0.839, ep:33.0,  t:4.7},
+    "sgd|0.001":  {f1:0.794, acc:0.854, ep:500.0, t:50.7},
+    "sgd|0.01":   {f1:0.859, acc:0.886, ep:321.5, t:37.7},
+    "adam|0.01":  {f1:0.875, acc:0.897, ep:37.6,  t:5.5},
+    "sgd|0.1":    {f1:0.879, acc:0.901, ep:111.8, t:12.4},
+    "adam|0.001": {f1:0.881, acc:0.902, ep:111.8, t:16.8}
+  }
+};
+
+// Agregados reales por group_key (configuración sin semilla), 5 semillas cada uno.
+const GROUPS = {
+  wine_quality: {
+    best: [
+      {g:"tanh · adam · 0.01 · he",   cw:"balanced", f1:0.3034, sd:0.0328, t:4.2},
+      {g:"relu · sgd · 0.1 · xavier", cw:"none",     f1:0.2963, sd:0.0260, t:3.5},
+      {g:"tanh · sgd · 0.1 · he",     cw:"balanced", f1:0.2953, sd:0.0271, t:3.5}
+    ],
+    worst: [
+      {g:"relu · adam · 0.1 · xavier",    cw:"balanced", f1:0.0703, sd:0.0189, t:4.2},
+      {g:"relu · adam · 0.1 · he",        cw:"balanced", f1:0.0705, sd:0.0191, t:3.6},
+      {g:"sigmoid · sgd · 0.001 · he",    cw:"balanced", f1:0.1300, sd:0.0225, t:33.5}
+    ],
+    runs:360, groups:72, hours:1.11, cwVariants:2
+  },
+  satimage: {
+    best: [
+      {g:"tanh · sgd · 0.1 · xavier",   cw:"none", f1:0.8852, sd:0.0054, t:7.7},
+      {g:"relu · adam · 0.001 · xavier",cw:"none", f1:0.8841, sd:0.0128, t:11.2},
+      {g:"relu · adam · 0.001 · he",    cw:"none", f1:0.8836, sd:0.0122, t:12.2}
+    ],
+    worst: [
+      {g:"sigmoid · sgd · 0.001 · he",    cw:"none", f1:0.6903, sd:0.0090, t:50.1},
+      {g:"sigmoid · sgd · 0.001 · xavier",cw:"none", f1:0.6973, sd:0.0091, t:51.8},
+      {g:"relu · adam · 0.1 · xavier",    cw:"none", f1:0.7296, sd:0.0469, t:3.6}
+    ],
+    runs:180, groups:36, hours:1.07, cwVariants:1
+  }
+};
+
+// Modificadores aproximados por activación, derivados de las peores/mejores familias medidas.
+const ACT_MOD = {
+  wine_quality: {relu:0.000, tanh:0.012, sigmoid:-0.005},
+  satimage:     {relu:0.008, tanh:0.004, sigmoid:-0.075},
+  default:      {relu:0.000, tanh:0.005, sigmoid:-0.030}
+};
+// relu + adam + lr=0.1 colapsa de forma específica en wine_quality (F1 ~0.070 contra 0.192 de la familia).
+const COLLAPSE = {"wine_quality|relu|adam|0.1":-0.12, "satimage|relu|adam|0.1":-0.05};
+
+const state = {
+  dataset:"wine_quality", activation:"relu", optimizer:"adam",
+  lr:0.01, init:"he", classWeight:"none", seed:42,
+  maxEpochs:500, earlyStop:true
+};
+const runs = [];      // hasta 3 corridas para comparar
+let busy = false;
+let timer = null;
+
+/* =========================================================================
+   Utilidades
+   ========================================================================= */
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d) => (v === null || v === undefined || Number.isNaN(v)) ? "—" : Number(v).toFixed(d === undefined ? 3 : d);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const familyKey = () => state.optimizer + "|" + state.lr;
+const nParams = () => {
+  const ds = DATASETS[state.dataset];
+  const dims = [ds.features, ...ds.hidden, ds.classes];
+  let total = 0;
+  for (let i = 0; i < dims.length - 1; i++) total += dims[i] * dims[i+1] + dims[i+1];
+  return total;
+};
+
+/* =========================================================================
+   Controles
+   ========================================================================= */
+function segmented(elId, options, current, onPick) {
+  const el = $(elId);
+  el.innerHTML = "";
+  options.forEach((opt) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = opt.label + (opt.note ? "<small>" + esc(opt.note) + "</small>" : "");
+    b.setAttribute("aria-pressed", String(opt.value === current));
+    b.addEventListener("click", () => { onPick(opt.value); refresh(); });
+    el.appendChild(b);
+  });
+}
+
+function buildControls() {
+  const sel = $("dataset");
+  sel.innerHTML = "";
+  Object.keys(DATASETS).forEach((k) => {
+    const d = DATASETS[k];
+    const o = document.createElement("option");
+    o.value = k;
+    o.textContent = d.label + " — " + d.samples.toLocaleString("es-AR") + " muestras, " +
+                    d.features + " features, " + d.classes + " clases" + (d.sweep ? "" : " (sin suite completa)");
+    sel.appendChild(o);
+  });
+  sel.value = state.dataset;
+  sel.addEventListener("change", () => { state.dataset = sel.value; refresh(); });
+}
+
+function refresh() {
+  segmented("seg-activation", [
+    {value:"relu", label:"ReLU"}, {value:"sigmoid", label:"Sigmoid"}, {value:"tanh", label:"Tanh"}
+  ], state.activation, (v) => { state.activation = v; });
+
+  segmented("seg-optimizer", [
+    {value:"sgd", label:"SGD", note:"paso único"}, {value:"adam", label:"Adam", note:"adaptativo"}
+  ], state.optimizer, (v) => { state.optimizer = v; });
+
+  segmented("seg-lr", [
+    {value:0.001, label:"0.001", note:"baja"}, {value:0.01, label:"0.01", note:"media"}, {value:0.1, label:"0.1", note:"alta"}
+  ], state.lr, (v) => { state.lr = v; });
+
+  segmented("seg-init", [
+    {value:"he", label:"He / Kaiming"}, {value:"xavier", label:"Xavier / Glorot"}
+  ], state.init, (v) => { state.init = v; });
+
+  segmented("seg-cw", [
+    {value:"none", label:"none"}, {value:"balanced", label:"balanced"}
+  ], state.classWeight, (v) => { state.classWeight = v; });
+
+  const ds = DATASETS[state.dataset];
+  $("dataset-stats").innerHTML =
+    stat("Fuente", esc(ds.source)) +
+    stat("Muestras", ds.samples.toLocaleString("es-AR")) +
+    stat("Features (entrada)", ds.features) +
+    stat("Clases (salida)", ds.classes) +
+    stat("Desbalance máx/mín", ds.imbalance.toFixed(2)) +
+    stat("Suite completa", ds.sweep ? "disponible" : "pendiente");
+
+  $("protocol").innerHTML =
+    stat("Partición train/val/test", "60 / 20 / 20 (estratificada)") +
+    stat("batch_size", "32") +
+    stat("max_epochs", String(state.maxEpochs)) +
+    stat("Early stopping", state.earlyStop ? "val_loss · patience 20 · min_delta 1e-4" : "desactivado") +
+    stat("restore_best_weights", "true") +
+    stat("seed", String(state.seed)) +
+    stat("Pérdida", "cross_entropy (sin ponderar en val/test)") +
+    stat("Dispositivo", "auto (CPU en esta máquina)");
+
+  renderWarnings();
+  renderArchitecture();
+  renderEstimate();
+  renderCompare();
+}
+
+function stat(k, v) { return '<div class="stat"><span>' + k + '</span><b>' + v + '</b></div>'; }
+
+/* =========================================================================
+   Validaciones y conocimiento previo (priors) sobre familias problemáticas
+   ========================================================================= */
+function validationWarnings() {
+  const out = [];
+  if (state.init === "he" && state.activation !== "relu")
+    out.push({level:"warn", title:"Inicialización no convencional",
+      text:"He/Kaiming no es la inicialización recomendada para <b>" + state.activation +
+           "</b>; se deriva del supuesto de simetría de ReLU. Es ejecutable, pero queda registrado como WARNING."});
+  if (state.init === "xavier" && state.activation === "relu")
+    out.push({level:"warn", title:"Inicialización no convencional",
+      text:"Xavier/Glorot no es la recomendada para <b>relu</b>. El ejecutor la acepta y deja constancia en <code>warnings</code>."});
+  return out;
+}
+
+function priorWarnings() {
+  const out = [];
+  const ds = DATASETS[state.dataset];
+  const fam = (FAMILIES[ds.sweep === "exp-sweep-02-satimage" ? "satimage" : "wine_quality"] || {})[familyKey()];
+  const key = familyKey();
+
+  if (key === "adam|0.1") {
+    out.push({level:"bad", title:"Familia identificada como problemática: adam + lr=0.1",
+      text:"En las dos suites completas es la peor familia por F1 macro medio: <b>0.192</b> en wine_quality " +
+           "y <b>0.785</b> en satimage. Falla por exceso: la tasa es tan alta que la red converge a una " +
+           "solución degenerada y el early stopping la corta en ~33-42 épocas. Es rápida (3-5 s) y mala. " +
+           "Con <b>relu</b> el colapso es extremo: F1 0.070 en wine_quality."});
+  }
+  if (key === "sgd|0.001") {
+    out.push({level:"bad", title:"Familia identificada como problemática: sgd + lr=0.001",
+      text:"Segunda peor familia en ambas suites: <b>0.211</b> en wine_quality y <b>0.794</b> en satimage. " +
+           "Falla por defecto: avanza tan despacio que agota el tope de 500 épocas " +
+           "(media de 414 épocas en wine_quality, 500 en satimage) y cuesta 28-51 s por corrida, " +
+           "8 a 10 veces más que las familias rápidas."});
+  }
+  if (fam && ds.sweep) {
+    out.push({level:"ok", title:"Evidencia medida para esta familia (" + ds.label + ")",
+      text:"Sobre " + GROUPS[ds.sweep === "exp-sweep-02-satimage" ? "satimage" : "wine_quality"].runs +
+           " corridas de la suite completa: F1 macro medio <b>" + fmt(fam.f1) + "</b>, accuracy <b>" +
+           fmt(fam.acc) + "</b>, épocas medias <b>" + fmt(fam.ep, 1) + "</b>, tiempo medio <b>" +
+           fmt(fam.t, 1) + " s</b>."});
+  }
+  if (!ds.sweep) {
+    out.push({level:"warn", title:"Sin suite completa para este dataset",
+      text:"<b>" + ds.label + "</b> todavía no tiene una corrida de las 36 combinaciones, así que no hay " +
+           "evidencia propia para anticipar el resultado. La corrida individual funciona igual; la pestaña " +
+           "«Comparación general» no tiene informe para mostrar."});
+  }
+  return out;
+}
+
+function renderWarnings() {
+  const all = priorWarnings().concat(validationWarnings());
+  $("warnings").innerHTML = all.length
+    ? all.map((w) => '<div class="alert ' + w.level + '"><span class="t">' + w.title + "</span>" + w.text + "</div>").join("")
+    : '<div class="alert ok"><span class="t">Configuración sin observaciones</span>Combinación convencional y sin familias problemáticas registradas.</div>';
+}
+
+function renderEstimate() {
+  const ds = DATASETS[state.dataset];
+  const bucket = ds.sweep === "exp-sweep-02-satimage" ? "satimage" : (ds.sweep ? "wine_quality" : null);
+  const fam = bucket ? FAMILIES[bucket][familyKey()] : null;
+  if (fam) {
+    $("estimate").innerHTML = "Costo real medido en la suite de <b>" + bucket + "</b> para esta familia: " +
+      "<b>" + fmt(fam.t, 1) + " s</b> y <b>" + fmt(fam.ep, 1) + " épocas</b> en promedio. " +
+      "El prototipo lo simula en ~2 s.";
+  } else {
+    $("estimate").innerHTML = "Sin mediciones previas para este dataset. Estimación por tamaño: " +
+      "entre 5 y 60 s según la familia elegida.";
+  }
+}
+
+/* =========================================================================
+   Diagrama de arquitectura (SVG)
+   ========================================================================= */
+function renderArchitecture() {
+  const ds = DATASETS[state.dataset];
+  const sizes = [ds.features, ds.hidden[0], ds.hidden[1], ds.classes];
+  const names = ["Capa de entrada", "Capa oculta 1", "Capa oculta 2", "Capa de salida"];
+  const desc = [
+    ds.features + " features estandarizadas",
+    ds.hidden[0] + " neuronas · " + state.activation,
+    ds.hidden[1] + " neuronas · " + state.activation,
+    ds.classes + " logits · CrossEntropyLoss"
+  ];
+  const colors = ["#6b7280", "#0b5fa5", "#0b5fa5", "#d97706"];
+  const W = 660, H = 250, top = 46, bottom = H - 58;
+  const xs = sizes.map((_, i) => 70 + i * ((W - 140) / (sizes.length - 1)));
+  const cap = 9;
+
+  let edges = "";
+  for (let i = 0; i < sizes.length - 1; i++) {
+    const a = Math.min(sizes[i], cap), b = Math.min(sizes[i+1], cap);
+    for (let p = 0; p < a; p++) {
+      for (let q = 0; q < b; q++) {
+        const y1 = top + (a === 1 ? (bottom-top)/2 : p * (bottom-top)/(a-1));
+        const y2 = top + (b === 1 ? (bottom-top)/2 : q * (bottom-top)/(b-1));
+        edges += '<line x1="' + xs[i] + '" y1="' + y1.toFixed(1) + '" x2="' + xs[i+1] +
+                 '" y2="' + y2.toFixed(1) + '" stroke="#93c5fd" stroke-width="1" opacity="0.30"/>';
+      }
+    }
+  }
+
+  let nodes = "";
+  for (let i = 0; i < sizes.length; i++) {
+    const n = Math.min(sizes[i], cap);
+    for (let p = 0; p < n; p++) {
+      const y = top + (n === 1 ? (bottom-top)/2 : p * (bottom-top)/(n-1));
+      nodes += '<circle cx="' + xs[i] + '" cy="' + y.toFixed(1) + '" r="7" fill="' + colors[i] +
+               '" stroke="#fff" stroke-width="1.6"/>';
+    }
+    if (sizes[i] > cap) {
+      nodes += '<text x="' + xs[i] + '" y="' + (bottom + 18) + '" text-anchor="middle" fill="#6b7280">+' +
+               (sizes[i] - cap) + " más</text>";
+    }
+    nodes += '<text x="' + xs[i] + '" y="24" text-anchor="middle" fill="#111827" font-weight="600">' + names[i] + "</text>";
+    nodes += '<text x="' + xs[i] + '" y="' + (H - 12) + '" text-anchor="middle" fill="#6b7280">' + esc(desc[i]) + "</text>";
+  }
+
+  $("arch").innerHTML =
+    '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" role="img" aria-label="Arquitectura de la red">' +
+    edges + nodes + "</svg>";
+
+  $("arch-note").innerHTML =
+    "MLP de arquitectura fija <b>[" + ds.hidden.join(", ") + "]</b> definida por el protocolo. " +
+    "Parámetros entrenables: <b>" + nParams().toLocaleString("es-AR") + "</b> " +
+    "(pesos + sesgos; verificado contra <code>n_params</code> de las corridas reales). " +
+    "Lo único que cambia entre configuraciones son las 4 dimensiones libres.";
+}
+
+/* =========================================================================
+   Simulación del entrenamiento (sin backend)
+   ========================================================================= */
+function targetMetrics() {
+  const ds = DATASETS[state.dataset];
+  const bucket = ds.sweep === "exp-sweep-02-satimage" ? "satimage" : (ds.sweep ? "wine_quality" : null);
+  let f1, acc, ep, t;
+
+  if (bucket && FAMILIES[bucket][familyKey()]) {
+    const f = FAMILIES[bucket][familyKey()];
+    f1 = f.f1; acc = f.acc; ep = f.ep; t = f.t;
+  } else {
+    // Sin suite propia: se aproxima con la familia equivalente del dataset más parecido.
+    const ref = FAMILIES.satimage[familyKey()] || {f1:0.80, acc:0.86, ep:120, t:15};
+    f1 = ref.f1; acc = ref.acc; ep = ref.ep; t = ref.t;
+  }
+
+  const mod = (ACT_MOD[bucket] || ACT_MOD.default)[state.activation] || 0;
+  const collapse = COLLAPSE[state.dataset + "|" + state.activation + "|" + state.optimizer + "|" + state.lr] || 0;
+  f1 += mod + collapse;
+  if (state.classWeight === "balanced") { f1 += 0.008; ep *= 0.72; t *= 0.75; }
+  if (state.init === "xavier" && state.activation === "relu") f1 -= 0.004;
+  if (state.init === "he" && state.activation !== "relu") f1 -= 0.003;
+
+  const jitter = () => (Math.random() - 0.5) * 0.012;
+  f1 = Math.max(0.02, Math.min(0.99, f1 + jitter()));
+  acc = Math.max(f1, Math.min(0.999, acc + jitter()));
+  ep = Math.max(21, Math.min(state.maxEpochs, Math.round(ep * (1 + (Math.random() - 0.5) * 0.15))));
+  t = Math.max(1.5, t * (1 + (Math.random() - 0.5) * 0.2));
+
+  return {f1, acc, ep, t, precision: Math.min(0.999, acc + (Math.random() - 0.4) * 0.02),
+          recall: Math.min(0.999, acc + (Math.random() - 0.5) * 0.03),
+          balanced: Math.max(0.02, acc - (ds.imbalance > 5 ? 0.03 + Math.random() * 0.05 : Math.random() * 0.02))};
+}
+
+function simulateEpochs(target) {
+  const key = familyKey();
+  const n = target.ep;
+  const collapsed = (key === "adam|0.1");
+  const stalled = (key === "sgd|0.001" || key === "sgd|0.01");
+  const startLoss = 2.05 + Math.random() * 0.15;
+  const floorLoss = Math.max(0.08, (1 - target.f1) * 1.55);
+  const rows = [];
+
+  for (let e = 1; e <= n; e++) {
+    const p = e / n;
+    let train, val;
+    if (collapsed) {
+      train = startLoss - (startLoss - floorLoss) * (1 - Math.exp(-p * 7)) + Math.sin(p * 22) * 0.09 * p + p * 0.35;
+      val = train + 0.10 + Math.sin(p * 17) * 0.12 + p * 0.45;
+    } else if (stalled) {
+      train = startLoss - (startLoss - floorLoss) * Math.pow(p, 0.55) + (Math.random() - 0.5) * 0.012;
+      val = train + 0.035 + (Math.random() - 0.5) * 0.02;
+    } else {
+      train = floorLoss + (startLoss - floorLoss) * Math.exp(-p * 4.6) + (Math.random() - 0.5) * 0.014;
+      const turn = 0.62;
+      val = train + 0.028 + (p > turn ? (p - turn) * 0.16 : 0) + (Math.random() - 0.5) * 0.02;
+    }
+    train = Math.max(0.02, train);
+    val = Math.max(0.02, val);
+    const acc = Math.max(0.05, Math.min(0.999, 1 - val / (startLoss * 1.02)));
+    rows.push({epoch:e, train_loss:train, val_loss:val, train_acc:acc * (0.97 + Math.random() * 0.05),
+               val_acc:acc, epoch_time: target.t / n});
+  }
+
+  let best = 0;
+  for (let i = 1; i < rows.length; i++) if (rows[i].val_loss < rows[best].val_loss) best = i;
+  return {rows, bestEpoch: rows[best].epoch, bestValLoss: rows[best].val_loss,
+          finalValAcc: rows[best].val_acc, stopped: n >= state.maxEpochs ? "max_epochs" : "early_stopping"};
+}
+
+function confusionMatrix(target, classes) {
+  const m = [];
+  for (let i = 0; i < classes; i++) {
+    const row = new Array(classes).fill(0);
+    const perClass = Math.max(0.05, Math.min(0.995, target.acc + (Math.random() - 0.5) * 0.12));
+    row[i] = perClass;
+    let left = 1 - perClass;
+    for (let j = 0; j < classes && left > 0.001; j++) {
+      if (j === i) continue;
+      const take = j === classes - 1 ? left : left * Math.random() * 0.7;
+      row[j] += take; left -= take;
+    }
+    const sum = row.reduce((a, b) => a + b, 0);
+    m.push(row.map((v) => v / sum));
+  }
+  return m;
+}
+
+function startRun() {
+  if (busy) return;
+  busy = true;
+  const btn = $("run-btn");
+  btn.disabled = true;
+  btn.textContent = "Entrenando…";
+
+  const target = targetMetrics();
+  const sim = simulateEpochs(target);
+  const total = sim.rows.length;
+  let shown = 0;
+  const step = Math.max(1, Math.round(total / 55));
+
+  $("run-state").textContent = "ejecutando";
+  $("run-state").className = "tag";
+  $("results").innerHTML = '<div class="empty">Entrenando…</div>';
+  $("meta-box").style.display = "none";
+  $("test-box").style.display = "none";
+  $("curve").innerHTML = "";
+
+  timer = setInterval(() => {
+    shown = Math.min(total, shown + step);
+    const pct = Math.round((shown / total) * 100);
+    $("progress").style.width = pct + "%";
+    $("progress-text").innerHTML = "Época <b>" + shown + "</b> de <b>" + total + "</b> · train_loss " +
+      fmt(sim.rows[shown-1].train_loss) + " · val_loss " + fmt(sim.rows[shown-1].val_loss) +
+      " · " + pct + "%";
+    drawCurve(sim.rows.slice(0, shown), sim.bestEpoch, false);
+    if (shown >= total) finishRun(target, sim);
+  }, 38);
+}
+
+function finishRun(target, sim) {
+  clearInterval(timer);
+  busy = false;
+  const btn = $("run-btn");
+  btn.disabled = false;
+  btn.textContent = "▶ Correr combinación";
+
+  const ds = DATASETS[state.dataset];
+  $("progress").style.width = "100%";
+  $("run-state").textContent = "COMPLETED";
+  $("run-state").className = "tag ok";
+  $("res-tag").textContent = "1 semilla · " + ds.label;
+  $("progress-text").innerHTML = "Corrida finalizada: <b>" + sim.rows.length + "</b> épocas ejecutadas · " +
+    "mejor época <b>" + sim.bestEpoch + "</b> · parada por <b>" + sim.stopped + "</b> · " +
+    fmt(target.t, 1) + " s simulados (costo real estimado de esta familia: " + fmt(target.t, 1) + " s).";
+
+  drawCurve(sim.rows, sim.bestEpoch, true);
+
+  const warns = validationWarnings().map((w) => w.title);
+  const run = {
+    id: "ui-" + Date.now().toString(36),
+    label: state.activation + " · " + state.optimizer + " · lr " + state.lr + " · " + state.init,
+    dataset: state.dataset, classWeight: state.classWeight,
+    activation: state.activation, optimizer: state.optimizer, lr: state.lr, init: state.init,
+    val: {loss: sim.bestValLoss, accuracy: target.acc, f1_macro: target.f1,
+          precision_macro: target.precision, recall_macro: target.recall,
+          balanced_accuracy: target.balanced, epoch: sim.bestEpoch},
+    test: {loss: sim.bestValLoss + 0.02 + Math.random() * 0.03, accuracy: target.acc,
+           f1_macro: target.f1 + (Math.random() - 0.5) * 0.01,
+           precision_macro: target.precision, recall_macro: target.recall,
+           balanced_accuracy: target.balanced, cm: confusionMatrix(target, ds.classes)},
+    epochs: sim.rows.length, bestEpoch: sim.bestEpoch, stopped: sim.stopped,
+    time: target.t, nParams: nParams(), curve: sim.rows, warnings: warns
+  };
+
+  $("results").innerHTML =
+    '<div class="metrics">' +
+      metric("F1 macro (val)", fmt(run.val.f1_macro), "métrica de decisión", true) +
+      metric("Accuracy (val)", fmt(run.val.accuracy), "set de validación") +
+      metric("Balanced acc.", fmt(run.val.balanced_accuracy), "sensibilidad a clases") +
+      metric("Precision macro", fmt(run.val.precision_macro), "promedio por clase") +
+      metric("Recall macro", fmt(run.val.recall_macro), "sensibilidad macro") +
+      metric("Val loss", fmt(run.val.loss), "en la época " + run.bestEpoch) +
+      metric("Épocas", run.epochs, "tope " + state.maxEpochs) +
+      metric("Mejor época", run.bestEpoch, run.stopped === "max_epochs" ? "tocó el tope" : "early stopping") +
+      metric("Tiempo", fmt(run.time, 1) + " s", "CPU · 12 núcleos") +
+      metric("Parámetros", run.nParams.toLocaleString("es-AR"), "MLP [" + ds.hidden.join(",") + "]") +
+    "</div>" +
+    (run.warnings.length
+      ? '<div class="alert warn" style="margin-top:12px"><span class="t">execution_state: COMPLETED_WITH_WARNINGS</span>' +
+        run.warnings.map(esc).join(" · ") + "</div>"
+      : '<div class="alert ok" style="margin-top:12px"><span class="t">execution_state: COMPLETED</span>Sin advertencias de validación.</div>');
+
+  $("test-metrics").innerHTML =
+    metric("F1 macro (test)", fmt(run.test.f1_macro), "reservado", false) +
+    metric("Accuracy (test)", fmt(run.test.accuracy), "") +
+    metric("Balanced acc.", fmt(run.test.balanced_accuracy), "") +
+    metric("Precision macro", fmt(run.test.precision_macro), "") +
+    metric("Recall macro", fmt(run.test.recall_macro), "") +
+    metric("Loss (test)", fmt(run.test.loss), "");
+  renderConfusion(run.test.cm, ds.classes);
+
+  $("meta-box").style.display = "";
+  $("test-box").style.display = "";
+  $("meta-json").textContent = JSON.stringify(buildMetadata(run, ds), null, 2);
+
+  runs.unshift(run);
+  if (runs.length > 3) runs.pop();
+  renderCompare();
+}
+
+function metric(k, v, n, primary) {
+  return '<div class="metric' + (primary ? " primary" : "") + '"><div class="k">' + k +
+         '</div><div class="v">' + v + '</div><div class="n">' + (n || "&nbsp;") + "</div></div>";
+}
+
+function renderConfusion(cm, classes) {
+  let html = '<div class="hint" style="margin-top:14px">Matriz de confusión normalizada por clase verdadera (test).</div>';
+  html += '<div class="cm" style="grid-template-columns:34px repeat(' + classes + ",1fr);max-width:" + (60 + classes * 52) + 'px">';
+  html += "<div></div>";
+  for (let j = 0; j < classes; j++) html += '<div style="background:none;color:#6b7280">P' + j + "</div>";
+  for (let i = 0; i < classes; i++) {
+    html += '<div style="background:none;color:#6b7280">V' + i + "</div>";
+    for (let j = 0; j < classes; j++) {
+      const v = cm[i][j];
+      const diag = i === j;
+      const alpha = Math.min(1, 0.12 + v * (diag ? 1.5 : 2.2));
+      const color = diag ? "rgba(11,95,165," + alpha.toFixed(2) + ")" : "rgba(185,28,28," + (v * 2.4).toFixed(2) + ")";
+      html += '<div style="background:' + color + '">' + (v > 0.005 ? (v * 100).toFixed(0) : "") + "</div>";
+    }
+  }
+  html += "</div>";
+  $("cm-wrap").innerHTML = html;
+}
+
+/* =========================================================================
+   Curvas de pérdida (SVG, equivalente visual de epochs.csv)
+   ========================================================================= */
+function drawCurve(rows, bestEpoch, complete) {
+  if (!rows.length) return;
+  const W = 700, H = 250, L = 46, R = 14, T = 16, B = 34;
+  const maxEp = Math.max(rows[rows.length - 1].epoch, 1);
+  let maxLoss = 0;
+  rows.forEach((r) => { maxLoss = Math.max(maxLoss, r.train_loss, r.val_loss); });
+  maxLoss = Math.ceil(maxLoss * 10) / 10 || 1;
+  const x = (e) => L + (e / maxEp) * (W - L - R);
+  const y = (v) => T + (1 - v / maxLoss) * (H - T - B);
+  const path = (key) => rows.map((r, i) => (i ? "L" : "M") + x(r.epoch).toFixed(1) + " " + y(r[key]).toFixed(1)).join(" ");
+
+  let grid = "";
+  for (let g = 0; g <= 4; g++) {
+    const v = (maxLoss * g) / 4;
+    grid += '<line x1="' + L + '" y1="' + y(v).toFixed(1) + '" x2="' + (W - R) + '" y2="' + y(v).toFixed(1) +
+            '" stroke="#eef0f3"/><text x="' + (L - 7) + '" y="' + (y(v) + 3.5).toFixed(1) +
+            '" text-anchor="end" fill="#6b7280">' + v.toFixed(2) + "</text>";
+  }
+  const ticks = 5;
+  let xaxis = "";
+  for (let g = 0; g <= ticks; g++) {
+    const e = Math.round((maxEp * g) / ticks);
+    xaxis += '<text x="' + x(e).toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle" fill="#6b7280">' + e + "</text>";
+  }
+
+  let marker = "";
+  if (complete) {
+    const row = rows.find((r) => r.epoch === bestEpoch) || rows[rows.length - 1];
+    marker = '<line x1="' + x(bestEpoch).toFixed(1) + '" y1="' + T + '" x2="' + x(bestEpoch).toFixed(1) +
+             '" y2="' + (H - B) + '" stroke="#d97706" stroke-dasharray="4 3"/>' +
+             '<circle cx="' + x(bestEpoch).toFixed(1) + '" cy="' + y(row.val_loss).toFixed(1) +
+             '" r="4.5" fill="#d97706"/>' +
+             '<text x="' + (x(bestEpoch) + 8).toFixed(1) + '" y="' + (T + 12) + '" fill="#d97706">mejor época ' + bestEpoch + "</text>";
+  }
+
+  $("curve").innerHTML =
+    '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" role="img" aria-label="Curvas de pérdida por época">' +
+    grid + xaxis + marker +
+    '<path d="' + path("train_loss") + '" fill="none" stroke="#93c5fd" stroke-width="1.8"/>' +
+    '<path d="' + path("val_loss") + '" fill="none" stroke="#0b5fa5" stroke-width="2"/>' +
+    '<text x="' + L + '" y="' + (H - 1) + '" fill="#6b7280">época</text>' +
+    '<g transform="translate(' + (W - 190) + "," + (T + 2) + ')">' +
+      '<rect width="176" height="34" fill="#fff" opacity="0.85" rx="5"/>' +
+      '<line x1="10" y1="12" x2="32" y2="12" stroke="#0b5fa5" stroke-width="2"/>' +
+      '<text x="38" y="16" fill="#111827">val_loss</text>' +
+      '<line x1="98" y1="12" x2="120" y2="12" stroke="#93c5fd" stroke-width="1.8"/>' +
+      '<text x="126" y="16" fill="#111827">train_loss</text>' +
+    "</g></svg>" +
+    '<div class="hint">Equivalente visual de <code>epochs.csv</code>: ' +
+    "columnas <code>epoch</code>, <code>train_loss</code>, <code>val_loss</code>. " +
+    (complete ? "La línea ámbar marca la época con menor <code>val_loss</code>, la que conserva <code>restore_best_weights</code>." : "") +
+    "</div>";
+}
+
+/* =========================================================================
+   Comparación rápida (hasta 3 corridas)
+   ========================================================================= */
+function renderCompare() {
+  $("cmp-count").textContent = runs.length + " / 3";
+  if (!runs.length) { $("compare").innerHTML = '<div class="empty">Sin corridas para comparar.</div>'; return; }
+
+  let head = "<table><thead><tr><th>Configuración</th><th>Dataset</th><th class='num'>F1 val</th>" +
+             "<th class='num'>Acc val</th><th class='num'>Bal. acc</th><th class='num'>Prec</th>" +
+             "<th class='num'>Recall</th><th class='num'>Val loss</th><th class='num'>Épocas</th>" +
+             "<th class='num'>Tiempo</th></tr></thead><tbody>";
+  const best = Math.max(...runs.map((r) => r.val.f1_macro));
+  runs.forEach((r) => {
+    const d = r.val.f1_macro - best;
+    head += "<tr" + (d === 0 && runs.length > 1 ? " style='background:#eef4fb'" : "") + ">" +
+      "<td>" + esc(r.label) + "<br><span class='pill'>cw " + r.classWeight + "</span></td>" +
+      "<td>" + esc(DATASETS[r.dataset].label) + "</td>" +
+      "<td class='num'><b>" + fmt(r.val.f1_macro) + "</b>" +
+        (runs.length > 1 ? "<br><span class='pill'>" + (d === 0 ? "referencia" : (d > 0 ? "+" : "") + fmt(d)) + "</span>" : "") + "</td>" +
+      "<td class='num'>" + fmt(r.val.accuracy) + "</td>" +
+      "<td class='num'>" + fmt(r.val.balanced_accuracy) + "</td>" +
+      "<td class='num'>" + fmt(r.val.precision_macro) + "</td>" +
+      "<td class='num'>" + fmt(r.val.recall_macro) + "</td>" +
+      "<td class='num'>" + fmt(r.val.loss) + "</td>" +
+      "<td class='num'>" + r.epochs + "</td>" +
+      "<td class='num'>" + fmt(r.time, 1) + " s</td></tr>";
+  });
+  head += "</tbody></table>";
+
+  let overlay = "";
+  if (runs.length > 1) {
+    const W = 700, H = 230, L = 46, R = 14, T = 16, B = 34;
+    const colors = ["#0b5fa5", "#d97706", "#0f766e"];
+    let maxEp = 1, maxLoss = 0;
+    runs.forEach((r) => r.curve.forEach((p) => { maxEp = Math.max(maxEp, p.epoch); maxLoss = Math.max(maxLoss, p.val_loss); }));
+    maxLoss = Math.ceil(maxLoss * 10) / 10 || 1;
+    const x = (e) => L + (e / maxEp) * (W - L - R);
+    const y = (v) => T + (1 - v / maxLoss) * (H - T - B);
+    let grid = "";
+    for (let g = 0; g <= 4; g++) {
+      const v = (maxLoss * g) / 4;
+      grid += '<line x1="' + L + '" y1="' + y(v).toFixed(1) + '" x2="' + (W - R) + '" y2="' + y(v).toFixed(1) +
+              '" stroke="#eef0f3"/><text x="' + (L - 7) + '" y="' + (y(v) + 3.5).toFixed(1) +
+              '" text-anchor="end" fill="#6b7280">' + v.toFixed(2) + "</text>";
+    }
+    let paths = "", legend = "";
+    runs.forEach((r, i) => {
+      const every = Math.max(1, Math.round(r.curve.length / 220));
+      const pts = r.curve.filter((_, k) => k % every === 0);
+      paths += '<path d="' + pts.map((p, k) => (k ? "L" : "M") + x(p.epoch).toFixed(1) + " " + y(p.val_loss).toFixed(1)).join(" ") +
+               '" fill="none" stroke="' + colors[i] + '" stroke-width="2"/>';
+      legend += '<g transform="translate(' + (L + i * 210) + "," + (H - 14) + ')">' +
+                '<line x1="0" y1="0" x2="20" y2="0" stroke="' + colors[i] + '" stroke-width="2"/>' +
+                '<text x="26" y="4" fill="#111827">' + esc(r.label) + "</text></g>";
+    });
+    overlay = '<div style="margin-top:14px"><svg viewBox="0 0 ' + W + " " + H +
+              '" width="100%" role="img" aria-label="Val loss comparado">' + grid + paths + legend + "</svg>" +
+              '<div class="hint">Curvas de <code>val_loss</code> superpuestas. Distintos ritmos de convergencia ' +
+              "hacen visible el efecto del lr y del optimizador.</div></div>";
+  }
+
+  $("compare").innerHTML = head + overlay +
+    '<div style="margin-top:12px"><button class="btn ghost" id="clear-runs" type="button">Limpiar comparaciones</button></div>';
+  $("clear-runs").addEventListener("click", () => { runs.length = 0; renderCompare(); });
+}
+
+/* =========================================================================
+   metadata.json de la corrida (misma forma que el store real)
+   ========================================================================= */
+function buildMetadata(run, ds) {
+  const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  return {
+    run_id: run.id,
+    config_id: "cfg-v1-simulado",
+    experiment_id: "ui-exploratory",
+    run_type: "prebenchmark",
+    start_time: now,
+    end_time: now,
+    config_snapshot: {
+      dataset: {name: run.dataset, source: ds.source, version: null, target: "target", n_features: ds.features},
+      architecture: {name: run.dataset + "_mlp", input_dim: ds.features, hidden_layers: ds.hidden, output_dim: ds.classes},
+      activation: run.activation, optimizer: run.optimizer, lr: run.lr, init: run.init,
+      loss: "cross_entropy", batch_size: 32, max_epochs: state.maxEpochs, seed: state.seed,
+      split: {train: 0.6, val: 0.2, test: 0.2, stratify: true},
+      preprocessing: {scaler: "standard", class_weight: run.classWeight === "none" ? null : run.classWeight},
+      convergence: {enabled: state.earlyStop, metric: null, patience: null, min_delta: null, mode: "min"},
+      device: "auto"
+    },
+    dataset: {name: run.dataset, source: ds.source, version: "sha256-ejemplo", target: "target", n_features: ds.features},
+    seed: state.seed,
+    epochs_executed: run.epochs,
+    convergence: {enabled: state.earlyStop, metric: "val_loss", patience: 20, min_delta: 0.0001, mode: "min", restore_best_weights: true},
+    convergence_trigger: {metric: "val_loss", patience: 20, min_delta: 0.0001, mode: "min",
+      best_epoch: run.bestEpoch, best_value: Number(run.val.loss.toFixed(6)), stopped_epoch: run.epochs, reason: run.stopped},
+    device: "cpu",
+    hardware: {platform: "Windows-11-10.0.26200-SP0", system: "Windows", machine: "AMD64", cpu_count: 12,
+      python_version: "3.13.5", cuda_available: false, device_count: 0},
+    library_versions: {python: "3.13.5", torch: "2.14.1+cpu", numpy: "2.5.3", pandas: "3.0.6",
+      sklearn: "1.9.1", scipy: "1.18.1", matplotlib: "3.11.2"},
+    determinism: {seed: state.seed, numpy_seeded: true, torch_seeded: true, cuda_seeded: false},
+    execution_state: run.warnings.length ? "COMPLETED_WITH_WARNINGS" : "COMPLETED",
+    warnings: run.warnings,
+    final_metrics: {evaluation_set: "test", accuracy: Number(run.test.accuracy.toFixed(6)),
+      balanced_accuracy: Number(run.test.balanced_accuracy.toFixed(6)),
+      precision_macro: Number(run.test.precision_macro.toFixed(6)),
+      recall_macro: Number(run.test.recall_macro.toFixed(6)),
+      f1_macro: Number(run.test.f1_macro.toFixed(6)),
+      confusion_matrix: run.test.cm.map((row) => row.map((v) => Math.round(v * 200))),
+      loss: Number(run.test.loss.toFixed(6))},
+    validation_metrics: {evaluation_set: "validation", epoch: run.bestEpoch,
+      loss: Number(run.val.loss.toFixed(6)), accuracy: Number(run.val.accuracy.toFixed(6))},
+    n_params: run.nParams,
+    training_time: Number(run.time.toFixed(3)),
+    _nota: "PROTOTIPO: valores simulados en el navegador, no producidos por prebenchmark.runner"
+  };
+}
+
+/* =========================================================================
+   Pestaña 2 — contenido con datos reales
+   ========================================================================= */
+function renderCompareTab() {
+  const cards = [
+    {k:"wine_quality", title:"exp-sweep-01 · Wine Quality", g:GROUPS.wine_quality, ds:DATASETS.wine_quality,
+     note:"Dataset muy desbalanceado (razón 439.6). Cubre 2 variantes de class_weight."},
+    {k:"satimage", title:"exp-sweep-02-satimage · Satimage", g:GROUPS.satimage, ds:DATASETS.satimage,
+     note:"Desbalance bajo (razón 2.45). Cubre solo class_weight = none."}
+  ];
+  $("exp-cards").innerHTML = cards.map((c) =>
+    '<div class="card"><h2>' + esc(c.title) + '<span class="tag ok">suite completa</span></h2>' +
+    '<p class="kv">' + esc(c.note) + "</p>" +
+    '<div style="margin:10px 0">' +
+      stat("Corridas", c.g.runs) + stat("Configuraciones (grupos)", c.g.groups) +
+      stat("Semillas por configuración", "5") + stat("Tiempo total", c.g.hours + " h CPU") +
+      stat("Muestra", c.ds.samples.toLocaleString("es-AR") + " × " + c.ds.features + " features · " + c.ds.classes + " clases") +
+    "</div>" +
+    '<p class="kv">Mejor: <b>' + esc(c.g.best[0].g) + "</b> · F1 " + fmt(c.g.best[0].f1) + " ± " + fmt(c.g.best[0].sd, 4) + "</p>" +
+    '<p class="kv">Peor: <b>' + esc(c.g.worst[0].g) + "</b> · F1 " + fmt(c.g.worst[0].f1) + " ± " + fmt(c.g.worst[0].sd, 4) + "</p>" +
+    '<p style="margin:12px 0 0"><a href="' + c.ds.report + '" target="_blank">Abrir informe HTML</a> · ' +
+    '<a href="' + c.ds.pdf + '" target="_blank">PDF</a></p></div>'
+  ).join("");
+
+  const famKeys = ["adam|0.001", "adam|0.01", "adam|0.1", "sgd|0.001", "sgd|0.01", "sgd|0.1"];
+  let rows = "";
+  famKeys.forEach((k) => {
+    const w = FAMILIES.wine_quality[k], s = FAMILIES.satimage[k];
+    const bad = (k === "adam|0.1" || k === "sgd|0.001");
+    rows += '<tr' + (bad ? " class='flag'" : "") + "><td><b>" + k.replace("|", " + lr=") + "</b>" +
+      (bad ? '<span class="tag bad">problemática</span>' : "") + "</td>" +
+      "<td class='num'>" + fmt(w.f1) + "</td><td class='num'>" + w.ep.toFixed(1) + "</td><td class='num'>" + w.t.toFixed(1) + " s</td>" +
+      "<td class='num'>" + fmt(s.f1) + "</td><td class='num'>" + s.ep.toFixed(1) + "</td><td class='num'>" + s.t.toFixed(1) + " s</td></tr>";
+  });
+  $("family-table").innerHTML =
+    "<table><thead><tr><th>Familia</th><th class='num' colspan='3'>wine_quality (F1 · épocas · tiempo)</th>" +
+    "<th class='num' colspan='3'>satimage (F1 · épocas · tiempo)</th></tr></thead><tbody>" + rows + "</tbody></table>";
+
+  const groupTable = (list) => "<table><thead><tr><th>Configuración</th><th>cw</th><th class='num'>F1 medio</th>" +
+    "<th class='num'>± desvío</th><th class='num'>tiempo</th></tr></thead><tbody>" +
+    list.map((r) => "<tr><td>" + esc(r.g) + "</td><td>" + r.cw + "</td><td class='num'><b>" + fmt(r.f1, 4) +
+      "</b></td><td class='num'>" + fmt(r.sd, 4) + "</td><td class='num'>" + fmt(r.t, 1) + " s</td></tr>").join("") +
+    "</tbody></table>";
+
+  $("best-table").innerHTML =
+    '<h3 style="margin-top:0">wine_quality</h3>' + groupTable(GROUPS.wine_quality.best) +
+    '<h3>satimage</h3>' + groupTable(GROUPS.satimage.best);
+  $("worst-table").innerHTML =
+    '<h3 style="margin-top:0">wine_quality</h3>' + groupTable(GROUPS.wine_quality.worst) +
+    '<h3>satimage</h3>' + groupTable(GROUPS.satimage.worst);
+
+  let cov = "<table><thead><tr><th>Dataset</th><th class='num'>Muestras</th><th class='num'>Features</th>" +
+    "<th class='num'>Clases</th><th class='num'>Desbalance</th><th class='num'>Parámetros</th>" +
+    "<th>Suite completa</th><th>Informe</th></tr></thead><tbody>";
+  Object.keys(DATASETS).forEach((k) => {
+    const d = DATASETS[k];
+    const dims = [d.features, d.hidden[0], d.hidden[1], d.classes];
+    let p = 0;
+    for (let i = 0; i < dims.length - 1; i++) p += dims[i] * dims[i+1] + dims[i+1];
+    cov += "<tr><td><b>" + esc(d.label) + "</b><br><span class='pill'>" + esc(d.source) + "</span></td>" +
+      "<td class='num'>" + d.samples.toLocaleString("es-AR") + "</td><td class='num'>" + d.features +
+      "</td><td class='num'>" + d.classes + "</td><td class='num'>" + d.imbalance.toFixed(2) +
+      "</td><td class='num'>" + p.toLocaleString("es-AR") + "</td>" +
+      "<td>" + (d.sweep ? '<span class="tag ok">' + d.sweep + "</span>" : '<span class="tag">pendiente</span>') + "</td>" +
+      "<td>" + (d.report ? '<a href="' + d.report + '" target="_blank">HTML</a> · <a href="' + d.pdf + '" target="_blank">PDF</a>' : "—") +
+      "</td></tr>";
+  });
+  $("coverage").innerHTML = cov + "</tbody></table>";
+}
+
+/* =========================================================================
+   Navegación
+   ========================================================================= */
+function selectTab(name) {
+  ["run", "compare", "act"].forEach((t) => {
+    $("tab-" + t).hidden = (t !== name);
+    $("tab-btn-" + t).setAttribute("aria-selected", String(t === name));
+  });
+  if (name === "compare") renderCompareTab();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+document.querySelectorAll("nav button[data-tab]").forEach((b) => {
+  b.addEventListener("click", () => { if (!b.disabled) selectTab(b.dataset.tab); });
+});
+$("run-btn").addEventListener("click", startRun);
+
+buildControls();
+refresh();
+</script>
+</body>
+</html>
