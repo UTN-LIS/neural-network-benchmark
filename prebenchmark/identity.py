@@ -19,9 +19,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-import secrets
 import re
-from datetime import datetime, timezone
+import secrets
+from datetime import UTC, datetime
 
 from .config import ExperimentConfig
 from .space import compute_space_key, space_key_dims  # reexportado (no redefinido)
@@ -54,10 +54,10 @@ _SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
 
 def utc_timestamp(moment: datetime | None = None) -> str:
     """Devuelve una marca de tiempo UTC ordenable lexicográficamente (``...Z``)."""
-    current = moment or datetime.now(timezone.utc)
+    current = moment or datetime.now(UTC)
     if current.tzinfo is None:
-        current = current.replace(tzinfo=timezone.utc)
-    return current.astimezone(timezone.utc).strftime(_STAMP_FORMAT)
+        current = current.replace(tzinfo=UTC)
+    return current.astimezone(UTC).strftime(_STAMP_FORMAT)
 
 
 def canonical_config_payload(cfg: ExperimentConfig) -> str:
@@ -77,9 +77,9 @@ def compute_config_id(cfg: ExperimentConfig) -> str:
     mismo id, y una diferencia en cualquier campo (incluido ``class_weight``) produce
     uno diferente.
     """
-    digest = hashlib.sha256(
-        canonical_config_payload(cfg).encode("utf-8")
-    ).hexdigest()[:_HASH_LENGTH]
+    digest = hashlib.sha256(canonical_config_payload(cfg).encode("utf-8")).hexdigest()[
+        :_HASH_LENGTH
+    ]
     return f"{CONFIG_ID_PREFIX}{digest}"
 
 

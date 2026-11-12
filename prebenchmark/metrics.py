@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import torch
@@ -21,12 +21,12 @@ def compute_final_metrics(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     loss: float | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Calcula el conjunto final de métricas con promedio macro."""
     y_true_arr = np.asarray(y_true)
     y_pred_arr = np.asarray(y_pred)
 
-    metrics: Dict[str, Any] = {
+    metrics: dict[str, Any] = {
         "accuracy": float(accuracy_score(y_true_arr, y_pred_arr)),
         "balanced_accuracy": float(balanced_accuracy_score(y_true_arr, y_pred_arr)),
         "precision_macro": float(
@@ -35,9 +35,7 @@ def compute_final_metrics(
         "recall_macro": float(
             recall_score(y_true_arr, y_pred_arr, average="macro", zero_division=0)
         ),
-        "f1_macro": float(
-            f1_score(y_true_arr, y_pred_arr, average="macro", zero_division=0)
-        ),
+        "f1_macro": float(f1_score(y_true_arr, y_pred_arr, average="macro", zero_division=0)),
         "confusion_matrix": confusion_matrix(y_true_arr, y_pred_arr).tolist(),
     }
     if loss is not None:
@@ -50,7 +48,7 @@ def evaluate(
     data_loader: Any,
     device: str = "cpu",
     criterion: nn.Module | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Evalúa el modelo sobre el cargador de datos.
 
     Se detiene en el primer lote cuya pérdida no es finita, registrando
@@ -58,8 +56,8 @@ def evaluate(
     la ejecución en lugar de propagar una métrica corrupta.
     """
     model.eval()
-    all_preds = []
-    all_labels = []
+    all_preds: list[np.ndarray] = []
+    all_labels: list[np.ndarray] = []
     total_loss = 0.0
     non_finite = False
     non_finite_source: str | None = None
@@ -96,7 +94,7 @@ def epoch_train_step(
     optimizer: Any,
     criterion: nn.Module,
     device: str = "cpu",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Ejecuta una época de entrenamiento, deteniéndose en la primera pérdida no finita.
 
     El paso del optimizador se omite ante una pérdida no finita para que un gradiente

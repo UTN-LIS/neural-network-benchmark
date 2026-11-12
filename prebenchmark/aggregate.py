@@ -45,14 +45,14 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from .compare import (
     DELTA_METRICS,
     VALIDATION_METRICS,
     run_config,
-    run_dataset,
     run_eval_set,
     run_failure_reason,
     run_field,
@@ -107,8 +107,10 @@ _UNSTABLE = "UNSTABLE"
 
 
 def _is_finite_number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(
-        float(value)
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
     )
 
 
@@ -470,30 +472,20 @@ def aggregate_group(
 
     metrics = {
         metric: _compute_statistics(
-            [value for meta in valid_metas if (value := run_metric_value(meta, metric)) is not None],
+            [
+                value
+                for meta in valid_metas
+                if (value := run_metric_value(meta, metric)) is not None
+            ],
             metric,
             min_repetitions,
         )
         for metric in AGGREGATE_METRICS
     }
 
-    seeds = tuple(
-        sorted(
-            {
-                member.seed
-                for member in members
-                if member.seed is not None
-            }
-        )
-    )
+    seeds = tuple(sorted({member.seed for member in members if member.seed is not None}))
     evaluation_sets = tuple(
-        sorted(
-            {
-                eval_set
-                for meta in member_metas
-                for eval_set in (_run_eval_sets(meta))
-            }
-        )
+        sorted({eval_set for meta in member_metas for eval_set in (_run_eval_sets(meta))})
     )
     state_counts: dict[str, int] = {}
     for meta in member_metas:

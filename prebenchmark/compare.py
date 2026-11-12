@@ -44,8 +44,9 @@ Semántica (decisiones vinculantes para este fragmento):
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from .config import (
     BASELINE_ACTIVATION,
@@ -274,7 +275,7 @@ def _metric_value(meta: Mapping[str, Any], metric: str) -> float | None:
 def _splits_close(a: tuple[float, ...], b: tuple[float, ...]) -> bool:
     if not a or not b or len(a) != len(b):
         return False
-    return all(abs(x - y) <= _SPLIT_TOLERANCE for x, y in zip(a, b))
+    return all(abs(x - y) <= _SPLIT_TOLERANCE for x, y in zip(a, b, strict=True))
 
 
 # ---------------------------------------------------------------------------
@@ -404,11 +405,7 @@ def select_baseline(
     """
     if baseline_run_id is not None and baseline_config_id is not None:
         raise ValueError("pass exactly one of baseline_run_id / baseline_config_id")
-    if (
-        baseline_run_id is None
-        and baseline_config_id is None
-        and not use_documented_default
-    ):
+    if baseline_run_id is None and baseline_config_id is None and not use_documented_default:
         raise ValueError(
             "baseline must be selected explicitly: pass baseline_run_id, "
             "baseline_config_id, or use_documented_default=True"
@@ -455,9 +452,7 @@ def select_baseline(
                 f"(matched by the four free dimensions; dataset: {dataset_name})"
             )
         else:
-            rationale = (
-                f"explicitly selected earliest run matching config_id {baseline_config_id}"
-            )
+            rationale = f"explicitly selected earliest run matching config_id {baseline_config_id}"
     if not str(rationale).strip():
         raise ValueError("baseline rationale must be a non-empty string")
 
@@ -511,9 +506,7 @@ def check_comparability(
     if _dataset(baseline) != _dataset(candidate):
         reasons.append("datasets differ (name or version)")
     if _architecture(baseline) != _architecture(candidate):
-        reasons.append(
-            "architectures differ (name, input_dim, hidden_layers or output_dim)"
-        )
+        reasons.append("architectures differ (name, input_dim, hidden_layers or output_dim)")
     if not _splits_close(_split(baseline), _split(candidate)):
         reasons.append("split proportions or stratification differ")
     if _field(baseline, "max_epochs") != _field(candidate, "max_epochs"):
@@ -644,9 +637,7 @@ def _build_row(
     failure = _failure_reason(candidate)
 
     varied = tuple(
-        dim
-        for dim in SPACE_DIMENSIONS
-        if _field(baseline_meta, dim) != _field(candidate, dim)
+        dim for dim in SPACE_DIMENSIONS if _field(baseline_meta, dim) != _field(candidate, dim)
     )
     if _class_weight(baseline_meta) != _class_weight(candidate):
         varied = varied + ("class_weight",)
@@ -680,10 +671,10 @@ def _build_row(
                 for metric in DELTA_METRICS
             }
         else:
-            relative_deltas = {metric: None for metric in DELTA_METRICS}
+            relative_deltas = dict.fromkeys(DELTA_METRICS)
     else:
-        deltas = {metric: None for metric in DELTA_METRICS}
-        relative_deltas = {metric: None for metric in DELTA_METRICS}
+        deltas = dict.fromkeys(DELTA_METRICS)
+        relative_deltas = dict.fromkeys(DELTA_METRICS)
 
     return ComparisonRow(
         run_id=str(candidate.get("run_id") or "?"),

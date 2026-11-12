@@ -36,9 +36,10 @@ import csv
 import io
 import json
 import os
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from .aggregate import (
     AGGREGATE_METRICS,
@@ -65,7 +66,7 @@ from .compare import (
 )
 from .decisions import decisions_to_records
 from .identity import utc_timestamp
-from .store import EXPORTS_DIR_NAME, EPOCH_COLUMNS, ResultsStore
+from .store import EPOCH_COLUMNS, EXPORTS_DIR_NAME, ResultsStore
 
 __all__ = [
     "AGGREGATE_COLUMNS",
@@ -88,60 +89,69 @@ NA_MARKER = "N/A"
 # Definiciones de columnas estables (explícitas para que los encabezados nunca cambien, incluso con 0 filas)
 # ---------------------------------------------------------------------------
 
-_MASTER_METRICS: tuple[str, ...] = tuple(m for m in DELTA_METRICS if m != "training_time") + VALIDATION_METRICS
+_MASTER_METRICS: tuple[str, ...] = (
+    tuple(m for m in DELTA_METRICS if m != "training_time") + VALIDATION_METRICS
+)
 
 MASTER_COLUMNS: tuple[str, ...] = (
-    "run_id",
-    "config_id",
-    "space_key",
-    "experiment_id",
-    "run_type",
-    "dataset",
-    "dataset_version",
-    "architecture",
-    "activation",
-    "optimizer",
-    "lr",
-    "init",
-    "loss_function",
-    "batch_size",
-    "seed",
-    "split_train",
-    "split_val",
-    "split_test",
-    "split_stratify",
-    "max_epochs",
-    "epochs_executed",
-    "execution_state",
-    "start_time",
-    "end_time",
-    "device",
-    "training_time",
-    "n_params",
-    "evaluation_set",
-) + _MASTER_METRICS + (
-    "warnings",
-    "failure_reason",
+    (
+        "run_id",
+        "config_id",
+        "space_key",
+        "experiment_id",
+        "run_type",
+        "dataset",
+        "dataset_version",
+        "architecture",
+        "activation",
+        "optimizer",
+        "lr",
+        "init",
+        "loss_function",
+        "batch_size",
+        "seed",
+        "split_train",
+        "split_val",
+        "split_test",
+        "split_stratify",
+        "max_epochs",
+        "epochs_executed",
+        "execution_state",
+        "start_time",
+        "end_time",
+        "device",
+        "training_time",
+        "n_params",
+        "evaluation_set",
+    )
+    + _MASTER_METRICS
+    + (
+        "warnings",
+        "failure_reason",
+    )
 )
 
 # Contexto de línea base (repetido por fila) + las columnas de la tabla comparadora.
 COMPARISON_COLUMNS: tuple[str, ...] = (
-    "baseline_run_id",
-    "baseline_config_id",
-    "baseline_rationale",
-    "run_id",
-    "config_id",
-    "state",
-    "eval_set",
-    "comparability_flag",
-    "comparison_type",
-    "informative_only",
-    "controlled_variable",
-    "varied_dimensions",
-    "warnings",
-    "failure_reason",
-) + DELTA_METRICS + tuple(f"delta_{m}" for m in DELTA_METRICS) + tuple(
-    f"rel_{m}" for m in DELTA_METRICS
+    (
+        "baseline_run_id",
+        "baseline_config_id",
+        "baseline_rationale",
+        "run_id",
+        "config_id",
+        "state",
+        "eval_set",
+        "comparability_flag",
+        "comparison_type",
+        "informative_only",
+        "controlled_variable",
+        "varied_dimensions",
+        "warnings",
+        "failure_reason",
+    )
+    + DELTA_METRICS
+    + tuple(f"delta_{m}" for m in DELTA_METRICS)
+    + tuple(f"rel_{m}" for m in DELTA_METRICS)
 )
 
 _AGGREGATE_METRIC_SUFFIXES: tuple[str, ...] = ("n", "mean", "std", "min", "max", "range")
@@ -170,9 +180,7 @@ AGGREGATE_COLUMNS: tuple[str, ...] = (
     "evaluation_sets",
     "created_at",
 ) + tuple(
-    f"{metric}_{suffix}"
-    for metric in AGGREGATE_METRICS
-    for suffix in _AGGREGATE_METRIC_SUFFIXES
+    f"{metric}_{suffix}" for metric in AGGREGATE_METRICS for suffix in _AGGREGATE_METRIC_SUFFIXES
 )
 
 CONFIG_COLUMNS: tuple[str, ...] = (
@@ -577,9 +585,14 @@ def _write_plots(
         figure, axis = plt.subplots()
         for run_id, rows in by_run.items():
             ordered = sorted(rows, key=lambda row: row.get("epoch") or 0)
+            points = [
+                (float(row.get("epoch") or 0), float(row["train_loss"]))
+                for row in ordered
+                if isinstance(row.get("train_loss"), (int, float))
+            ]
             axis.plot(
-                [row.get("epoch") for row in ordered],
-                [row.get("train_loss") for row in ordered],
+                [point[0] for point in points],
+                [point[1] for point in points],
                 label=run_id,
             )
         axis.set_xlabel("epoch")
@@ -593,10 +606,10 @@ def _write_plots(
 
     if master_records:
         run_ids = [str(record.get("run_id")) for record in master_records]
-        accuracies = [
-            record.get("accuracy") if isinstance(record.get("accuracy"), (int, float)) else 0.0
-            for record in master_records
-        ]
+        accuracies: list[float] = []
+        for record in master_records:
+            value = record.get("accuracy")
+            accuracies.append(float(value) if isinstance(value, (int, float)) else 0.0)
         figure, axis = plt.subplots()
         axis.bar(range(len(run_ids)), accuracies)
         axis.set_xticks(range(len(run_ids)))
@@ -643,9 +656,11 @@ def export_all(
         raise ValueError("min_repetitions must be >= 1")
 
     timestamp = timestamp or utc_timestamp()
-    export_dir = Path(out_dir) / experiment_id if out_dir is not None else Path(
-        store.root
-    ) / EXPORTS_DIR_NAME / experiment_id
+    export_dir = (
+        Path(out_dir) / experiment_id
+        if out_dir is not None
+        else Path(store.root) / EXPORTS_DIR_NAME / experiment_id
+    )
     export_dir.mkdir(parents=True, exist_ok=True)
 
     warnings: list[str] = []

@@ -52,8 +52,7 @@ def wine_quality_df() -> pd.DataFrame:
     rng = np.random.default_rng(42)
     n_samples = 140
     data: dict[str, np.ndarray] = {
-        column: rng.normal(loc=0.0, scale=1.0, size=n_samples)
-        for column in WINE_FEATURE_COLUMNS
+        column: rng.normal(loc=0.0, scale=1.0, size=n_samples) for column in WINE_FEATURE_COLUMNS
     }
     # Give a couple of columns realistic integer-ish ranges.
     data["free sulfur dioxide"] = rng.integers(0, 80, size=n_samples).astype(float)
@@ -66,7 +65,7 @@ def wine_quality_df() -> pd.DataFrame:
 
 
 @pytest.fixture
-def wine_quality_csv(wine_quality_df: pd.DataFrame, tmp_path) -> "os.PathLike[str]":
+def wine_quality_csv(wine_quality_df: pd.DataFrame, tmp_path) -> os.PathLike[str]:
     """Write the synthetic dataset as the UCI ';'-separated CSV to a temp path."""
     path = tmp_path / "winequality-white.csv"
     wine_quality_df.to_csv(path, sep=";", index=False)

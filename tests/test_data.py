@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import pandas as pd
-
 from prebenchmark import config, data
 
 
 def test_load_wine_quality_uses_cache(tmp_path, monkeypatch):
     import numpy as np
-    from tests.conftest import WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN, WINE_CLASSES
+    from tests.conftest import WINE_CLASSES, WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN
 
     rng = np.random.default_rng(42)
     n = 140
@@ -30,7 +29,8 @@ def test_load_wine_quality_uses_cache(tmp_path, monkeypatch):
 
 def test_build_splits_60_20_20_defaults():
     import numpy as np
-    from tests.conftest import WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN, WINE_CLASSES
+    from tests.conftest import WINE_CLASSES, WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN
+
     rng = np.random.default_rng(42)
     n = 140
     d = {c: rng.normal(0, 1, n) for c in WINE_FEATURE_COLUMNS}
@@ -45,7 +45,8 @@ def test_build_splits_60_20_20_defaults():
 
 def test_build_dataloaders_batch_size_32():
     import numpy as np
-    from tests.conftest import WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN, WINE_CLASSES
+    from tests.conftest import WINE_CLASSES, WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN
+
     rng = np.random.default_rng(42)
     n = 140
     d = {c: rng.normal(0, 1, n) for c in WINE_FEATURE_COLUMNS}
@@ -59,7 +60,7 @@ def test_build_dataloaders_batch_size_32():
 
 def _sample_df(n: int = 40, seed: int = 7) -> pd.DataFrame:
     import numpy as np
-    from tests.conftest import WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN, WINE_CLASSES
+    from tests.conftest import WINE_CLASSES, WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN
 
     rng = np.random.default_rng(seed)
     d = {c: rng.normal(0, 1, n) for c in WINE_FEATURE_COLUMNS}
@@ -97,7 +98,7 @@ def test_file_fingerprint_matches_dataframe_fingerprint(tmp_path):
     assert data.compute_file_fingerprint(path) == data.compute_dataframe_fingerprint(df)
 
 
-def _toy_definition() -> "data.DatasetDefinition":
+def _toy_definition() -> data.DatasetDefinition:
     import numpy as np
     import pandas as pd
 
@@ -202,4 +203,3 @@ def test_default_space_for_wine_quality_keeps_historic_dimensions():
     assert base.architecture.input_dim == 11
     assert base.architecture.output_dim == 7
     assert base.dataset.target == "quality"
-

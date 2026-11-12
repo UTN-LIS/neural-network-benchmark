@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 import traceback
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import torch
@@ -12,9 +13,15 @@ import torch.nn as nn
 import torch.optim as optim
 
 from . import data, environment, metrics, model
-from .config import DEFAULT_MAX_EPOCHS, ExperimentConfig, resolve_convergence
+from .config import (
+    DEFAULT_CONVERGENCE_MIN_DELTA,
+    DEFAULT_CONVERGENCE_PATIENCE,
+    DEFAULT_MAX_EPOCHS,
+    ExperimentConfig,
+    resolve_convergence,
+)
 from .identity import compute_config_id, new_run_id, utc_timestamp
-from .space import ValidationResult, validate_config
+from .space import validate_config
 from .store import ResultsStore
 
 # Campo canónico para el estado de ejecución duradero de una ejecución.
@@ -47,7 +54,7 @@ def _convergence_trigger(
     best_epoch: int | None = None,
     best_value: float | None = None,
     stopped_epoch: int | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "metric": metric_name,
         "patience": patience,
@@ -59,7 +66,8 @@ def _convergence_trigger(
         "reason": reason,
     }
 
-def _determinism_note(seed: int) -> Dict[str, Any]:
+
+def _determinism_note(seed: int) -> dict[str, Any]:
     cuda = torch.cuda.is_available()
     return {
         "seed": seed,
@@ -80,7 +88,7 @@ def run_experiment(
     store: ResultsStore | None = None,
     *,
     df: Any = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Ejecuta el experimento de forma reproducible. Devuelve un dict similar a RunResult."""
     # Siembra determinista
     seed = cfg.seed if cfg.seed is not None else 42
@@ -103,12 +111,22 @@ def run_experiment(
     # Resuelve el criterio de convergencia concreto (los valores predeterminados
     # documentados completan cualquier campo no especificado) para registrar
     # textualmente lo que realmente se aplicó.
-    resolved_convergence = resolve_convergence(cfg.convergence) if cfg.convergence.enabled else cfg.convergence
+    resolved_convergence = (
+        resolve_convergence(cfg.convergence) if cfg.convergence.enabled else cfg.convergence
+    )
     convergence_meta = resolved_convergence.to_dict()
     convergence_meta["restore_best_weights"] = True
     metric_name = resolved_convergence.metric if cfg.convergence.enabled else None
-    patience = resolved_convergence.patience
-    min_delta = resolved_convergence.min_delta
+    patience = (
+        resolved_convergence.patience
+        if resolved_convergence.patience is not None
+        else DEFAULT_CONVERGENCE_PATIENCE
+    )
+    min_delta = (
+        resolved_convergence.min_delta
+        if resolved_convergence.min_delta is not None
+        else DEFAULT_CONVERGENCE_MIN_DELTA
+    )
     mode = resolved_convergence.mode
 
     # Huella del dataset (de mejor esfuerzo: un fallo nunca aborta la ejecución).
@@ -126,7 +144,7 @@ def run_experiment(
         env = {"hardware": {}, "library_versions": {}}
         warnings.append(f"environment capture skipped: {error}")
 
-    epoch_records: list[Dict[str, Any]] = []
+    epoch_records: list[dict[str, Any]] = []
     best_value: float | None = None
     best_epoch: int | None = None
     best_state_dict: dict | None = None
@@ -138,7 +156,7 @@ def run_experiment(
     best_val_loss: float | None = None
     best_val_loss_epoch: int | None = None
     best_val_acc_at_best: float | None = None
-    failure_context: Dict[str, Any] = {"epoch": None, "batch": None, "metric": None}
+    failure_context: dict[str, Any] = {"epoch": None, "batch": None, "metric": None}
 
     try:
         dataloaders = data.build_dataloaders(cfg, df=df)
@@ -151,7 +169,7 @@ def run_experiment(
         m.to(device)
 
         if cfg.optimizer.lower() == "adam":
-            optimizer = optim.Adam(m.parameters(), lr=cfg.lr)
+            optimizer: optim.Optimizer = optim.Adam(m.parameters(), lr=cfg.lr)
         else:
             optimizer = optim.SGD(m.parameters(), lr=cfg.lr)
 
@@ -190,7 +208,7 @@ def run_experiment(
                     f"non-finite validation detected in {train_res['non_finite_source']} "
                     f"at epoch {epoch}, batch {train_res['non_finite_batch']}"
                 )
-            val_res: Dict[str, Any] = {}
+            val_res: dict[str, Any] = {}
             if val_loader is not None:
                 val_eval = metrics.evaluate(m, val_loader, device, eval_criterion)
                 if val_eval["non_finite"]:
@@ -199,9 +217,7 @@ def run_experiment(
                         "batch": None,
                         "metric": "val_loss",
                     }
-                    raise ValueError(
-                        f"non-finite validation loss detected at epoch {epoch}"
-                    )
+                    raise ValueError(f"non-finite validation loss detected at epoch {epoch}")
                 val_res = {"val_loss": val_eval["loss"], "val_acc": val_eval["accuracy"]}
                 # Mejor época por val_loss: métrica de comparación de la etapa exploratoria.
                 if np.isfinite(val_res["val_loss"]) and (
@@ -342,7 +358,7 @@ def run_experiment(
         end_time = time.time()
         end_ts = utc_timestamp()
         state = "FAILED"
-        failure: Dict[str, Any] = {
+        failure: dict[str, Any] = {
             "reason": str(e),
             "traceback": traceback.format_exc(),
             "epoch": failure_context["epoch"],
@@ -364,7 +380,8 @@ def run_experiment(
             "device": device,
         }
         if store is not None:
-            try:
+            # Un fallo de persistencia no debe sobrescribir el resultado del entrenamiento.
+            with contextlib.suppress(Exception):
                 store.persist_run(
                     experiment_id,
                     run_id,
@@ -373,8 +390,6 @@ def run_experiment(
                     config=cfg,
                     validation=validation,
                 )
-            except Exception:
-                pass  # no sobrescribir
         return {
             "run_id": run_id,
             "config_id": config_id,

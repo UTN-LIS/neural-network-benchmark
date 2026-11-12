@@ -7,7 +7,6 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-
 from prebenchmark.config import ExperimentConfig, PreprocessingSpec
 from prebenchmark.identity import compute_config_id, compute_space_key
 from prebenchmark.space import validate_config
@@ -70,9 +69,7 @@ def test_persist_and_load_run_round_trip(store: ResultsStore) -> None:
         {"epoch": 1, "train_loss": 1.1, "train_acc": 0.3, "val_loss": 1.0, "val_acc": 0.35},
         {"epoch": 2, "train_loss": 0.9, "train_acc": 0.4, "val_loss": 0.95, "val_acc": 0.38},
     ]
-    run_path = store.persist_run(
-        EXPERIMENT_ID, "run-1", make_metadata(cfg, "run-1"), rows
-    )
+    run_path = store.persist_run(EXPERIMENT_ID, "run-1", make_metadata(cfg, "run-1"), rows)
     assert (run_path / RUN_METADATA_FILE).exists()
     assert (run_path / EPOCHS_CSV_FILE).exists()
 
@@ -87,8 +84,10 @@ def test_persist_and_load_run_round_trip(store: ResultsStore) -> None:
 def test_epochs_csv_uses_canonical_columns(store: ResultsStore) -> None:
     store.persist_run(EXPERIMENT_ID, "run-1", make_metadata(ExperimentConfig(), "run-1"), [])
     header = (
-        store.run_dir(EXPERIMENT_ID, "run-1") / EPOCHS_CSV_FILE
-    ).read_text(encoding="utf-8").splitlines()[0]
+        (store.run_dir(EXPERIMENT_ID, "run-1") / EPOCHS_CSV_FILE)
+        .read_text(encoding="utf-8")
+        .splitlines()[0]
+    )
     assert header.split(",") == list(EPOCH_COLUMNS)
 
 
@@ -165,7 +164,9 @@ def test_failed_run_persists_with_reason_and_partial_epochs(store: ResultsStore)
         state="FAILED",
         failure={"reason": "RuntimeError: exploded", "traceback": "..."},
     )
-    store.persist_run(EXPERIMENT_ID, "run-fail", metadata, [{"epoch": 1, "train_loss": float("nan")}])
+    store.persist_run(
+        EXPERIMENT_ID, "run-fail", metadata, [{"epoch": 1, "train_loss": float("nan")}]
+    )
 
     loaded = store.load_run("run-fail")
     assert loaded["metadata"]["state"] == "FAILED"
@@ -227,9 +228,9 @@ def test_query_runs_accepts_state_and_execution_state_as_aliases(store: ResultsS
 
     # Both spellings resolve to the same canonical field.
     assert [m["run_id"] for m in store.query_runs(EXPERIMENT_ID, state="FAILED")] == ["run-bad"]
-    assert [
-        m["run_id"] for m in store.query_runs(EXPERIMENT_ID, execution_state="COMPLETED")
-    ] == ["run-ok"]
+    assert [m["run_id"] for m in store.query_runs(EXPERIMENT_ID, execution_state="COMPLETED")] == [
+        "run-ok"
+    ]
 
 
 def test_query_runs_filters_by_dataset_and_architecture(store: ResultsStore) -> None:
@@ -242,12 +243,12 @@ def test_query_runs_filters_by_dataset_and_architecture(store: ResultsStore) -> 
     store.persist_run(EXPERIMENT_ID, "run-wine", make_metadata(base, "run-wine"))
     store.persist_run(EXPERIMENT_ID, "run-other", make_metadata(other, "run-other"))
 
-    assert [
-        m["run_id"] for m in store.query_runs(EXPERIMENT_ID, dataset="wine_quality")
-    ] == ["run-wine"]
-    assert [
-        m["run_id"] for m in store.query_runs(EXPERIMENT_ID, architecture="other_arch")
-    ] == ["run-other"]
+    assert [m["run_id"] for m in store.query_runs(EXPERIMENT_ID, dataset="wine_quality")] == [
+        "run-wine"
+    ]
+    assert [m["run_id"] for m in store.query_runs(EXPERIMENT_ID, architecture="other_arch")] == [
+        "run-other"
+    ]
 
 
 def test_query_runs_across_experiments_when_id_omitted(store: ResultsStore) -> None:

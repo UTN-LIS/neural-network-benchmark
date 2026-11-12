@@ -21,10 +21,11 @@ Subcomandos
 from __future__ import annotations
 
 import argparse
+import contextlib
 import sys
+from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
-from typing import Sequence
 
 from . import compare, export, space, store
 from .config import DEFAULT_DATASET, KNOWN_DATASETS, ExperimentConfig
@@ -55,7 +56,9 @@ def build_parser() -> argparse.ArgumentParser:
             "for the neural-network benchmark."
         ),
     )
-    subparsers = parser.add_subparsers(dest="command", metavar="{generate,run,compare,aggregate,export,analyze}")
+    subparsers = parser.add_subparsers(
+        dest="command", metavar="{generate,run,compare,aggregate,export,analyze}"
+    )
 
     def _with_common(sub: argparse.ArgumentParser) -> argparse.ArgumentParser:
         sub.add_argument("--experiment-id", required=True, help="experiment identifier")
@@ -87,8 +90,12 @@ def build_parser() -> argparse.ArgumentParser:
     generate.set_defaults(handler=_cmd_generate)
 
     run = _with_common(subparsers.add_parser("run", help="execute generated configurations"))
-    run.add_argument("--limit", type=int, default=1, help="number of configurations to run (default: 1)")
-    run.add_argument("--config-id", default=None, help="run only the configuration with this config_id")
+    run.add_argument(
+        "--limit", type=int, default=1, help="number of configurations to run (default: 1)"
+    )
+    run.add_argument(
+        "--config-id", default=None, help="run only the configuration with this config_id"
+    )
     run.add_argument(
         "--dataset",
         choices=KNOWN_DATASETS,
@@ -142,7 +149,9 @@ def build_parser() -> argparse.ArgumentParser:
             sub.add_argument("--grouping", choices=("config", "config_id"), default="config")
             sub.add_argument("--min-repetitions", type=int, default=3)
         if name == "export":
-            sub.add_argument("--out", default=None, help="raíz de exportaciones (por defecto: <root>/exports)")
+            sub.add_argument(
+                "--out", default=None, help="raíz de exportaciones (por defecto: <root>/exports)"
+            )
             sub.add_argument("--no-plots", action="store_true", help="skip optional plots")
 
     subparsers.choices["compare"].set_defaults(handler=_cmd_compare)
@@ -181,8 +190,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=6,
         help="cantidad de configuraciones graficadas en el panel de curvas de convergencia (por defecto: 6)",
     )
-    analyze.add_argument("--title", default=None, help="título del reporte (sobrescribe el valor por defecto)")
-    analyze.add_argument("--no-figures", action="store_true", help="escribe solo tablas y estadísticas")
+    analyze.add_argument(
+        "--title", default=None, help="título del reporte (sobrescribe el valor por defecto)"
+    )
+    analyze.add_argument(
+        "--no-figures", action="store_true", help="escribe solo tablas y estadísticas"
+    )
     analyze.add_argument(
         "--pdf",
         action="store_true",
@@ -225,11 +238,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     else:
         configs = configs[: args.limit]
 
-    seeds: list[int | None]
-    if args.multi_seed:
-        seeds = list(EXPLORATORY_SEEDS)
-    else:
-        seeds = [args.seed]
+    seeds: list[int | None] = list(EXPLORATORY_SEEDS) if args.multi_seed else [args.seed]
 
     executed = 0
     for base in configs:
@@ -237,12 +246,11 @@ def _cmd_run(args: argparse.Namespace) -> int:
             base = replace(base, convergence=replace(base.convergence, enabled=True))
         base = _apply_class_weight(base, args.class_weight)
         for seed in seeds:
-            overrides: dict[str, object] = {}
+            cfg = base
             if args.max_epochs is not None:
-                overrides["max_epochs"] = args.max_epochs
+                cfg = replace(cfg, max_epochs=args.max_epochs)
             if seed is not None:
-                overrides["seed"] = seed
-            cfg = replace(base, **overrides) if overrides else base
+                cfg = replace(cfg, seed=seed)
             result = runner.run_experiment(cfg, experiment_id=args.experiment_id, store=results)
             executed += 1
             print(
@@ -267,7 +275,9 @@ def _cmd_compare(args: argparse.Namespace) -> int:
     export.persist_baseline(results, args.experiment_id, selection)
     print(f"baseline {selection.run_id} ({selection.config_id}): {selection.rationale}")
     for row in table.rows:
-        print(f"  {row.run_id} state={row.state} type={row.comparison_type} comparable={row.comparable}")
+        print(
+            f"  {row.run_id} state={row.state} type={row.comparison_type} comparable={row.comparable}"
+        )
     return 0
 
 
@@ -314,7 +324,9 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
     if args.export_dir is not None:
         export_dir = Path(args.export_dir)
     else:
-        exports_root = Path(args.exports) if args.exports is not None else Path(args.root) / "exports"
+        exports_root = (
+            Path(args.exports) if args.exports is not None else Path(args.root) / "exports"
+        )
         export_dir = exports_root / args.experiment_id
 
     result = analysis.analyze_exports(
@@ -357,10 +369,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         reconfigure = getattr(stream, "reconfigure", None)
         if reconfigure is not None:
-            try:
+            with contextlib.suppress(
+                OSError, ValueError
+            ):  # pragma: no cover - stream no reconfigurable
                 reconfigure(encoding="utf-8")
-            except (OSError, ValueError):  # pragma: no cover - stream no reconfigurable
-                pass
     parser = build_parser()
     args = parser.parse_args(argv)
     if getattr(args, "command", None) is None:

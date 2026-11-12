@@ -5,18 +5,16 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
+    confusion_matrix,
+    f1_score,
     precision_score,
     recall_score,
-    f1_score,
-    confusion_matrix,
 )
-
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 # ============================================================
 # 1. Configuración
@@ -40,11 +38,7 @@ torch.manual_seed(SEED)
 # 3. Carga del dataset
 # ============================================================
 
-URL = (
-    "https://archive.ics.uci.edu/"
-    "ml/machine-learning-databases/wine-quality/"
-    "winequality-white.csv"
-)
+URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"
 
 df = pd.read_csv(
     URL,
@@ -63,15 +57,9 @@ y_original = df["quality"].values
 # Convertimos las clases 3-9 en 0-6
 classes = np.sort(np.unique(y_original))
 
-class_to_index = {
-    class_value: index
-    for index, class_value in enumerate(classes)
-}
+class_to_index = {class_value: index for index, class_value in enumerate(classes)}
 
-y = np.array([
-    class_to_index[value]
-    for value in y_original
-])
+y = np.array([class_to_index[value] for value in y_original])
 
 
 print("Dataset Wine Quality")
@@ -133,8 +121,8 @@ y_test = torch.tensor(
 # 8. Definición del MLP
 # ============================================================
 
-class MLP(nn.Module):
 
+class MLP(nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -158,7 +146,6 @@ model = MLP()
 # ============================================================
 
 for layer in model.modules():
-
     if isinstance(layer, nn.Linear):
         nn.init.kaiming_normal_(
             layer.weight,
@@ -187,7 +174,6 @@ optimizer = optim.Adam(
 start_time = time.perf_counter()
 
 for epoch in range(EPOCHS):
-
     model.train()
 
     optimizer.zero_grad()
@@ -204,10 +190,7 @@ for epoch in range(EPOCHS):
     optimizer.step()
 
     if (epoch + 1) % 10 == 0:
-        print(
-            f"Época {epoch + 1:3d}/{EPOCHS} "
-            f"- Loss: {loss.item():.4f}"
-        )
+        print(f"Época {epoch + 1:3d}/{EPOCHS} - Loss: {loss.item():.4f}")
 
 training_time = time.perf_counter() - start_time
 
@@ -219,7 +202,6 @@ training_time = time.perf_counter() - start_time
 model.eval()
 
 with torch.no_grad():
-
     outputs = model(X_test)
 
     predictions = torch.argmax(
@@ -272,10 +254,7 @@ confusion = confusion_matrix(
     y_pred,
 )
 
-num_parameters = sum(
-    parameter.numel()
-    for parameter in model.parameters()
-)
+num_parameters = sum(parameter.numel() for parameter in model.parameters())
 
 
 # ============================================================

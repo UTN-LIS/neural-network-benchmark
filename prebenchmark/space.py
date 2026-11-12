@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field, replace
 from itertools import product
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any
 
 from .config import (
     BASELINE_ACTIVATION,
@@ -31,7 +32,6 @@ from .config import (
     KNOWN_RUN_TYPES,
     KNOWN_SCALERS,
     ExperimentConfig,
-    PreprocessingSpec,
 )
 
 # ---------------------------------------------------------------------------
@@ -206,100 +206,117 @@ def _warn_xavier_with_relu(cfg: ExperimentConfig) -> bool:
 
 DEFAULT_VALIDATION_RULES: tuple[ValidationRule, ...] = (
     ValidationRule(
-        "unknown_activation", INVALID,
+        "unknown_activation",
+        INVALID,
         "activation name is not registered",
         _invalid_unknown_activation,
     ),
     ValidationRule(
-        "unknown_optimizer", INVALID,
+        "unknown_optimizer",
+        INVALID,
         "optimizer name is not registered",
         _invalid_unknown_optimizer,
     ),
     ValidationRule(
-        "unknown_init", INVALID,
+        "unknown_init",
+        INVALID,
         "weight initialization name is not registered",
         _invalid_unknown_init,
     ),
     ValidationRule(
-        "unknown_loss", INVALID,
+        "unknown_loss",
+        INVALID,
         "loss function name is not registered",
         _invalid_unknown_loss,
     ),
     ValidationRule(
-        "unknown_scaler", INVALID,
+        "unknown_scaler",
+        INVALID,
         "preprocessing scaler is not registered",
         _invalid_unknown_scaler,
     ),
     ValidationRule(
-        "unknown_run_type", INVALID,
+        "unknown_run_type",
+        INVALID,
         "run_type must be 'prebenchmark' or 'benchmark'",
         _invalid_unknown_run_type,
     ),
     ValidationRule(
-        "unknown_device", INVALID,
+        "unknown_device",
+        INVALID,
         "device must be one of 'auto', 'cpu', 'cuda'",
         _invalid_unknown_device,
     ),
     ValidationRule(
-        "architecture_input_mismatch", INVALID,
+        "architecture_input_mismatch",
+        INVALID,
         "architecture input_dim does not match dataset n_features",
         _invalid_arch_input_mismatch,
     ),
     ValidationRule(
-        "architecture_output_too_small", INVALID,
+        "architecture_output_too_small",
+        INVALID,
         "architecture output_dim must be at least 2 classes",
         _invalid_arch_output_too_small,
     ),
     ValidationRule(
-        "split_not_summing_to_one", INVALID,
+        "split_not_summing_to_one",
+        INVALID,
         "train/val/test proportions must sum to 1.0",
         _invalid_split_not_summing_to_one,
     ),
     ValidationRule(
-        "split_negative", INVALID,
+        "split_negative",
+        INVALID,
         "split proportions must be non-negative",
         _invalid_split_negative,
     ),
     ValidationRule(
-        "batch_size_below_one", INVALID,
+        "batch_size_below_one",
+        INVALID,
         "batch_size must be >= 1",
         _invalid_batch_size_below_one,
     ),
     ValidationRule(
-        "max_epochs_below_one", INVALID,
+        "max_epochs_below_one",
+        INVALID,
         "max_epochs must be >= 1",
         _invalid_max_epochs_below_one,
     ),
     ValidationRule(
-        "lr_not_positive", INVALID,
+        "lr_not_positive",
+        INVALID,
         "learning rate must be > 0",
         _invalid_lr_not_positive,
     ),
     ValidationRule(
-        "convergence_incomplete", INVALID,
+        "convergence_incomplete",
+        INVALID,
         "convergence is enabled but names an unrecognized metric or mode",
         _invalid_convergence_incomplete,
     ),
     ValidationRule(
-        "high_lr_adam", WARNING,
+        "high_lr_adam",
+        WARNING,
         "Adam with learning rate >= 0.1 may be unstable",
         _warn_high_lr_adam,
     ),
     ValidationRule(
-        "high_lr_sgd", WARNING,
+        "high_lr_sgd",
+        WARNING,
         "SGD with learning rate >= 0.1 may diverge",
         _warn_high_lr_sgd,
     ),
     ValidationRule(
-        "he_with_non_relu", WARNING,
-        "He/Kaiming initialization is not conventionally recommended for "
-        "sigmoid/tanh activations",
+        "he_with_non_relu",
+        WARNING,
+        "He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations",
         _warn_he_with_non_relu,
     ),
     ValidationRule(
-        "xavier_with_relu", WARNING,
-        "Xavier/Glorot initialization is not conventionally recommended for "
-        "ReLU activations",
+        "xavier_with_relu",
+        WARNING,
+        "Xavier/Glorot initialization is not conventionally recommended for ReLU activations",
         _warn_xavier_with_relu,
     ),
 )
@@ -352,13 +369,9 @@ class ParameterSpace:
     tocar la lógica de validación ni de generación.
     """
 
-    activations: list[str] = field(
-        default_factory=lambda: ["relu", "sigmoid", "tanh"]
-    )
+    activations: list[str] = field(default_factory=lambda: ["relu", "sigmoid", "tanh"])
     optimizers: list[str] = field(default_factory=lambda: ["sgd", "adam"])
-    learning_rates: list[float] = field(
-        default_factory=lambda: [0.001, 0.01, 0.1]
-    )
+    learning_rates: list[float] = field(default_factory=lambda: [0.001, 0.01, 0.1])
     initializations: list[str] = field(default_factory=lambda: ["xavier", "he"])
     base: ExperimentConfig = field(default_factory=ExperimentConfig)
 

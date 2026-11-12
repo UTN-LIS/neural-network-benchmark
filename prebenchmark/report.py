@@ -13,13 +13,15 @@ medio, no un requisito de validez del análisis.
 from __future__ import annotations
 
 import base64
+import contextlib
 import html
 import io
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -169,7 +171,15 @@ def _ranking_bars(axis: Any, panel: pd.DataFrame, reference: float, *, fontsize:
     values = ordered["f1_macro_mean"].to_numpy(dtype=float)
     errors = ordered["f1_macro_std"].fillna(0.0).to_numpy(dtype=float)
     colors = [_color_for(value) for value in ordered["class_weight"]]
-    axis.barh(positions, values, xerr=errors, color=colors, alpha=0.9, capsize=2, error_kw={"elinewidth": 0.8})
+    axis.barh(
+        positions,
+        values,
+        xerr=errors,
+        color=colors,
+        alpha=0.9,
+        capsize=2,
+        error_kw={"elinewidth": 0.8},
+    )
     axis.set_yticks(positions)
     axis.set_yticklabels([_short_label(row) for _, row in ordered.iterrows()], fontsize=fontsize)
     axis.axvline(reference, color="#111827", linestyle=":", linewidth=1.0)
@@ -190,11 +200,13 @@ def _ranking_figure(result: AnalysisResult, plt: Any) -> Any:
         half = math.ceil(len(ordered) / 2)
         panels = [ordered.iloc[:half], ordered.iloc[half:]]
         figure, axes = plt.subplots(1, 2, figsize=(7.5, 8.4), sharex=True)
-        for index, (axis, panel) in enumerate(zip(axes, panels)):
+        for index, (axis, panel) in enumerate(zip(axes, panels, strict=True)):
             _ranking_bars(axis, panel, reference, fontsize=7.0)
             start = index * half + 1
             axis.set_title(f"Puestos {start}–{start + len(panel) - 1}", fontsize=8)
-        figure.supxlabel("F1 macro medio entre semillas (barra de error = desvío muestral)", fontsize=9)
+        figure.supxlabel(
+            "F1 macro medio entre semillas (barra de error = desvío muestral)", fontsize=9
+        )
         figure.suptitle("Ranking de configuraciones por F1 macro medio", fontsize=10)
         figure.tight_layout(rect=(0, 0.03, 1, 0.96))
         return figure
@@ -213,10 +225,20 @@ def _f1_distribution_figure(result: AnalysisResult, plt: Any) -> Any:
     figure, axes = plt.subplots(1, 2, figsize=(11, 3.8))
 
     values = pd.to_numeric(runs["f1_macro"], errors="coerce").dropna().to_numpy(dtype=float)
-    axes[0].hist(values, bins=min(24, max(6, len(values) // 4)), color="#0b5fa5", alpha=0.85, edgecolor="white")
+    axes[0].hist(
+        values,
+        bins=min(24, max(6, len(values) // 4)),
+        color="#0b5fa5",
+        alpha=0.85,
+        edgecolor="white",
+    )
     if values.size:
-        axes[0].axvline(float(np.mean(values)), color="#111827", linestyle="--", linewidth=1.0, label="media")
-        axes[0].axvline(float(np.median(values)), color="#d97706", linestyle=":", linewidth=1.2, label="mediana")
+        axes[0].axvline(
+            float(np.mean(values)), color="#111827", linestyle="--", linewidth=1.0, label="media"
+        )
+        axes[0].axvline(
+            float(np.median(values)), color="#d97706", linestyle=":", linewidth=1.2, label="mediana"
+        )
         axes[0].legend(fontsize=7, frameon=False)
     axes[0].set_xlabel("F1 macro por corrida")
     axes[0].set_ylabel("Corridas")
@@ -244,7 +266,11 @@ def _f1_distribution_figure(result: AnalysisResult, plt: Any) -> Any:
 
 def _dimension_boxplots_figure(result: AnalysisResult, plt: Any) -> Any:
     runs = result.runs[result.runs["valid_run"]]
-    dimensions = [dimension for dimension in ("activation", "optimizer", "lr", "init") if dimension in runs.columns]
+    dimensions = [
+        dimension
+        for dimension in ("activation", "optimizer", "lr", "init")
+        if dimension in runs.columns
+    ]
     if not dimensions:
         return None
 
@@ -260,7 +286,9 @@ def _dimension_boxplots_figure(result: AnalysisResult, plt: Any) -> Any:
             .sort_values("mean", ascending=False)
         )
         data = [
-            pd.to_numeric(runs.loc[runs[dimension].astype(str) == level, "f1_macro"], errors="coerce")
+            pd.to_numeric(
+                runs.loc[runs[dimension].astype(str) == level, "f1_macro"], errors="coerce"
+            )
             .dropna()
             .to_numpy(dtype=float)
             for level in grouped.index
@@ -269,7 +297,7 @@ def _dimension_boxplots_figure(result: AnalysisResult, plt: Any) -> Any:
             axis.set_visible(False)
             continue
         box = axis.boxplot(data, patch_artist=True, widths=0.55, showfliers=False)
-        for patch, level in zip(box["boxes"], grouped.index):
+        for patch, level in zip(box["boxes"], grouped.index, strict=True):
             patch.set_facecolor(_color_for(level) if dimension == "class_weight" else "#93c5fd")
             patch.set_alpha(0.85)
         axis.set_xticks(range(1, len(grouped) + 1))
@@ -328,7 +356,14 @@ def _convergence_scatter_figure(result: AnalysisResult, plt: Any) -> Any:
     axes[1].set_title("Calidad vs época de convergencia")
     handles, labels = axes[0].get_legend_handles_labels()
     if handles:
-        figure.legend(handles, labels, loc="lower center", ncol=min(4, len(handles)), fontsize=7, frameon=False)
+        figure.legend(
+            handles,
+            labels,
+            loc="lower center",
+            ncol=min(4, len(handles)),
+            fontsize=7,
+            frameon=False,
+        )
         figure.tight_layout(rect=(0, 0.08, 1, 1))
     else:
         figure.tight_layout()
@@ -348,13 +383,21 @@ def _convergence_histograms_figure(result: AnalysisResult, plt: Any) -> Any:
         edgecolor="white",
     )
     if best_epochs.size:
-        axes[0].axvline(float(np.median(best_epochs)), color="#d97706", linestyle="--", linewidth=1.0, label="mediana")
+        axes[0].axvline(
+            float(np.median(best_epochs)),
+            color="#d97706",
+            linestyle="--",
+            linewidth=1.0,
+            label="mediana",
+        )
         axes[0].legend(fontsize=7, frameon=False)
     axes[0].set_xlabel("Mejor época")
     axes[0].set_ylabel("Corridas")
     axes[0].set_title("Cuándo ocurre la mejor pérdida de validación")
 
-    times = pd.to_numeric(runs["time_to_best_epoch"], errors="coerce").dropna().to_numpy(dtype=float)
+    times = (
+        pd.to_numeric(runs["time_to_best_epoch"], errors="coerce").dropna().to_numpy(dtype=float)
+    )
     axes[1].hist(
         times,
         bins=min(24, max(6, times.size // 4)) if times.size else 6,
@@ -363,7 +406,9 @@ def _convergence_histograms_figure(result: AnalysisResult, plt: Any) -> Any:
         edgecolor="white",
     )
     if times.size:
-        axes[1].axvline(float(np.median(times)), color="#d97706", linestyle="--", linewidth=1.0, label="mediana")
+        axes[1].axvline(
+            float(np.median(times)), color="#d97706", linestyle="--", linewidth=1.0, label="mediana"
+        )
         axes[1].legend(fontsize=7, frameon=False)
     axes[1].set_xlabel("Tiempo hasta la mejor época (s)")
     axes[1].set_ylabel("Corridas")
@@ -391,9 +436,7 @@ def _heatmap_figure(result: AnalysisResult, plt: Any) -> Any:
     if not pivots:
         return None
 
-    all_values = np.concatenate(
-        [pivot.to_numpy(dtype=float).ravel() for pivot in pivots.values()]
-    )
+    all_values = np.concatenate([pivot.to_numpy(dtype=float).ravel() for pivot in pivots.values()])
     finite_values = all_values[np.isfinite(all_values)]
     vmin = float(finite_values.min()) if finite_values.size else 0.0
     vmax = float(finite_values.max()) if finite_values.size else 1.0
@@ -419,7 +462,15 @@ def _heatmap_figure(result: AnalysisResult, plt: Any) -> Any:
                 value = data[row, column]
                 if math.isfinite(value):
                     color = "white" if value > (vmin + vmax) / 2 else "#111827"
-                    axis.text(column, row, f"{value:.3f}", ha="center", va="center", fontsize=8, color=color)
+                    axis.text(
+                        column,
+                        row,
+                        f"{value:.3f}",
+                        ha="center",
+                        va="center",
+                        fontsize=8,
+                        color=color,
+                    )
         figure.colorbar(image, ax=axis, fraction=0.046, pad=0.04, label="F1 macro medio")
     figure.tight_layout()
     return figure
@@ -440,16 +491,22 @@ def _convergence_curves_figure(result: AnalysisResult, plt: Any, top: int = 6) -
     figure, axes = plt.subplots(rows, columns, figsize=(11, 3.0 * rows), squeeze=False)
     for index, group_key in enumerate(selected):
         axis = axes[index // columns][index % columns]
-        run_ids = runs.loc[runs["group_key"].astype(str) == group_key, "run_id"].astype(str).tolist()
+        run_ids = (
+            runs.loc[runs["group_key"].astype(str) == group_key, "run_id"].astype(str).tolist()
+        )
         subset = epochs[epochs["run_id"].astype(str).isin(run_ids)].copy()
         if subset.empty:
             axis.set_visible(False)
             continue
-        for run_id, run_epochs in subset.groupby("run_id"):
+        for _run_id, run_epochs in subset.groupby("run_id"):
             ordered = run_epochs.sort_values("epoch")
-            axis.plot(ordered["epoch"], ordered["val_loss"], color="#9ca3af", linewidth=0.7, alpha=0.7)
+            axis.plot(
+                ordered["epoch"], ordered["val_loss"], color="#9ca3af", linewidth=0.7, alpha=0.7
+            )
         aggregated = subset.groupby("epoch")["val_loss"].agg(["mean", "std", "count"]).reset_index()
-        axis.plot(aggregated["epoch"], aggregated["mean"], color="#0b5fa5", linewidth=1.4, label="media")
+        axis.plot(
+            aggregated["epoch"], aggregated["mean"], color="#0b5fa5", linewidth=1.4, label="media"
+        )
         deviation = aggregated["std"].fillna(0.0).to_numpy(dtype=float)
         axis.fill_between(
             aggregated["epoch"].to_numpy(dtype=float),
@@ -465,7 +522,10 @@ def _convergence_curves_figure(result: AnalysisResult, plt: Any, top: int = 6) -
         axis.set_ylabel("Pérdida de validación")
     for index in range(len(selected), rows * columns):
         axes[index // columns][index % columns].set_visible(False)
-    figure.suptitle("Curvas de pérdida de validación de las mejores configuraciones (media ± desvío, gris = semillas individuales)", fontsize=10)
+    figure.suptitle(
+        "Curvas de pérdida de validación de las mejores configuraciones (media ± desvío, gris = semillas individuales)",
+        fontsize=10,
+    )
     figure.tight_layout(rect=(0, 0, 1, 0.96))
     return figure
 
@@ -479,8 +539,8 @@ def _forest_panel(axis: Any, panel: pd.DataFrame, *, fontsize: float) -> None:
     lower_error = np.nan_to_num(diffs - low, nan=0.0)
     upper_error = np.nan_to_num(high - diffs, nan=0.0)
     colors = [
-        "#b91c1c" if (math.isfinite(l) and l > 0) or (math.isfinite(h) and h < 0) else "#6b7280"
-        for l, h in zip(low, high)
+        "#b91c1c" if (math.isfinite(lo) and lo > 0) or (math.isfinite(hi) and hi < 0) else "#6b7280"
+        for lo, hi in zip(low, high, strict=True)
     ]
     axis.errorbar(
         diffs,
@@ -508,12 +568,16 @@ def _forest_figure(result: AnalysisResult, plt: Any) -> Any:
         half = math.ceil(len(ordered) / 2)
         panels = [ordered.iloc[:half], ordered.iloc[half:]]
         figure, axes = plt.subplots(1, 2, figsize=(7.5, 8.4), sharex=True)
-        for index, (axis, panel) in enumerate(zip(axes, panels)):
+        for index, (axis, panel) in enumerate(zip(axes, panels, strict=True)):
             _forest_panel(axis, panel, fontsize=7.0)
             start = index * half + 1
             axis.set_title(f"Puestos {start}–{start + len(panel) - 1}", fontsize=8)
-        figure.supxlabel("Diferencia de F1 macro vs referencia (positivo = mejor que la referencia)", fontsize=9)
-        figure.suptitle("Diferencia contra la configuración de referencia (IC 95 % de Welch)", fontsize=10)
+        figure.supxlabel(
+            "Diferencia de F1 macro vs referencia (positivo = mejor que la referencia)", fontsize=9
+        )
+        figure.suptitle(
+            "Diferencia contra la configuración de referencia (IC 95 % de Welch)", fontsize=10
+        )
         figure.tight_layout(rect=(0, 0.03, 1, 0.96))
         return figure
 
@@ -532,11 +596,27 @@ def _render_figures(result: AnalysisResult, *, top_curves: int) -> tuple[dict[st
     builders = (
         ("ranking", "Ranking de configuraciones", lambda: _ranking_figure(result, plt)),
         ("f1_distribution", "Distribución de F1", lambda: _f1_distribution_figure(result, plt)),
-        ("dimension_boxplots", "Boxplots marginales", lambda: _dimension_boxplots_figure(result, plt)),
-        ("convergence_scatter", "Dispersión de convergencia", lambda: _convergence_scatter_figure(result, plt)),
-        ("convergence_histograms", "Histogramas de convergencia", lambda: _convergence_histograms_figure(result, plt)),
+        (
+            "dimension_boxplots",
+            "Boxplots marginales",
+            lambda: _dimension_boxplots_figure(result, plt),
+        ),
+        (
+            "convergence_scatter",
+            "Dispersión de convergencia",
+            lambda: _convergence_scatter_figure(result, plt),
+        ),
+        (
+            "convergence_histograms",
+            "Histogramas de convergencia",
+            lambda: _convergence_histograms_figure(result, plt),
+        ),
         ("heatmap", "Heatmap de F1", lambda: _heatmap_figure(result, plt)),
-        ("convergence_curves", "Curvas de convergencia", lambda: _convergence_curves_figure(result, plt, top=top_curves)),
+        (
+            "convergence_curves",
+            "Curvas de convergencia",
+            lambda: _convergence_curves_figure(result, plt, top=top_curves),
+        ),
         ("forest", "Forest plot de pares", lambda: _forest_figure(result, plt)),
     )
     for key, label, builder in builders:
@@ -548,10 +628,8 @@ def _render_figures(result: AnalysisResult, *, top_curves: int) -> tuple[dict[st
             plt.close(figure)
         except Exception as error:  # noqa: BLE001 - una figura no debe tumbar el reporte
             warnings.append(f"figura '{label}' omitida: {error}")
-            try:
+            with contextlib.suppress(Exception):  # pragma: no cover - defensivo
                 plt.close("all")
-            except Exception:  # pragma: no cover - defensivo
-                pass
     return figures, warnings
 
 
@@ -568,9 +646,7 @@ def _table(
     table_class: str = "data",
 ) -> str:
     head = "".join(f"<th>{header}</th>" for header in headers)
-    body = "".join(
-        "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>" for row in rows
-    )
+    body = "".join("<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>" for row in rows)
     caption_html = f"<caption>{caption}</caption>" if caption else ""
     return (
         f'<div class="table-wrap"><table class="{_escape(table_class)}">{caption_html}'
@@ -589,7 +665,9 @@ def _summary_rows(result: AnalysisResult, kind: str = "quality") -> list[list[st
                 [
                     rank,
                     label,
-                    _badge(class_weight, "cw-balanced" if class_weight == "balanced" else "cw-none"),
+                    _badge(
+                        class_weight, "cw-balanced" if class_weight == "balanced" else "cw-none"
+                    ),
                     f"{int(row.get('n_valid', 0))}/{int(row.get('n_runs', 0))}",
                     _number(row.get("f1_macro_mean"), 4),
                     _number(row.get("f1_macro_std"), 4),
@@ -611,9 +689,7 @@ def _summary_rows(result: AnalysisResult, kind: str = "quality") -> list[list[st
     return rows
 
 
-def _comparison_rows(
-    result: AnalysisResult, metric: str, kind: str = "quality"
-) -> list[list[str]]:
+def _comparison_rows(result: AnalysisResult, metric: str, kind: str = "quality") -> list[list[str]]:
     subset = result.comparisons[result.comparisons["metric"] == metric]
     precision = 4 if metric == "f1_macro" else 2
     rows: list[list[str]] = []
@@ -900,17 +976,15 @@ def _html_document(
 ) -> str:
     dataset = str(result.runs["dataset"].iloc[0]) if "dataset" in result.runs.columns else "unknown"
     seeds = sorted(
-        {
-            int(seed)
-            for seed in result.runs["seed"].dropna().unique()
-            if float(seed).is_integer()
-        }
+        {int(seed) for seed in result.runs["seed"].dropna().unique() if float(seed).is_integer()}
     )
 
     warnings_html = ""
     if warnings:
         items = "".join(f"<li>{_escape(warning)}</li>" for warning in warnings)
-        warnings_html = f'<div class="warning"><strong>Notas de calidad de datos</strong><ul>{items}</ul></div>'
+        warnings_html = (
+            f'<div class="warning"><strong>Notas de calidad de datos</strong><ul>{items}</ul></div>'
+        )
 
     observations_html = ""
     observations = _observations(result)
@@ -1163,7 +1237,7 @@ def _html_document(
   <li><strong>epochs_executed.</strong> Cantidad de épocas realmente entrenadas antes del early stopping o del tope de épocas.</li>
   <li><strong>Intervalos de confianza.</strong> Intervalo t del 95 % para la media e intervalo de Welch–Satterthwaite para las diferencias.</li>
   <li><strong>Tests.</strong> t de Welch (varianzas desiguales) y Mann-Whitney U bilateral. El tamaño de efecto es el delta de Cliff con umbrales de Romano: despreciable &lt; 0.147, pequeño &lt; 0.33, medio &lt; 0.474, grande en el resto.</li>
-  <li><strong>Origen de F1.</strong> <code>f1_macro</code> es la métrica final de evaluación registrada en <code>master</code> con <code>evaluation_set = {_escape(str(result.runs['evaluation_set'].iloc[0]) if 'evaluation_set' in result.runs.columns else 'unknown')}</code>. Este módulo no la recalcula.</li>
+  <li><strong>Origen de F1.</strong> <code>f1_macro</code> es la métrica final de evaluación registrada en <code>master</code> con <code>evaluation_set = {_escape(str(result.runs["evaluation_set"].iloc[0]) if "evaluation_set" in result.runs.columns else "unknown")}</code>. Este módulo no la recalcula.</li>
 </ul>
 
 <h2>6. Reproducibilidad</h2>
@@ -1223,7 +1297,7 @@ def render_report(
     if include_figures:
         figures, figure_warnings = _render_figures(result, top_curves=top_curves)
         warnings.extend(figure_warnings)
-    timestamp = generated_at or datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    timestamp = generated_at or datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     document = _html_document(
         result,
         figures,

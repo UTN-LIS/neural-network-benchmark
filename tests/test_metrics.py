@@ -5,9 +5,8 @@ from __future__ import annotations
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
-
 from prebenchmark import metrics
+from torch.utils.data import DataLoader, TensorDataset
 
 
 def test_compute_final_metrics_macro():
@@ -53,7 +52,9 @@ def test_epoch_train_step_flags_non_finite_loss():
 def test_evaluate_flags_non_finite_loss():
     model = _TinyModel()
     criterion = nn.CrossEntropyLoss()
-    result = metrics.evaluate(model, _loader_with_extreme_input(), device="cpu", criterion=criterion)
+    result = metrics.evaluate(
+        model, _loader_with_extreme_input(), device="cpu", criterion=criterion
+    )
     assert result["non_finite"] is True
     assert result["non_finite_source"] == "loss"
 

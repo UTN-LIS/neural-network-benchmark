@@ -45,9 +45,7 @@ def capture_hardware() -> dict[str, Any]:
     try:
         cuda_available = bool(torch.cuda.is_available())
         count = int(torch.cuda.device_count()) if cuda_available else 0
-        devices = (
-            [torch.cuda.get_device_name(i) for i in range(count)] if cuda_available else []
-        )
+        devices = [torch.cuda.get_device_name(i) for i in range(count)] if cuda_available else []
     except Exception:  # pragma: no cover - defensivo: nunca fallar en la sonda
         cuda_available, count, devices = False, 0, []
     hardware["cuda_available"] = cuda_available

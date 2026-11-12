@@ -1,0 +1,45 @@
+# Configuración de herramientas de desarrollo.
+#
+# Este archivo NO empaqueta el proyecto: no hay sección [project] ni
+# [build-system], por lo que `pip install .` sigue sin estar soportado. Existe
+# únicamente para centralizar la configuración de ruff y mypy.
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["prebenchmark", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "E501", # el largo de línea lo controla el formateador
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]      # asserts en tests son intencionales
+"Experimentos/*" = ["E402"]  # scripts legados con imports a mitad de archivo
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.13"
+files = ["prebenchmark"]
+ignore_missing_imports = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+show_error_codes = true
+pretty = true

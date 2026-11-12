@@ -12,9 +12,7 @@ import json
 from pathlib import Path
 
 import pytest
-
 from prebenchmark import analysis
-
 
 SEEDS = (42, 7, 123)
 BASE_TIMESTAMP = "20260101T000000Z"

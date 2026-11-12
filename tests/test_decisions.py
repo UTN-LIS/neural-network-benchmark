@@ -10,7 +10,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from prebenchmark.decisions import (
     DECISION_TYPES,
     EXPLORATORY_LABELS,
@@ -200,7 +199,10 @@ def test_validation_decision_records_rationale(store: ResultsStore) -> None:
         actor="analyst",
         run_id=None,
         config_id="cfg-v1-abc123abc123",
-        evidence={"validation_state": "WARNING", "rationale": ["Adam with lr >= 0.1 may be unstable"]},
+        evidence={
+            "validation_state": "WARNING",
+            "rationale": ["Adam with lr >= 0.1 may be unstable"],
+        },
     )
     assert decision["decision_type"] == "validate"
     assert decision["label"] is None

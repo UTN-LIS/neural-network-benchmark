@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pytest
-
 from prebenchmark.compare import (
     DELTA_METRICS,
     RELATIVE_BASIS,
@@ -153,7 +152,6 @@ def test_select_baseline_documented_default_matches_across_dataset_and_protocol(
     assert "dataset: satimage" in baseline.rationale
 
 
-
 def test_select_baseline_requires_explicit_choice() -> None:
     with pytest.raises(ValueError, match="explicit"):
         select_baseline([BASELINE_RUN])
@@ -288,9 +286,14 @@ def test_multi_variable_comparison_flagged_informative_only() -> None:
 
 def row_to_record(row) -> dict:
     return ComparisonTable(
-        baseline_run_id="b", baseline_config_id="c", baseline_state="COMPLETED",
-        baseline_rationale="", baseline_timestamp="", evaluation_set="test",
-        baseline_metrics={}, rows=(row,),
+        baseline_run_id="b",
+        baseline_config_id="c",
+        baseline_state="COMPLETED",
+        baseline_rationale="",
+        baseline_timestamp="",
+        evaluation_set="test",
+        baseline_metrics={},
+        rows=(row,),
     ).to_records()[0]
 
 
@@ -311,9 +314,7 @@ def test_class_weight_difference_is_a_controlled_comparison() -> None:
     dataset, arquitectura, partición y protocolo: la comparación es válida (una
     sola variable) y debe quedar etiquetada como tal.
     """
-    balanced_cfg = replace(
-        BASE, preprocessing=replace(BASE.preprocessing, class_weight="balanced")
-    )
+    balanced_cfg = replace(BASE, preprocessing=replace(BASE.preprocessing, class_weight="balanced"))
     cand = make_run(balanced_cfg, "run-balanced")
     baseline = select_baseline([BASELINE_RUN, cand], baseline_run_id="run-baseline")
     row = compare_to_baseline(baseline, [cand]).rows[0]
@@ -374,8 +375,11 @@ def test_class_weight_plus_space_difference_is_multi_variable() -> None:
         (
             {
                 "convergence": replace(
-                    BASE.convergence, enabled=True, metric="val_loss",
-                    patience=10, min_delta=0.001,
+                    BASE.convergence,
+                    enabled=True,
+                    metric="val_loss",
+                    patience=10,
+                    min_delta=0.001,
                 )
             },
             "convergence settings differ",
@@ -466,7 +470,7 @@ def test_no_composite_score_and_full_profile_preserved() -> None:
             assert "weighted" not in key.lower()
 
     # the absolute-delta schema is stable: every metric has a delta column (N/A as None)
-    assert set(f"delta_{m}" for m in DELTA_METRICS) <= set(table.to_records()[0])
+    assert {f"delta_{m}" for m in DELTA_METRICS} <= set(table.to_records()[0])
     # raw baseline profile kept individually
     assert table.baseline_metrics["accuracy"] == pytest.approx(0.60)
     assert table.baseline_metrics["training_time"] == pytest.approx(10.0)

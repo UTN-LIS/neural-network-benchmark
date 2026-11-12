@@ -29,9 +29,10 @@ import json
 import math
 import re
 import warnings as warnings_module
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -155,9 +156,18 @@ def _fallback_group_key(row: Mapping[str, Any]) -> str:
     """Clave de respaldo cuando ``config_json`` no está disponible."""
     payload = {
         key: row.get(key)
-        for key in ("space_key", "class_weight", "batch_size", "max_epochs", "dataset", "loss_function")
+        for key in (
+            "space_key",
+            "class_weight",
+            "batch_size",
+            "max_epochs",
+            "dataset",
+            "loss_function",
+        )
     }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True, default=str)
+    encoded = json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True, default=str
+    )
     return f"grp-fallback-{hashlib.sha256(encoded.encode('utf-8')).hexdigest()[:12]}"
 
 
@@ -293,10 +303,14 @@ def load_export_bundle(export_dir: str | Path) -> ExportBundle:
             *METRIC_COLUMNS,
         ),
     )
-    epochs = _numeric(epochs, ("epoch", "train_loss", "train_acc", "val_loss", "val_acc", "epoch_time"))
-    configs = _numeric(configs, ("lr", "batch_size", "seed", "max_epochs", "arch_input_dim", "arch_output_dim"))
+    epochs = _numeric(
+        epochs, ("epoch", "train_loss", "train_acc", "val_loss", "val_acc", "epoch_time")
+    )
+    configs = _numeric(
+        configs, ("lr", "batch_size", "seed", "max_epochs", "arch_input_dim", "arch_output_dim")
+    )
 
-    for frame, name in ((runs, "master"), (configs, "configs"), (epochs, "epochs")):
+    for frame in (runs, configs, epochs):
         for column in ("run_id", "config_id"):
             if column in frame.columns:
                 frame[column] = frame[column].astype("string")
@@ -307,7 +321,9 @@ def load_export_bundle(export_dir: str | Path) -> ExportBundle:
         if column in configs.columns and column not in runs.columns:
             config_columns.append(column)
     if "class_weight" not in configs.columns:
-        warnings.append("la exportación de configs no tiene columna class_weight; todas las corridas se etiquetan como 'unknown'")
+        warnings.append(
+            "la exportación de configs no tiene columna class_weight; todas las corridas se etiquetan como 'unknown'"
+        )
         runs["class_weight"] = "unknown"
     else:
         configs = configs.copy()
@@ -347,7 +363,9 @@ def load_export_bundle(export_dir: str | Path) -> ExportBundle:
             fallback = runs.apply(lambda row: _fallback_group_key(row), axis=1)
             runs["group_key"] = runs["group_key"].fillna(fallback)
     else:
-        warnings.append("la exportación de configs no tiene config_json; group_key derivado de las dimensiones visibles")
+        warnings.append(
+            "la exportación de configs no tiene config_json; group_key derivado de las dimensiones visibles"
+        )
         runs["group_key"] = runs.apply(lambda row: _fallback_group_key(row), axis=1)
 
     # Dimensiones ausentes se rellenan para que el reporte nunca reciba NaN.
@@ -438,13 +456,15 @@ def derive_run_metrics(bundle: ExportBundle) -> pd.DataFrame:
         runs[column] = np.nan
 
     if epochs.empty:
-        bundle_warning = "la exportación de epochs está vacía; métricas de convergencia no disponibles"
+        # La advertencia se emite en _quality_warnings a partir de las corridas sin historial.
         return runs
 
     required = {"run_id", "epoch", "val_loss", "epoch_time"}
     missing = required - set(epochs.columns)
     if missing:
-        raise ValueError(f"a la exportación de epochs le faltan columnas requeridas: {', '.join(sorted(missing))}")
+        raise ValueError(
+            f"a la exportación de epochs le faltan columnas requeridas: {', '.join(sorted(missing))}"
+        )
 
     ordered = epochs.sort_values(["run_id", "epoch"], kind="stable")
     for run_id, group in ordered.groupby("run_id", sort=False):
@@ -558,16 +578,15 @@ def summarize_configurations(runs: pd.DataFrame) -> pd.DataFrame:
             "n_valid": int(len(valid)),
             "n_failed": int((~group["valid_run"]).sum()),
             "seeds": "|".join(
-                str(int(seed)) for seed in sorted(group["seed"].dropna().unique()) if float(seed).is_integer()
+                str(int(seed))
+                for seed in sorted(group["seed"].dropna().unique())
+                if float(seed).is_integer()
             ),
         }
         for column in dimension_columns:
             record[column] = group.iloc[0].get(column)
         for metric in METRIC_COLUMNS:
-            if metric not in valid.columns:
-                stats = _describe([])
-            else:
-                stats = _describe(valid[metric])
+            stats = _describe([]) if metric not in valid.columns else _describe(valid[metric])
             for suffix in _SUMMARY_SUFFIXES:
                 record[f"{metric}_{suffix}"] = stats[suffix]
         rows.append(record)
@@ -576,8 +595,12 @@ def summarize_configurations(runs: pd.DataFrame) -> pd.DataFrame:
     if summary.empty:
         return summary
 
-    summary["rank_f1"] = summary["f1_macro_mean"].rank(ascending=False, method="min").astype("Int64")
-    summary["rank_time"] = summary["time_to_best_epoch_mean"].rank(ascending=True, method="min").astype("Int64")
+    summary["rank_f1"] = (
+        summary["f1_macro_mean"].rank(ascending=False, method="min").astype("Int64")
+    )
+    summary["rank_time"] = (
+        summary["time_to_best_epoch_mean"].rank(ascending=True, method="min").astype("Int64")
+    )
     summary["insufficient_repetitions"] = summary["n_valid"] < _MIN_VALID_RUNS
     summary = summary.sort_values(
         ["f1_macro_mean", "time_to_best_epoch_mean", "group_key"],
@@ -649,10 +672,9 @@ def _welch_difference(first: np.ndarray, second: np.ndarray) -> dict[str, float]
     result["ci95_low"] = diff - critical * standard_error
     result["ci95_high"] = diff + critical * standard_error
 
-    with np.errstate(invalid="ignore", divide="ignore"):
-        with warnings_module.catch_warnings():
-            warnings_module.simplefilter("ignore", RuntimeWarning)
-            statistic, pvalue = stats.ttest_ind(first, second, equal_var=False, nan_policy="omit")
+    with np.errstate(invalid="ignore", divide="ignore"), warnings_module.catch_warnings():
+        warnings_module.simplefilter("ignore", RuntimeWarning)
+        statistic, pvalue = stats.ttest_ind(first, second, equal_var=False, nan_policy="omit")
     if np.isfinite(statistic):
         result["welch_t"] = float(statistic)
     if np.isfinite(pvalue):
@@ -663,7 +685,11 @@ def _welch_difference(first: np.ndarray, second: np.ndarray) -> dict[str, float]
 def _mann_whitney(first: np.ndarray, second: np.ndarray) -> tuple[float, float]:
     if first.size < 3 or second.size < 3:
         return (math.nan, math.nan)
-    if np.allclose(first, first[0]) and np.allclose(second, second[0]) and math.isclose(first[0], second[0]):
+    if (
+        np.allclose(first, first[0])
+        and np.allclose(second, second[0])
+        and math.isclose(first[0], second[0])
+    ):
         return (math.nan, math.nan)
     from scipy import stats
 
@@ -690,9 +716,13 @@ def select_reference(
     **empírica**, no una línea base experimental pre-registrada.
     """
     if summary.empty:
-        raise ValueError("no se puede seleccionar una referencia desde un resumen de configuraciones vacío")
+        raise ValueError(
+            "no se puede seleccionar una referencia desde un resumen de configuraciones vacío"
+        )
     if summary["f1_macro_mean"].notna().sum() == 0:
-        raise ValueError("ninguna configuración tiene un F1 macro medio finito; no se puede seleccionar una referencia")
+        raise ValueError(
+            "ninguna configuración tiene un F1 macro medio finito; no se puede seleccionar una referencia"
+        )
 
     if reference_config_id is not None:
         match = summary[summary["group_key"] == reference_config_id]
@@ -741,7 +771,9 @@ def compare_to_reference(
 
     reference_runs = runs[(runs["group_key"] == reference_group_key) & runs["valid_run"]]
     if reference_runs.empty:
-        raise ValueError(f"el group_key de referencia {reference_group_key!r} no tiene corridas válidas")
+        raise ValueError(
+            f"el group_key de referencia {reference_group_key!r} no tiene corridas válidas"
+        )
 
     rows: list[dict[str, Any]] = []
     for _, config in summary.iterrows():
@@ -810,7 +842,8 @@ def marginal_effects(
             continue
         levels = valid[dimension].dropna().astype(str).unique().tolist()
         samples = [
-            _finite(valid.loc[valid[dimension].astype(str) == level, "f1_macro"]) for level in levels
+            _finite(valid.loc[valid[dimension].astype(str) == level, "f1_macro"])
+            for level in levels
         ]
         samples = [sample for sample in samples if sample.size > 0]
         pvalue = math.nan
@@ -900,13 +933,17 @@ def _quality_warnings(bundle: ExportBundle, runs: pd.DataFrame, summary: pd.Data
     warnings = list(bundle.warnings)
     failed = int((~runs["valid_run"]).sum())
     if failed:
-        warnings.append(f"{failed} corrida(s) no están en COMPLETED/COMPLETED_WITH_WARNINGS y fueron excluidas de las métricas")
+        warnings.append(
+            f"{failed} corrida(s) no están en COMPLETED/COMPLETED_WITH_WARNINGS y fueron excluidas de las métricas"
+        )
 
     if not bundle.epochs.empty:
         recorded = runs["epochs_recorded"].fillna(0)
         no_history = int((recorded == 0).sum())
         if no_history:
-            warnings.append(f"{no_history} corrida(s) no tienen historial de épocas; faltan métricas de convergencia")
+            warnings.append(
+                f"{no_history} corrida(s) no tienen historial de épocas; faltan métricas de convergencia"
+            )
         mismatch = runs[
             runs["epochs_recorded"].notna()
             & runs["epochs_executed"].notna()

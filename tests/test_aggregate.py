@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pytest
-
 from prebenchmark.aggregate import (
     AGGREGATE_METRICS,
     DEFAULT_MIN_REPETITIONS,
@@ -188,9 +187,36 @@ def test_aggregate_group_basic_statistics_with_ddof_one() -> None:
 
 def test_aggregate_includes_best_epoch_validation_metrics() -> None:
     runs = [
-        make_run(BASE, "r1", validation_metrics={"evaluation_set": "validation", "epoch": 3, "loss": 0.30, "accuracy": 0.70}),
-        make_run(BASE, "r2", validation_metrics={"evaluation_set": "validation", "epoch": 4, "loss": 0.20, "accuracy": 0.80}),
-        make_run(BASE, "r3", validation_metrics={"evaluation_set": "validation", "epoch": 2, "loss": 0.10, "accuracy": 0.90}),
+        make_run(
+            BASE,
+            "r1",
+            validation_metrics={
+                "evaluation_set": "validation",
+                "epoch": 3,
+                "loss": 0.30,
+                "accuracy": 0.70,
+            },
+        ),
+        make_run(
+            BASE,
+            "r2",
+            validation_metrics={
+                "evaluation_set": "validation",
+                "epoch": 4,
+                "loss": 0.20,
+                "accuracy": 0.80,
+            },
+        ),
+        make_run(
+            BASE,
+            "r3",
+            validation_metrics={
+                "evaluation_set": "validation",
+                "epoch": 2,
+                "loss": 0.10,
+                "accuracy": 0.90,
+            },
+        ),
     ]
     aggregated = aggregate_runs(runs)[0]
 
@@ -235,7 +261,10 @@ def test_all_aggregate_metrics_reported() -> None:
 
 
 def test_insufficient_repetitions_flag_and_recorded_threshold() -> None:
-    runs = [make_run(BASE, "r1", metrics={"accuracy": 0.6}), make_run(BASE, "r2", metrics={"accuracy": 0.8})]
+    runs = [
+        make_run(BASE, "r1", metrics={"accuracy": 0.6}),
+        make_run(BASE, "r2", metrics={"accuracy": 0.8}),
+    ]
     aggregated = aggregate_runs(runs)[0]
     assert aggregated.n_valid == 2
     assert aggregated.min_repetitions == DEFAULT_MIN_REPETITIONS == 3
@@ -360,8 +389,13 @@ def test_aggregation_normalizes_state_and_execution_state() -> None:
 
 def test_aggregate_group_rejects_empty_group() -> None:
     empty = RunGroup(
-        group_key="k", config_id="c", config_ids=(), space_key=None,
-        config_snapshot={}, runs=(), created_at="t",
+        group_key="k",
+        config_id="c",
+        config_ids=(),
+        space_key=None,
+        config_snapshot={},
+        runs=(),
+        created_at="t",
     )
     with pytest.raises(ValueError, match="empty"):
         aggregate_group(empty)

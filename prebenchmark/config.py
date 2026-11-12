@@ -96,7 +96,7 @@ class DatasetSpec:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "DatasetSpec":
+    def from_dict(cls, data: dict[str, Any]) -> DatasetSpec:
         return cls(
             name=data.get("name", "wine_quality"),
             source=data.get("source", "UCI winequality-white.csv"),
@@ -119,7 +119,7 @@ class ArchitectureSpec:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ArchitectureSpec":
+    def from_dict(cls, data: dict[str, Any]) -> ArchitectureSpec:
         return cls(
             name=data.get("name", "wine_quality_mlp"),
             input_dim=data.get("input_dim", 11),
@@ -144,7 +144,7 @@ class SplitSpec:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SplitSpec":
+    def from_dict(cls, data: dict[str, Any]) -> SplitSpec:
         return cls(
             train=data.get("train", DEFAULT_TRAIN_RATIO),
             val=data.get("val", DEFAULT_VAL_RATIO),
@@ -168,7 +168,7 @@ class PreprocessingSpec:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PreprocessingSpec":
+    def from_dict(cls, data: dict[str, Any]) -> PreprocessingSpec:
         return cls(
             scaler=data.get("scaler", "standard"),
             class_weight=data.get("class_weight"),
@@ -189,7 +189,7 @@ class ConvergenceSpec:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ConvergenceSpec":
+    def from_dict(cls, data: dict[str, Any]) -> ConvergenceSpec:
         return cls(
             enabled=data.get("enabled", False),
             metric=data.get("metric"),
@@ -211,9 +211,7 @@ def resolve_convergence(spec: ConvergenceSpec) -> ConvergenceSpec:
         enabled=spec.enabled,
         metric=spec.metric if spec.metric is not None else DEFAULT_CONVERGENCE_METRIC,
         patience=spec.patience if spec.patience is not None else DEFAULT_CONVERGENCE_PATIENCE,
-        min_delta=(
-            spec.min_delta if spec.min_delta is not None else DEFAULT_CONVERGENCE_MIN_DELTA
-        ),
+        min_delta=(spec.min_delta if spec.min_delta is not None else DEFAULT_CONVERGENCE_MIN_DELTA),
         mode=spec.mode if spec.mode else DEFAULT_CONVERGENCE_MODE,
     )
 
@@ -267,7 +265,7 @@ class ExperimentConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ExperimentConfig":
+    def from_dict(cls, data: dict[str, Any]) -> ExperimentConfig:
         """Reconstruye una configuración a partir de la salida de :meth:`to_dict`."""
         return cls(
             run_type=data.get("run_type", DEFAULT_RUN_TYPE),
@@ -286,4 +284,6 @@ class ExperimentConfig:
             convergence=ConvergenceSpec.from_dict(data.get("convergence", {})),
             device=data.get("device", DEFAULT_DEVICE),
         )
+
+
 EXPLORATORY_SEEDS: tuple[int, ...] = (42, 123, 7, 2025, 999)

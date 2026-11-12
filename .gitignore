@@ -10,6 +10,9 @@ __pycache__/
 .Python
 build/
 dist/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
 
 # Jupyter / notebooks
 .ipynb_checkpoints/

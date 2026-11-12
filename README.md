@@ -178,6 +178,23 @@ results/
   train and validation, and weights are checked each epoch. A non-finite value aborts
   the run as `FAILED`, recording the first failing epoch, batch and source.
 
+## Code quality
+
+Development tools live in `requirements-dev.txt`:
+
+```bash
+pip install -r requirements-dev.txt
+
+ruff check prebenchmark tests Experimentos   # lint
+ruff format prebenchmark tests Experimentos  # format
+mypy                                         # type checking (prebenchmark)
+```
+
+Configuration for ruff and mypy is centralized in `pyproject.toml`. The file has
+no `[project]` or `[build-system]` section, so it configures tools only; the
+package is still executed from the repository root (`python -m prebenchmark`)
+rather than installed.
+
 ## Tests
 
 ```bash

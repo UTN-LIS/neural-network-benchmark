@@ -5,9 +5,8 @@ from __future__ import annotations
 from dataclasses import replace
 from itertools import product
 
-import pytest
-
 import prebenchmark.space as space_module
+import pytest
 from prebenchmark.config import (
     ArchitectureSpec,
     ConvergenceSpec,
@@ -28,7 +27,6 @@ from prebenchmark.space import (
     validate_config,
 )
 
-
 # ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
@@ -42,9 +40,7 @@ def test_generates_exactly_36_combinations() -> None:
 def test_generated_combinations_are_the_full_cartesian_product() -> None:
     active = default_space()
     configs = generate_configs(active)
-    observed = {
-        (c.activation, c.optimizer, c.lr, c.init) for c in configs
-    }
+    observed = {(c.activation, c.optimizer, c.lr, c.init) for c in configs}
     expected = set(
         product(
             active.activations,

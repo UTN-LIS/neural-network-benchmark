@@ -184,6 +184,7 @@
       <ul class="sub">
         <li><a href="#s10_1">10.1 Punto de entrada, opciones comunes y códigos de salida</a></li>
         <li><a href="#s10_2">10.2 <code>generate</code>: registrar la grilla de candidatos</a></li>
+        <li><a href="#s10_2b">10.2.1 El flag <code>--dataset</code>: elegir el dataset</a></li>
         <li><a href="#s10_3">10.3 <code>run</code>: ejecutar configuraciones</a></li>
         <li><a href="#s10_4">10.4 <code>compare</code>: comparar contra una línea base</a></li>
         <li><a href="#s10_5">10.5 <code>aggregate</code>: agrupar repeticiones</a></li>
@@ -250,7 +251,7 @@ disco. Se puede pensar como una línea de montaje:
        └── validate_config ──► VALID / WARNING (ejecutable) | INVALID (bloqueado)
                                       │
    run_experiment ── new_run_id ──► bucle de entrenamiento ──► RunResult
-       │   data.load_wine_quality → build_splits → build_dataloaders
+       │   data.load_dataset(cfg.dataset.name) → build_splits → build_dataloaders
        │   build_model → initialize_weights → optimizador → métricas
        └─────────────────────► store.persist_run (una sola escritura)
                                       │
@@ -354,20 +355,34 @@ importar en cualquier lado y fáciles de testear.
 
 <div class="module">
   <h3>4.5 <code>data.py</code> — los datos: descarga, huella, partición y lotes <span class="tag soft">pipeline</span></h3>
-  <p class="kv"><b>Qué hace.</b> Se ocupa de todo lo relativo a los datos: <code>fetch_wine_quality_csv()</code>
-  descarga el dataset <i>Wine Quality (white)</i> de UCI y lo cachea localmente;
-  <code>load_wine_quality()</code> lo carga; <code>build_splits()</code> arma la partición
-  train/val/test 60/20/20 estratificada y sembrada; y <code>build_dataloaders()</code> escala con
-  <code>StandardScaler</code> y construye los <code>DataLoader</code> de PyTorch.</p>
-  <p class="kv"><b>Qué aporta.</b> Dos cosas valiosas. Primero, la <b>huella del dataset</b>
+  <p class="kv"><b>Qué hace.</b> Se ocupa de todo lo relativo a los datos a través de un
+  <b>registro de datasets</b> (<code>DatasetDefinition</code> / <code>DatasetInfo</code>):
+  <code>fetch_dataset_csv()</code> obtiene el CSV canónico (descargándolo la primera vez y
+  cacheándolo después), <code>load_dataset()</code> lo carga, <code>describe_dataset()</code>
+  deriva sus dimensiones reales y <code>dataset_base_config()</code> construye la configuración
+  base con <code>input_dim</code> y <code>output_dim</code> del dataset elegido.
+  <code>build_splits()</code> arma la partición train/val/test 60/20/20 estratificada y sembrada;
+  <code>build_dataloaders()</code> escala con <code>StandardScaler</code> y construye los
+  <code>DataLoader</code> de PyTorch.</p>
+  <p class="kv"><b>Datasets registrados.</b> <code>wine_quality</code> (default histórico),
+  <code>satimage</code>, <code>vehicle</code>, <code>waveform_5000</code>, <code>segment</code> y
+  <code>digits</code>. El target de los datasets genéricos se normaliza a la columna
+  <code>target</code> y se codifica a <code>0..k-1</code>; <code>wine_quality</code> conserva su
+  columna <code>quality</code> y su descarga UCI para no romper experimentos previos.
+  <code>load_wine_quality()</code> y <code>fetch_wine_quality_csv()</code> siguen existiendo como
+  alias de compatibilidad.</p>
+  <p class="kv"><b>Qué aporta.</b> Tres cosas. Primero, la <b>huella del dataset</b>
   (<code>compute_file_fingerprint</code> / <code>compute_dataframe_fingerprint</code>): un
   <code>sha256-&lt;digest&gt;</code> del contenido, para poder <b>probar</b> que dos corridas usaron
   exactamente los mismos datos. Segundo, un escalado correcto: el <code>StandardScaler</code> se
   ajusta <b>solo con el train</b> y se aplica a val/test, evitando <i>fuga de información</i>. Los
-  lotes usan batch 32 y un generador sembrado para que el mezclado sea reproducible.</p>
-  <p class="kv"><b>Con quién se relaciona.</b> Lo usa casi exclusivamente <code>runner.py</code>. Toma
-  los parámetros (split, batch, semilla) de <code>config.py</code> y entrega loaders listos para
-  entrenar.</p>
+  lotes usan batch 32 y un generador sembrado para que el mezclado sea reproducible. Tercero,
+  <b>desacopla el dataset del código</b>: el runner no sabe de qué dataset se trata, solo recibe
+  <code>cfg.dataset.name</code> y lo resuelve en el registro.</p>
+  <p class="kv"><b>Con quién se relaciona.</b> Lo usa casi exclusivamente <code>runner.py</code>.
+  Toma los parámetros (dataset, split, batch, semilla) de <code>config.py</code> y entrega loaders
+  listos para entrenar. La CLI lo consulta a través de <code>space.default_space(dataset)</code>
+  para dimensionar la grilla.</p>
 </div>
 
 <div class="module">
@@ -1073,6 +1088,12 @@ python -m prebenchmark generate --experiment-id exp-001
     </tr>
   </tbody>
 </table>
+<p class="note">
+<code>--dataset</code> <b>no</b> es una opción común a todos los subcomandos: solo la aceptan
+<code>generate</code> y <code>run</code>. Selecciona el dataset registrado sobre el que se construye
+(o se ejecuta) la grilla; su valor por defecto es <code>wine_quality</code>. Se explica en detalle en
+10.2.1.
+</p>
 <p>
 Los comandos de análisis (<code>compare</code>, <code>aggregate</code> y <code>export</code>)
 comparten además tres opciones de línea base. Su intención es que la línea base <b>nunca se
@@ -1095,8 +1116,10 @@ adivine</b>: hay que elegirla explícitamente.
     <tr>
       <td><code>--documented-default</code></td>
       <td>Opta por la línea base documentada del repositorio: <b>ReLU + Adam + lr 0.001 + He +
-      CrossEntropy + wine_quality</b>. Solo funciona si existe una corrida con <i>exactamente</i>
-      ese protocolo (semilla 42, 500 épocas, sin early stopping y sin <code>class_weight</code>).</td>
+      CrossEntropy</b>. Se identifica por esas cuatro dimensiones libres, no por el
+      <code>config_id</code> completo, así que funciona con cualquier dataset, arquitectura o
+      protocolo: la semilla, las épocas, el early stopping y el <code>class_weight</code> quedan
+      fuera de la comparación. Si no hay ninguna corrida con esas dimensiones, el comando falla.</td>
     </tr>
   </tbody>
 </table>
@@ -1156,7 +1179,8 @@ constancia de qué se va a probar y con qué estado de validación, antes de gas
 </p>
 <pre>python -m prebenchmark generate --experiment-id exp-001
 python -m prebenchmark generate --experiment-id exp-001 --limit 6
-python -m prebenchmark generate --experiment-id exp-001 --class-weight balanced</pre>
+python -m prebenchmark generate --experiment-id exp-001 --class-weight balanced
+python -m prebenchmark generate --experiment-id exp-satimage --dataset satimage</pre>
 <table>
   <thead>
     <tr><th>Opción</th><th>Valor</th><th>Qué hace</th></tr>
@@ -1169,6 +1193,13 @@ python -m prebenchmark generate --experiment-id exp-001 --class-weight balanced<
       cartesiano. Sin <code>--limit</code> se registran las 36.</td>
     </tr>
     <tr>
+      <td><code>--dataset</code></td>
+      <td><code>wine_quality</code> (default)</td>
+      <td>Dataset registrado sobre el que se dimensiona la grilla. Deriva
+      <code>input_dim</code> de la cantidad de features y <code>output_dim</code> de la cantidad de
+      clases. Debe coincidir con el <code>--dataset</code> de <code>run</code>. Ver 10.2.1.</td>
+    </tr>
+    <tr>
       <td><code>--class-weight</code></td>
       <td><code>none</code> o <code>balanced</code></td>
       <td>Sustituye <code>preprocessing.class_weight</code> en lo que se registra. Omitirlo deja el
@@ -1178,7 +1209,9 @@ python -m prebenchmark generate --experiment-id exp-001 --class-weight balanced<
   </tbody>
 </table>
 <p>
-<b>Qué hace exactamente.</b> Recorre la grilla completa en el orden
+<b>Qué hace exactamente.</b> Construye el espacio con
+<code>space.default_space(dataset)</code>, que fija <code>input_dim</code> y
+<code>output_dim</code> a partir del dataset elegido, y recorre la grilla completa en el orden
 <code>activation → optimizer → lr → init</code>. Por eso las primeras combinaciones son
 <code>relu/sgd/0.001/xavier</code>, <code>relu/sgd/0.001/he</code>,
 <code>relu/sgd/0.01/xavier</code>, etc. Para cada una aplica el override de
@@ -1205,10 +1238,89 @@ corrida ni entrena nada; por eso es seguro ejecutarlo sin PyTorch cargado.</p>
   <li><b>Si vas a ejecutar un brazo con balanceo</b>, repetí <code>--class-weight balanced</code>
   también en <code>run</code>. El <code>config_id</code> cambia con el balanceo, pero la
   <code>space_key</code> no: el espacio de 36 sigue siendo el mismo.</li>
+  <li><b>El dataset se repite en <code>run</code>.</b> <code>run</code> regenera la grilla por su
+  cuenta y no lee <code>configs.jsonl</code>. Si registrás con <code>--dataset satimage</code>,
+  ejecutá con <code>--dataset satimage</code>; de lo contrario cambian las dimensiones y el
+  <code>config_id</code>. Ver 10.2.1.</li>
   <li><b>No acepta</b> <code>--max-epochs</code>, <code>--seed</code> ni <code>--earlyStop</code>.
   Las variantes de protocolo se registran recién cuando se ejecutan, con su propio
   <code>config_id</code>.</li>
 </ul>
+
+<h4 id="s10_2b">10.2.1 El flag <code>--dataset</code>: elegir el dataset</h4>
+<p>
+<b>Para qué sirve.</b> <code>--dataset</code> selecciona uno de los datasets registrados en
+<code>prebenchmark/data.py</code> y lo usa como fuente de verdad para construir (en
+<code>generate</code>) o ejecutar (en <code>run</code>) la grilla. Antes de este cambio,
+<code>wine_quality</code> estaba cableado en el código: la columna objetivo se llamaba
+<code>quality</code>, la entrada era de 11 features y la salida de 7 clases. Ahora el nombre del
+dataset es el único vínculo: el registro resuelve el loader, la columna objetivo, la caché, la
+cantidad de features y la cantidad de clases.
+</p>
+<p>Ejemplo completo con el dataset <code>satimage</code>:</p>
+<pre>python -m prebenchmark generate --experiment-id exp-satimage --dataset satimage
+python -m prebenchmark run --experiment-id exp-satimage --dataset satimage --limit 36 --multi-seed --earlyStop</pre>
+<div class="card">
+  <p class="kv"><b>Qué cambia automáticamente.</b></p>
+  <ul>
+    <li><code>DatasetSpec</code>: <code>name</code>, <code>source</code>, <code>target</code> y
+    <code>n_features</code>.</li>
+    <li><code>ArchitectureSpec.input_dim</code> = cantidad de features del dataset.</li>
+    <li><code>ArchitectureSpec.output_dim</code> = cantidad de clases distintas.</li>
+    <li>La cantidad de parámetros del MLP (por las dimensiones de entrada/salida).</li>
+    <li>La huella <code>dataset_version</code> (<code>sha256-&lt;digest&gt;</code> del CSV cacheado).</li>
+  </ul>
+  <p class="kv"><b>Qué NO cambia.</b></p>
+  <ul>
+    <li>Las capas ocultas siguen fijas en <code>[32, 16]</code>: la profundidad y el ancho no se
+    ajustan por dataset.</li>
+    <li>El espacio de 36 combinaciones sigue siendo
+    <code>activation × optimizer × lr × init</code>.</li>
+    <li>El protocolo (split 60/20/20, batch 32, 500 épocas, semilla 42) es el mismo.</li>
+  </ul>
+  <p class="muted">La razón de dejar las capas ocultas fijas es metodológica: si se cambiara la
+  capacidad según el dataset, cualquier diferencia de F1 quedaría confundida con un cambio de
+  arquitectura y el ranking dejaría de ser comparable entre experimentos.</p>
+</div>
+<p><b>Datasets registrados.</b></p>
+<table>
+  <thead>
+    <tr><th>Nombre</th><th>Fuente</th><th>Muestras</th><th>Features</th><th>Clases</th><th>Ratio máx/mín</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>wine_quality</code></td><td>UCI winequality-white</td><td>4.898</td><td>11</td><td>7</td><td>439,6</td></tr>
+    <tr><td><code>satimage</code></td><td>OpenML satimage v1</td><td>6.430</td><td>36</td><td>6</td><td>2,45</td></tr>
+    <tr><td><code>vehicle</code></td><td>OpenML vehicle v1</td><td>846</td><td>18</td><td>4</td><td>1,10</td></tr>
+    <tr><td><code>waveform_5000</code></td><td>OpenML waveform-5000 v1</td><td>5.000</td><td>40</td><td>3</td><td>1,02</td></tr>
+    <tr><td><code>segment</code></td><td>OpenML segment v1</td><td>2.310</td><td>19</td><td>7</td><td>1,00</td></tr>
+    <tr><td><code>digits</code></td><td>scikit-learn <code>load_digits</code></td><td>1.797</td><td>64</td><td>10</td><td>1,05</td></tr>
+  </tbody>
+</table>
+<p>
+<b>Caché y reproducibilidad.</b> La primera carga descarga el dataset (UCI para
+<code>wine_quality</code>, OpenML para <code>satimage</code>, <code>vehicle</code>,
+<code>waveform_5000</code> y <code>segment</code>, scikit-learn para <code>digits</code>) y lo
+guarda como CSV canónico en <code>.cache/prebenchmark/&lt;nombre&gt;.csv</code>. A partir de ahí el
+pipeline funciona sin red. La huella SHA-256 de ese archivo queda en
+<code>metadata.json.dataset.version</code>, de modo que dos corridas se pueden comparar sabiendo
+que usaron exactamente los mismos bytes. Si se borra la caché, se vuelve a descargar; la huella
+puede cambiar si la fuente cambió, y eso queda registrado.
+</p>
+<p><b>Regla de consistencia.</b> <code>generate</code> y <code>run</code> deben usar el mismo
+<code>--dataset</code>, porque <code>run</code> regenera la grilla y no lee el registro. El flag es
+opcional: <code>run</code> puede ejecutarse solo, sin <code>generate</code>.
+<code>wine_quality</code> sigue siendo el default para que los experimentos previos
+(<code>exp-sweep-01</code>) se reproduzcan sin cambios. Los demás subcomandos
+(<code>compare</code>, <code>aggregate</code>, <code>export</code>, <code>analyze</code>) no aceptan
+<code>--dataset</code>: infieren el dataset desde las corridas y configuraciones persistidas.
+</p>
+<p class="note">
+Un nombre que no esté registrado lo rechaza <code>argparse</code> antes de ejecutar nada
+(código de salida <code>2</code>), con la lista de opciones válidas en el mensaje. El registro
+completo vive en <code>prebenchmark/data.py</code> (<code>DATASETS</code>) y la lista que usa la CLI
+en <code>prebenchmark/config.py</code> (<code>KNOWN_DATASETS</code>); un test verifica que
+coincidan.
+</p>
 
 <h3 id="s10_3">10.3 <code>run</code>: ejecutar configuraciones</h3>
 <p>
@@ -1221,6 +1333,7 @@ su snapshot, su historial de épocas y sus métricas. Internamente regenera el e
 python -m prebenchmark run --experiment-id exp-001 --limit 36 --max-epochs 200 --earlyStop
 python -m prebenchmark run --experiment-id exp-001 --limit 36 --multi-seed
 python -m prebenchmark run --experiment-id exp-001 --limit 1 --class-weight balanced
+python -m prebenchmark run --experiment-id exp-satimage --dataset satimage --limit 36 --multi-seed --earlyStop
 python -m prebenchmark run --experiment-id exp-001 --config-id cfg-v1-118298388a87</pre>
 <table>
   <thead>
@@ -1233,6 +1346,13 @@ python -m prebenchmark run --experiment-id exp-001 --config-id cfg-v1-118298388a
       <td>Cantidad de <b>configuraciones</b> a ejecutar, no de corridas. El total de corridas es
       <code>limit × semillas</code>. El valor por defecto es deliberadamente conservador: una
       configuración si no se indica nada.</td>
+    </tr>
+    <tr>
+      <td><code>--dataset</code></td>
+      <td><code>wine_quality</code></td>
+      <td>Dataset registrado a entrenar. Debe coincidir con el de <code>generate</code>.
+      Determina <code>input_dim</code>, <code>output_dim</code>, el target, la caché y la huella
+      del dataset. Ver 10.2.1.</td>
     </tr>
     <tr>
       <td><code>--config-id</code></td>
@@ -1307,9 +1427,16 @@ sobre <code>validation</code> y el disparador de convergencia.
   <li><b>Costo.</b> La grilla completa con <code>--multi-seed</code> son 36 × 5 = <b>180
   corridas</b>, cada una con hasta 500 épocas si no se usa <code>--earlyStop</code>. Para una
   primera prueba conviene <code>--limit</code> bajo y <code>--max-epochs</code> bajo.</li>
-  <li><b>Datos.</b> La primera corrida descarga <i>Wine Quality (white)</i> de UCI y lo cachea en
-  <code>.cache/prebenchmark/winequality-white.csv</code>. Después del primer uso, el pipeline puede
-  correr sin red.</li>
+  <li><b>El dataset forma parte de la identidad.</b> Cambiar <code>--dataset</code> cambia
+  <code>dataset.name</code>, <code>input_dim</code>, <code>output_dim</code> y la huella
+  <code>dataset_version</code>; por lo tanto también cambia el <code>config_id</code>. Por eso
+  <code>run</code> debe repetir el mismo <code>--dataset</code> que <code>generate</code>.</li>
+  <li><b>Datos.</b> El dataset se elige con <code>--dataset</code> (default
+  <code>wine_quality</code>). La primera carga descarga el CSV (UCI para wine, OpenML para
+  satimage/vehicle/waveform/segment, scikit-learn para digits) y lo cachea en
+  <code>.cache/prebenchmark/&lt;nombre&gt;.csv</code>; después, el pipeline puede correr sin red.
+  La huella <code>sha256</code> queda registrada en
+  <code>metadata.json.dataset.version</code>.</li>
 </ul>
 
 <h3 id="s10_4">10.4 <code>compare</code>: comparar contra una línea base</h3>
@@ -1330,14 +1457,14 @@ python -m prebenchmark compare --experiment-id exp-001 --documented-default</pre
   <li>Con <code>--baseline-config-id</code>, se elige la corrida <b>más temprana</b> que tenga ese
   <code>config_id</code>. Si esa corrida está <code>FAILED</code>, la comparación se rechaza: no se
   salta automáticamente a la siguiente.</li>
-  <li>Con <code>--documented-default</code>, se busca el <code>config_id</code> exacto de la
-  configuración documentada. Si las corridas usaron <code>--max-epochs</code>,
-  <code>--earlyStop</code>, otra semilla o <code>class_weight</code>, ese id <b>no va a
-  existir</b>; en ese caso hay que usar <code>--baseline-run-id</code>.</li>
+  <li>Con <code>--documented-default</code>, se buscan las corridas que usan las cuatro dimensiones
+  documentadas (<b>ReLU + Adam + lr 0.001 + He</b>), sin importar el dataset, la arquitectura, la
+  semilla, las épocas, el early stopping ni <code>class_weight</code>. Si hay varias, se elige la
+  más temprana. Si no hay ninguna, el comando falla.</li>
 </ul>
 <p><b>Salida esperada.</b> Primero la línea base elegida con su justificación; después, una línea
 por candidata:</p>
-<pre>baseline 20261022T143012Z-a1b2c3 (cfg-v1-118298388a87): documented default baseline: ReLU + Adam + lr 0.001 + He + CrossEntropy + wine_quality architecture (the only configuration previously run in this repository)
+<pre>baseline 20261022T143012Z-a1b2c3 (cfg-v1-118298388a87): documented default baseline: ReLU + Adam + lr 0.001 + He (matched by the four free dimensions; dataset: wine_quality)
   20261022T150233Z-d4e5f6 state=COMPLETED type=controlled comparable=True
   20261022T151044Z-0a1b2c state=COMPLETED type=multi_variable comparable=True
   20261022T152155Z-7c8d9e state=FAILED type=non_comparable comparable=False</pre>
@@ -1712,10 +1839,30 @@ analizar los CSV por fuera.
     </tr>
     <tr>
       <td><code>error: no run found for baseline config_id '...'</code></td>
-      <td>No hay ninguna corrida con ese <code>config_id</code>. Es lo habitual con
-      <code>--documented-default</code> después de usar <code>--max-epochs</code>,
-      <code>--earlyStop</code>, otra semilla o <code>class_weight</code>.</td>
-      <td>Usar <code>--baseline-run-id</code> con una corrida realmente existente.</td>
+      <td>Se pasó un <code>--baseline-config-id</code> que no corresponde a ninguna corrida
+      persistida. Con <code>--documented-default</code> este error ya no debería aparecer: ese flag
+      busca por dimensiones, no por <code>config_id</code>.</td>
+      <td>Verificar el id o usar <code>--baseline-run-id</code>.</td>
+    </tr>
+    <tr>
+      <td><code>error: no run found matching the documented default baseline (ReLU + Adam + lr 0.001 + He)</code></td>
+      <td>Se pidió <code>--documented-default</code> pero ninguna corrida del experimento usa esas
+      cuatro dimensiones.</td>
+      <td>Ejecutar esa configuración, o elegir la línea base con <code>--baseline-run-id</code> /
+      <code>--baseline-config-id</code>.</td>
+    </tr>
+    <tr>
+      <td><code>argument --dataset: invalid choice: '...' (choose from ...)</code></td>
+      <td>El nombre no está en <code>KNOWN_DATASETS</code>. <code>argparse</code> lo rechaza antes
+      de ejecutar nada.</td>
+      <td>Usar uno de los datasets registrados (ver 10.2.1).</td>
+    </tr>
+    <tr>
+      <td>Las corridas quedan con dimensiones distintas, o <code>--config-id</code> falla con
+      <code>no generated configuration has config_id ...</code></td>
+      <td>Se usó un <code>--dataset</code> distinto en <code>generate</code> y <code>run</code>.
+      <code>run</code> regenera la grilla; no lee el registro.</td>
+      <td>Repetir el mismo <code>--dataset</code> en ambos comandos.</td>
     </tr>
     <tr>
       <td><code>error: baseline run '...' is FAILED; cannot compare against it</code></td>
@@ -1793,15 +1940,15 @@ analizar los CSV por fuera.
     <tr>
       <td><code>generate</code></td>
       <td>Registrar y validar la grilla de candidatos.</td>
-      <td><code>--limit</code>, <code>--class-weight</code></td>
+      <td><code>--dataset</code>, <code>--limit</code>, <code>--class-weight</code></td>
       <td><code>configs.jsonl</code></td>
     </tr>
     <tr>
       <td><code>run</code></td>
       <td>Entrenar configuraciones y persistir cada corrida.</td>
-      <td><code>--limit</code>, <code>--config-id</code>, <code>--max-epochs</code>,
-      <code>--seed</code>, <code>--multi-seed</code>, <code>--earlyStop</code>,
-      <code>--class-weight</code></td>
+      <td><code>--dataset</code>, <code>--limit</code>, <code>--config-id</code>,
+      <code>--max-epochs</code>, <code>--seed</code>, <code>--multi-seed</code>,
+      <code>--earlyStop</code>, <code>--class-weight</code></td>
       <td><code>&lt;run_id&gt;/metadata.json</code>, <code>&lt;run_id&gt;/epochs.csv</code>,
       <code>configs.jsonl</code></td>
     </tr>

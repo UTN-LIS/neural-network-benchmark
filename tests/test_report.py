@@ -9,7 +9,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from prebenchmark import analysis, report
 from tests.test_analysis import write_export
 
@@ -43,7 +42,7 @@ def test_build_report_writes_self_contained_html(analysis_result, tmp_path: Path
     assert "data:image/png;base64," in document
     assert "http://" not in document
     assert "https://" not in document
-    assert "src=\"data:image/png;base64," in document
+    assert 'src="data:image/png;base64,' in document
 
 
 def test_report_without_figures_keeps_tables(analysis_result, tmp_path: Path):

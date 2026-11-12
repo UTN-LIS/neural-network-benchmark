@@ -7,7 +7,7 @@ especificado.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Literal
 
 import torch
 import torch.nn as nn
@@ -62,7 +62,7 @@ def initialize_weights(
     for m in model.modules():
         if isinstance(m, nn.Linear):
             if init_name == "he" or init_name == "kaiming":
-                nonlinearity = "relu"
+                nonlinearity: Literal["relu", "tanh", "sigmoid"] = "relu"
                 if act_name == "tanh":
                     nonlinearity = "tanh"
                 elif act_name == "sigmoid":
@@ -77,7 +77,4 @@ def initialize_weights(
 
 def parameters_are_finite(model: nn.Module) -> bool:
     """Verdadero cuando todos los parámetros entrenables son finitos (sin pesos NaN/Inf)."""
-    for parameter in model.parameters():
-        if not bool(torch.isfinite(parameter).all().item()):
-            return False
-    return True
+    return all(bool(torch.isfinite(parameter).all().item()) for parameter in model.parameters())

@@ -29,7 +29,8 @@ que garantiza que la etiqueta sea independiente del estado técnico de ejecució
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from .identity import new_decision_id, utc_timestamp
 from .store import ResultsStore
@@ -180,7 +181,9 @@ def decision_to_record(record: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def decisions_to_records(records: Mapping[str, Any] | list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def decisions_to_records(
+    records: Mapping[str, Any] | list[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     """Convierte uno o varios registros de decisión para su exportación."""
     if isinstance(records, Mapping):
         records = [records]

@@ -23,8 +23,9 @@ import csv
 import io
 import json
 import os
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Iterator, Mapping, Sequence
+from typing import Any
 
 from .config import ExperimentConfig
 from .identity import compute_config_id, compute_space_key, new_decision_id, utc_timestamp
@@ -216,9 +217,7 @@ class ResultsStore:
             run_path / RUN_METADATA_FILE,
             json.dumps(payload, indent=2, ensure_ascii=True) + "\n",
         )
-        self._write_epochs(
-            run_path / EPOCHS_CSV_FILE, run_id, payload.get("config_id"), epochs
-        )
+        self._write_epochs(run_path / EPOCHS_CSV_FILE, run_id, payload.get("config_id"), epochs)
         return run_path
 
     def _write_epochs(
@@ -238,9 +237,7 @@ class ResultsStore:
             writer.writerow({column: record.get(column) for column in EPOCH_COLUMNS})
         self._write_text_atomic(path, buffer.getvalue())
 
-    def load_run(
-        self, run_id: str, experiment_id: str | None = None
-    ) -> dict[str, Any]:
+    def load_run(self, run_id: str, experiment_id: str | None = None) -> dict[str, Any]:
         """Devuelve el registro completo de ``run_id`` (metadatos + historial de épocas)."""
         for exp_id, run_path in self._iter_run_paths(experiment_id):
             if run_path.name == run_id:
@@ -281,9 +278,7 @@ class ResultsStore:
             coerced[key] = number
         return coerced
 
-    def _iter_run_paths(
-        self, experiment_id: str | None = None
-    ) -> Iterator[tuple[str, Path]]:
+    def _iter_run_paths(self, experiment_id: str | None = None) -> Iterator[tuple[str, Path]]:
         if experiment_id is not None:
             exp_dirs = [self.experiment_dir(experiment_id)]
         elif self.root.exists():
@@ -301,9 +296,7 @@ class ResultsStore:
     # Consultas históricas (nunca dependen del estado en memoria del proceso)
     # ------------------------------------------------------------------
 
-    def query_runs(
-        self, experiment_id: str | None = None, **filters: Any
-    ) -> list[dict[str, Any]]:
+    def query_runs(self, experiment_id: str | None = None, **filters: Any) -> list[dict[str, Any]]:
         """Devuelve los metadatos de ejecución que coinciden con todos los filtros proporcionados.
 
         Filtros admitidos: ``run_id``, ``config_id``, ``state``, ``run_type``,
@@ -348,7 +341,9 @@ class ResultsStore:
             value = metadata.get("architecture")
             if isinstance(value, Mapping):
                 value = value.get("name")
-            return value if value is not None else (config.get("architecture", {}) or {}).get("name")
+            return (
+                value if value is not None else (config.get("architecture", {}) or {}).get("name")
+            )
         if key in _CONFIG_FILTER_FIELDS:
             value = metadata.get(key)
             return value if value is not None else config.get(key)

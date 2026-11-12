@@ -1,4 +1,5 @@
-﻿"""Conjuntos de semillas fijas para experimentacion."""
+"""Conjuntos de semillas fijas para experimentacion."""
+
 from __future__ import annotations
 
 # Semillas fijas para protocolo multi-semilla (etapa exploratoria)

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import torch
-
 from prebenchmark import config, model
 
 
 def test_build_model_architecture():
-    m = model.build_model(config.ArchitectureSpec(input_dim=11, hidden_layers=[32, 16], output_dim=7), activation="relu")
+    m = model.build_model(
+        config.ArchitectureSpec(input_dim=11, hidden_layers=[32, 16], output_dim=7),
+        activation="relu",
+    )
     seq = m
     # check structure
     assert isinstance(seq, torch.nn.Sequential)

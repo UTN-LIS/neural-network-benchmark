@@ -5,39 +5,32 @@ Seguro para importar: este paquete no realiza E/S ni dispara entrenamiento al im
 
 from __future__ import annotations
 
-from .config import (
-    ArchitectureSpec,
-    ConvergenceSpec,
-    DatasetSpec,
-    ExperimentConfig,
-    PreprocessingSpec,
-    SplitSpec,
-    resolve_convergence,
+from .aggregate import (
+    AGGREGATE_METRICS,
+    DEFAULT_MIN_REPETITIONS,
+    GROUPING_MODES,
+    MetricStatistics,
+    RepetitionGroup,
+    RunGroup,
+    RunMember,
+    aggregate_group,
+    aggregate_records,
+    aggregate_runs,
+    group_runs,
 )
-from .space import (
-    DEFAULT_VALIDATION_RULES,
-    HIGH_LR_THRESHOLD,
-    INVALID,
-    SPACE_DIMENSIONS,
-    VALID,
-    WARNING,
-    ParameterSpace,
-    ValidationResult,
-    ValidationRule,
-    compute_space_key,
-    default_space,
-    generate_configs,
-    space_key_dims,
-    space_keys_unique,
-    validate_config,
+from .analysis import (
+    CONVERGENCE_METRICS,
+    DIMENSION_COLUMNS,
+    METRIC_COLUMNS,
+    AnalysisResult,
+    ExportBundle,
+    analyze_exports,
+    compare_to_reference,
+    derive_run_metrics,
+    load_export_bundle,
+    marginal_effects,
+    summarize_configurations,
 )
-from .identity import (
-    compute_config_id,
-    new_decision_id,
-    new_experiment_id,
-    new_run_id,
-)
-from .store import ResultsStore
 from .compare import (
     BASELINE_ACTIVATION,
     BASELINE_INIT,
@@ -56,18 +49,14 @@ from .compare import (
     filter_runs,
     select_baseline,
 )
-from .aggregate import (
-    AGGREGATE_METRICS,
-    DEFAULT_MIN_REPETITIONS,
-    GROUPING_MODES,
-    MetricStatistics,
-    RepetitionGroup,
-    RunGroup,
-    RunMember,
-    aggregate_group,
-    aggregate_records,
-    aggregate_runs,
-    group_runs,
+from .config import (
+    ArchitectureSpec,
+    ConvergenceSpec,
+    DatasetSpec,
+    ExperimentConfig,
+    PreprocessingSpec,
+    SplitSpec,
+    resolve_convergence,
 )
 from .decisions import (
     DECISION_TYPES,
@@ -92,21 +81,32 @@ from .export import (
     export_all,
     persist_baseline,
 )
-from .analysis import (
-    CONVERGENCE_METRICS,
-    DIMENSION_COLUMNS,
-    METRIC_COLUMNS,
-    AnalysisResult,
-    ExportBundle,
-    analyze_exports,
-    compare_to_reference,
-    derive_run_metrics,
-    load_export_bundle,
-    marginal_effects,
-    summarize_configurations,
+from .identity import (
+    compute_config_id,
+    new_decision_id,
+    new_experiment_id,
+    new_run_id,
 )
-from .report import ReportResult, build_report, render_report
 from .pdf import html_to_pdf
+from .report import ReportResult, build_report, render_report
+from .space import (
+    DEFAULT_VALIDATION_RULES,
+    HIGH_LR_THRESHOLD,
+    INVALID,
+    SPACE_DIMENSIONS,
+    VALID,
+    WARNING,
+    ParameterSpace,
+    ValidationResult,
+    ValidationRule,
+    compute_space_key,
+    default_space,
+    generate_configs,
+    space_key_dims,
+    space_keys_unique,
+    validate_config,
+)
+from .store import ResultsStore
 
 __all__ = [
     # configuración
@@ -207,8 +207,11 @@ __all__ = [
     "build_report",
     "render_report",
     "html_to_pdf",
+    # semillas
+    "seeds",
+    "EXPLORATORY_SEEDS",
+    "SEEDS_5",
 ]
 
 from . import seeds
 from .seeds import EXPLORATORY_SEEDS, SEEDS_5
-

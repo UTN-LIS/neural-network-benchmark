@@ -5,18 +5,16 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
+    confusion_matrix,
+    f1_score,
     precision_score,
     recall_score,
-    f1_score,
-    confusion_matrix,
 )
-
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 # ============================================================
 # 1. Configuración
@@ -108,8 +106,8 @@ y_test = torch.tensor(y_test, dtype=torch.long)
 # 7. Definición del MLP
 # ============================================================
 
-class MLP(nn.Module):
 
+class MLP(nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -133,7 +131,6 @@ model = MLP()
 # ============================================================
 
 for layer in model.modules():
-
     if isinstance(layer, nn.Linear):
         nn.init.kaiming_normal_(
             layer.weight,
@@ -162,7 +159,6 @@ optimizer = optim.Adam(
 start_time = time.perf_counter()
 
 for epoch in range(EPOCHS):
-
     model.train()
 
     optimizer.zero_grad()
@@ -176,10 +172,7 @@ for epoch in range(EPOCHS):
     optimizer.step()
 
     if (epoch + 1) % 10 == 0:
-        print(
-            f"Época {epoch + 1:3d}/{EPOCHS} "
-            f"- Loss: {loss.item():.4f}"
-        )
+        print(f"Época {epoch + 1:3d}/{EPOCHS} - Loss: {loss.item():.4f}")
 
 training_time = time.perf_counter() - start_time
 
@@ -191,7 +184,6 @@ training_time = time.perf_counter() - start_time
 model.eval()
 
 with torch.no_grad():
-
     outputs = model(X_test)
 
     predictions = torch.argmax(
@@ -245,10 +237,7 @@ confusion = confusion_matrix(
     y_pred,
 )
 
-num_parameters = sum(
-    parameter.numel()
-    for parameter in model.parameters()
-)
+num_parameters = sum(parameter.numel() for parameter in model.parameters())
 
 
 # ============================================================

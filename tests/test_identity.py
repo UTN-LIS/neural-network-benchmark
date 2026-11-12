@@ -5,10 +5,9 @@ from __future__ import annotations
 import re
 from dataclasses import replace
 
-import pytest
-
 import prebenchmark.identity as identity_module
 import prebenchmark.space as space_module
+import pytest
 from prebenchmark.config import ExperimentConfig, PreprocessingSpec
 from prebenchmark.identity import (
     compute_config_id,
@@ -18,7 +17,6 @@ from prebenchmark.identity import (
     new_run_id,
     utc_timestamp,
 )
-
 
 # ---------------------------------------------------------------------------
 # config_id: stable, content-addressed, sensitive to every field

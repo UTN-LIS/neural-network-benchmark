@@ -1,0 +1,8 @@
+# Herramientas de desarrollo. No son necesarias para ejecutar el pipeline.
+#
+# Instalar con: pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+mypy==2.4.1
+ruff==0.17.4

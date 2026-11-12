@@ -9,9 +9,8 @@ import tempfile
 
 import numpy as np
 import pandas as pd
-
 from prebenchmark import config, metrics, runner, store
-from tests.conftest import WINE_FEATURE_COLUMNS, WINE_CLASSES, WINE_TARGET_COLUMN
+from tests.conftest import WINE_CLASSES, WINE_FEATURE_COLUMNS, WINE_TARGET_COLUMN
 
 
 def _make_df(n: int = 140, seed: int = 42) -> pd.DataFrame:
@@ -236,6 +235,3 @@ def test_runner_supports_a_registered_dataset_with_generic_target_column():
         assert meta["architecture"]["output_dim"] == 3
         assert meta["epochs_executed"] == 2
         assert meta["final_metrics"]["f1_macro"] >= 0.0
-
-
-

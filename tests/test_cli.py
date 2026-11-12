@@ -11,7 +11,6 @@ import csv
 from pathlib import Path
 
 import pytest
-
 from prebenchmark import store
 from prebenchmark.cli import build_parser, main
 from tests.test_analysis import write_export
@@ -26,9 +25,7 @@ def test_cli_docstring_lists_every_registered_subcommand():
     subparsers = next(action for action in parser._actions if action.dest == "command")
     registered = set(subparsers.choices)
     module_docstring = cli_module.__doc__ or ""
-    missing = sorted(
-        command for command in registered if f"``{command}``" not in module_docstring
-    )
+    missing = sorted(command for command in registered if f"``{command}``" not in module_docstring)
     assert not missing, f"subcomandos sin documentar en el docstring: {missing}"
 
 
@@ -43,7 +40,9 @@ def test_cli_unknown_subcommand_exits():
 
 def test_cli_generate_registers_limited_space(tmp_path: Path):
     root = tmp_path / "results"
-    assert main(["generate", "--experiment-id", "exp-gen", "--root", str(root), "--limit", "6"]) == 0
+    assert (
+        main(["generate", "--experiment-id", "exp-gen", "--root", str(root), "--limit", "6"]) == 0
+    )
     configs = store.ResultsStore(root).load_configs("exp-gen")
     assert len(configs) == 6
     assert all(config["validation_state"] in {"VALID", "WARNING"} for config in configs)
@@ -60,7 +59,6 @@ def test_cli_dataset_flag_defaults_to_wine_quality_and_is_forwarded(tmp_path: Pa
 
     with pytest.raises(SystemExit):
         parser.parse_args(["run", "--experiment-id", "exp-run", "--dataset", "unknown"])
-
 
 
 def test_cli_export_writes_tables(tmp_path: Path):
@@ -88,7 +86,20 @@ def test_cli_export_writes_tables(tmp_path: Path):
 def test_cli_compare_and_aggregate(tmp_path: Path):
     root = tmp_path / "results"
     _build_store(root)
-    assert main(["compare", "--experiment-id", EXPERIMENT, "--root", str(root), "--baseline-run-id", "run-01"]) == 0
+    assert (
+        main(
+            [
+                "compare",
+                "--experiment-id",
+                EXPERIMENT,
+                "--root",
+                str(root),
+                "--baseline-run-id",
+                "run-01",
+            ]
+        )
+        == 0
+    )
     assert main(["aggregate", "--experiment-id", EXPERIMENT, "--root", str(root)]) == 0
 
 
@@ -142,7 +153,9 @@ def test_cli_analyze_pdf_flag_writes_pdf(tmp_path: Path, monkeypatch: pytest.Mon
     assert len(list((out / "exp-pdf").glob("analysis_*.pdf"))) == 1
 
 
-def test_cli_analyze_pdf_failure_returns_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
+def test_cli_analyze_pdf_failure_returns_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
+):
     from prebenchmark import pdf
 
     export_dir = write_export(tmp_path / "exports" / "exp-pdf-fail")
@@ -193,7 +206,15 @@ def test_cli_compare_without_baseline_returns_error(tmp_path: Path, capsys):
 def test_cli_run_unknown_config_id_returns_error(tmp_path: Path):
     root = tmp_path / "results"
     code = main(
-        ["run", "--experiment-id", "exp-run", "--root", str(root), "--config-id", "cfg-v1-doesnotexist"]
+        [
+            "run",
+            "--experiment-id",
+            "exp-run",
+            "--root",
+            str(root),
+            "--config-id",
+            "cfg-v1-doesnotexist",
+        ]
     )
     assert code == 1
 
@@ -209,20 +230,23 @@ def test_cli_run_multi_seed_expands_fixed_seed_set(
     )
     root = tmp_path / "results"
     experiment = "exp-multi"
-    assert main(
-        [
-            "run",
-            "--experiment-id",
-            experiment,
-            "--root",
-            str(root),
-            "--limit",
-            "1",
-            "--max-epochs",
-            "1",
-            "--multi-seed",
-        ]
-    ) == 0
+    assert (
+        main(
+            [
+                "run",
+                "--experiment-id",
+                experiment,
+                "--root",
+                str(root),
+                "--limit",
+                "1",
+                "--max-epochs",
+                "1",
+                "--multi-seed",
+            ]
+        )
+        == 0
+    )
     runs = store.ResultsStore(root).query_runs(experiment)
     assert len(runs) == len(EXPLORATORY_SEEDS)
     assert {meta["seed"] for meta in runs} == set(EXPLORATORY_SEEDS)
@@ -246,20 +270,23 @@ def test_cli_run_early_stop_enables_convergence(
     )
     root = tmp_path / "results"
     experiment = "exp-early"
-    assert main(
-        [
-            "run",
-            "--experiment-id",
-            experiment,
-            "--root",
-            str(root),
-            "--limit",
-            "1",
-            "--max-epochs",
-            "2",
-            "--earlyStop",
-        ]
-    ) == 0
+    assert (
+        main(
+            [
+                "run",
+                "--experiment-id",
+                experiment,
+                "--root",
+                str(root),
+                "--limit",
+                "1",
+                "--max-epochs",
+                "2",
+                "--earlyStop",
+            ]
+        )
+        == 0
+    )
     runs = store.ResultsStore(root).query_runs(experiment)
     assert len(runs) == 1
     convergence = runs[0]["convergence"]
@@ -278,21 +305,24 @@ def test_cli_run_class_weight_balanced_records_preprocessing(
         lambda cache_dir=None: Path(wine_quality_csv),
     )
     root = tmp_path / "results"
-    assert main(
-        [
-            "run",
-            "--experiment-id",
-            "exp-cw",
-            "--root",
-            str(root),
-            "--limit",
-            "1",
-            "--max-epochs",
-            "2",
-            "--class-weight",
-            "balanced",
-        ]
-    ) == 0
+    assert (
+        main(
+            [
+                "run",
+                "--experiment-id",
+                "exp-cw",
+                "--root",
+                str(root),
+                "--limit",
+                "1",
+                "--max-epochs",
+                "2",
+                "--class-weight",
+                "balanced",
+            ]
+        )
+        == 0
+    )
     runs = store.ResultsStore(root).query_runs("exp-cw")
     assert len(runs) == 1
     assert runs[0]["preprocessing"]["class_weight"] == "balanced"
@@ -313,9 +343,7 @@ def test_cli_class_weight_changes_config_id_but_not_space_key(
     root = tmp_path / "results"
     common = ["--root", str(root), "--limit", "1", "--max-epochs", "1"]
     assert main(["run", "--experiment-id", "exp-plain", *common]) == 0
-    assert main(
-        ["run", "--experiment-id", "exp-cw", *common, "--class-weight", "balanced"]
-    ) == 0
+    assert main(["run", "--experiment-id", "exp-cw", *common, "--class-weight", "balanced"]) == 0
 
     plain = store.ResultsStore(root).query_runs("exp-plain")[0]
     balanced = store.ResultsStore(root).query_runs("exp-cw")[0]
@@ -323,14 +351,14 @@ def test_cli_class_weight_changes_config_id_but_not_space_key(
     assert balanced["preprocessing"]["class_weight"] == "balanced"
     assert plain["config_id"] != balanced["config_id"]
     plain_key = space.compute_space_key(ExperimentConfig.from_dict(plain["config_snapshot"]))
-    balanced_key = space.compute_space_key(
-        ExperimentConfig.from_dict(balanced["config_snapshot"])
-    )
+    balanced_key = space.compute_space_key(ExperimentConfig.from_dict(balanced["config_snapshot"]))
     assert plain_key == balanced_key
 
 
 @pytest.mark.smoke
-def test_cli_e2e_reduced_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, wine_quality_csv):
+def test_cli_e2e_reduced_pipeline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, wine_quality_csv
+):
     # Keep the pipeline fully offline: never hit UCI.
     monkeypatch.setattr(
         "prebenchmark.data.fetch_wine_quality_csv",
@@ -340,38 +368,77 @@ def test_cli_e2e_reduced_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     out = tmp_path / "exports"
     experiment = "exp-e2e"
 
-    assert main(["generate", "--experiment-id", experiment, "--root", str(root), "--limit", "2"]) == 0
-    assert main(
-        ["run", "--experiment-id", experiment, "--root", str(root), "--limit", "2", "--max-epochs", "3"]
-    ) == 0
+    assert (
+        main(["generate", "--experiment-id", experiment, "--root", str(root), "--limit", "2"]) == 0
+    )
+    assert (
+        main(
+            [
+                "run",
+                "--experiment-id",
+                experiment,
+                "--root",
+                str(root),
+                "--limit",
+                "2",
+                "--max-epochs",
+                "3",
+            ]
+        )
+        == 0
+    )
 
     results = store.ResultsStore(root)
     runs = results.query_runs(experiment)
     assert len(runs) == 2
-    assert all(meta.get("execution_state") in {"COMPLETED", "COMPLETED_WITH_WARNINGS"} for meta in runs)
+    assert all(
+        meta.get("execution_state") in {"COMPLETED", "COMPLETED_WITH_WARNINGS"} for meta in runs
+    )
 
     baseline = runs[0]["run_id"]
-    assert main(
-        ["compare", "--experiment-id", experiment, "--root", str(root), "--baseline-run-id", baseline]
-    ) == 0
+    assert (
+        main(
+            [
+                "compare",
+                "--experiment-id",
+                experiment,
+                "--root",
+                str(root),
+                "--baseline-run-id",
+                baseline,
+            ]
+        )
+        == 0
+    )
     assert main(["aggregate", "--experiment-id", experiment, "--root", str(root)]) == 0
-    assert main(
-        [
-            "export",
-            "--experiment-id",
-            experiment,
-            "--root",
-            str(root),
-            "--out",
-            str(out),
-            "--baseline-run-id",
-            baseline,
-            "--no-plots",
-        ]
-    ) == 0
+    assert (
+        main(
+            [
+                "export",
+                "--experiment-id",
+                experiment,
+                "--root",
+                str(root),
+                "--out",
+                str(out),
+                "--baseline-run-id",
+                baseline,
+                "--no-plots",
+            ]
+        )
+        == 0
+    )
 
     export_dir = out / experiment
-    for name in ("master", "baseline_comparison", "aggregates", "epochs", "configs", "decisions", "warnings_summary"):
+    for name in (
+        "master",
+        "baseline_comparison",
+        "aggregates",
+        "epochs",
+        "configs",
+        "decisions",
+        "warnings_summary",
+    ):
         assert list(export_dir.glob(f"{name}_*.csv")), f"missing {name} export"
 
     master = next(export_dir.glob("master_*.csv"))

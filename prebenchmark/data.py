@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import hashlib
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -28,9 +29,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from .config import DEFAULT_DATASET, ExperimentConfig, SplitSpec
 
 URL_WINE_QUALITY_WHITE = (
-    "https://archive.ics.uci.edu/"
-    "ml/machine-learning-databases/wine-quality/"
-    "winequality-white.csv"
+    "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"
 )
 
 # Prefijo + longitud del digest de la huella del dataset (derivada de SHA-256).
@@ -216,9 +215,7 @@ def get_dataset(name: str | None = None) -> DatasetDefinition:
         return DATASETS[resolved]
     except KeyError as error:
         options = ", ".join(available_datasets())
-        raise ValueError(
-            f"unknown dataset '{resolved}'; available datasets: {options}"
-        ) from error
+        raise ValueError(f"unknown dataset '{resolved}'; available datasets: {options}") from error
 
 
 def _resolve_cache_root(cache_dir: str | os.PathLike[str] | None) -> Path:
@@ -297,9 +294,7 @@ def describe_dataset(
     cache_path = fetch_dataset_csv(definition.name, cache_dir)
     frame = pd.read_csv(cache_path, sep=";")
     if definition.target not in frame.columns:
-        raise ValueError(
-            f"dataset '{definition.name}' has no target column '{definition.target}'"
-        )
+        raise ValueError(f"dataset '{definition.name}' has no target column '{definition.target}'")
     feature_count = frame.drop(columns=[definition.target]).shape[1]
     class_count = int(frame[definition.target].nunique())
     return DatasetInfo(
@@ -403,20 +398,16 @@ def build_splits(
     X: np.ndarray | None = None,
     y: np.ndarray | None = None,
     df: pd.DataFrame | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Construye las particiones de entrenamiento/validación/prueba (60/20/20 por defecto, estratificadas)."""
-    target_column = (
-        cfg.dataset.target if cfg is not None else WINE_TARGET_COLUMN
-    )
+    target_column = cfg.dataset.target if cfg is not None else WINE_TARGET_COLUMN
     if df is None and (X is None or y is None):
         dataset_name = cfg.dataset.name if cfg is not None else DEFAULT_DATASET
         df = load_dataset(dataset_name)
 
     if X is None or y is None:
         if df is None or target_column not in df.columns:
-            raise ValueError(
-                f"target column '{target_column}' not found in the provided dataset"
-            )
+            raise ValueError(f"target column '{target_column}' not found in the provided dataset")
         X = df.drop(columns=target_column).values
         y_original = df[target_column].values
         classes = np.sort(np.unique(y_original))
@@ -466,7 +457,7 @@ def build_dataloaders(
     df: pd.DataFrame | None = None,
     batch_size: int = 32,
     seed: int = 42,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Construye los DataLoaders con batch_size=32 por defecto, con semilla."""
     if cfg is not None:
         batch_size = cfg.batch_size if cfg.batch_size else batch_size
@@ -505,7 +496,9 @@ def build_dataloaders(
     g = torch.Generator()
     g.manual_seed(seed)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, generator=g)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False) if val_dataset else None
+    val_loader = (
+        DataLoader(val_dataset, batch_size=batch_size, shuffle=False) if val_dataset else None
+    )
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return {

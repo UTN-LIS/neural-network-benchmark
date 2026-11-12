@@ -4,11 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 from sklearn.datasets import load_wine
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-
 
 # ============================================================
 # 1. Configuración
@@ -17,23 +15,25 @@ from sklearn.preprocessing import StandardScaler
 SEED = 42
 
 LEARNING_RATE = 0.001
-BATCH_SIZE = 32 #Todavia no se esta usando ya que no se esta procesando por lotes, se procesa todo de una vez.
-EPOCHS = 100 #Recorrido completo por el conjunto de entrenamiento
+BATCH_SIZE = 32  # Todavia no se esta usando ya que no se esta procesando por lotes, se procesa todo de una vez.
+EPOCHS = 100  # Recorrido completo por el conjunto de entrenamiento
 
 
 # ============================================================
 # 2. Reproducibilidad
 # ============================================================
 
-np.random.seed(SEED) #Controla aleatoridad utilizada por numpy
-torch.manual_seed(SEED) #Controla aleatoridad utilizada por pytorch
+np.random.seed(SEED)  # Controla aleatoridad utilizada por numpy
+torch.manual_seed(SEED)  # Controla aleatoridad utilizada por pytorch
 
 
 # ============================================================
 # 3. Carga del dataset
 # ============================================================
 
-wine = load_wine() #Carga el dataset wine, con los elementos: data, target, feature_names, target_names,etc
+wine = (
+    load_wine()
+)  # Carga el dataset wine, con los elementos: data, target, feature_names, target_names,etc
 
 X = wine.data
 y = wine.target
@@ -49,11 +49,7 @@ print(f"Clases: {len(np.unique(y))} \n")
 # ============================================================
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=SEED,
-    stratify=y
+    X, y, test_size=0.2, random_state=SEED, stratify=y
 )
 
 
@@ -82,17 +78,13 @@ y_test = torch.tensor(y_test, dtype=torch.long)
 # 7. Definición del MLP
 # ============================================================
 
-class MLP(nn.Module):
 
+class MLP(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.network = nn.Sequential(
-            nn.Linear(13, 16),
-            nn.ReLU(),
-            nn.Linear(16, 8),
-            nn.ReLU(),
-            nn.Linear(8, 3)
+            nn.Linear(13, 16), nn.ReLU(), nn.Linear(16, 8), nn.ReLU(), nn.Linear(8, 3)
         )
 
     def forward(self, x):
@@ -107,12 +99,8 @@ model = MLP()
 # ============================================================
 
 for layer in model.modules():
-
     if isinstance(layer, nn.Linear):
-        nn.init.kaiming_normal_(
-            layer.weight,
-            nonlinearity="relu"
-        )
+        nn.init.kaiming_normal_(layer.weight, nonlinearity="relu")
 
         nn.init.zeros_(layer.bias)
 
@@ -123,10 +111,7 @@ for layer in model.modules():
 
 criterion = nn.CrossEntropyLoss()
 
-optimizer = optim.Adam(
-    model.parameters(),
-    lr=LEARNING_RATE
-)
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 
 # ============================================================
@@ -136,7 +121,6 @@ optimizer = optim.Adam(
 start_time = time.perf_counter()
 
 for epoch in range(EPOCHS):
-
     model.train()
 
     optimizer.zero_grad()
@@ -150,10 +134,7 @@ for epoch in range(EPOCHS):
     optimizer.step()
 
     if (epoch + 1) % 10 == 0:
-        print(
-            f"Época {epoch + 1:3d}/{EPOCHS} "
-            f"- Loss: {loss.item():.4f}"
-        )
+        print(f"Época {epoch + 1:3d}/{EPOCHS} - Loss: {loss.item():.4f}")
 
 
 training_time = time.perf_counter() - start_time
@@ -166,24 +147,18 @@ training_time = time.perf_counter() - start_time
 model.eval()
 
 with torch.no_grad():
-
     outputs = model(X_test)
 
     predictions = torch.argmax(outputs, dim=1)
 
-    accuracy = (
-        predictions == y_test
-    ).float().mean().item()
+    accuracy = (predictions == y_test).float().mean().item()
 
 
 # ============================================================
 # 12. Resultados
 # ============================================================
 
-num_parameters = sum(
-    parameter.numel()
-    for parameter in model.parameters()
-)
+num_parameters = sum(parameter.numel() for parameter in model.parameters())
 
 print("\n==============================")
 print("RESULTADOS")

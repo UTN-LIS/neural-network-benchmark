@@ -14,7 +14,6 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-
 from prebenchmark import aggregate, export, identity, space, store
 from prebenchmark.config import ExperimentConfig
 
@@ -112,7 +111,12 @@ def _build_store(root: Path) -> store.ResultsStore:
             validation=space.validate_config(cfg),
         )
 
-    persist(base, "run-01", metrics={**DEFAULT_METRICS, "accuracy": 0.80}, start_time="2026-01-01T00:00:01Z")
+    persist(
+        base,
+        "run-01",
+        metrics={**DEFAULT_METRICS, "accuracy": 0.80},
+        start_time="2026-01-01T00:00:01Z",
+    )
     persist(
         replace(base, activation="sigmoid"),
         "run-02",
@@ -127,9 +131,25 @@ def _build_store(root: Path) -> store.ResultsStore:
         metrics={**DEFAULT_METRICS, "accuracy": 0.85},
         start_time="2026-01-01T00:00:03Z",
     )
-    persist(base, "run-04", state="FAILED", failure="NaN detected in training loss", start_time="2026-01-01T00:00:04Z")
-    persist(replace(base, seed=7), "run-05", metrics={**DEFAULT_METRICS, "accuracy": 0.70}, start_time="2026-01-01T00:00:05Z")
-    persist(replace(base, seed=13), "run-06", metrics={**DEFAULT_METRICS, "accuracy": 0.90}, start_time="2026-01-01T00:00:06Z")
+    persist(
+        base,
+        "run-04",
+        state="FAILED",
+        failure="NaN detected in training loss",
+        start_time="2026-01-01T00:00:04Z",
+    )
+    persist(
+        replace(base, seed=7),
+        "run-05",
+        metrics={**DEFAULT_METRICS, "accuracy": 0.70},
+        start_time="2026-01-01T00:00:05Z",
+    )
+    persist(
+        replace(base, seed=13),
+        "run-06",
+        metrics={**DEFAULT_METRICS, "accuracy": 0.90},
+        start_time="2026-01-01T00:00:06Z",
+    )
     persist(
         replace(base, preprocessing=replace(base.preprocessing, class_weight="balanced")),
         "run-07",
@@ -415,7 +435,9 @@ def test_warnings_summary_lists_warnings_failure_and_pending(exported):
     assert {"warning", "failure", "pending_review"} <= categories
     assert any(row["run_id"] == "run-02" and row["category"] == "warning" for row in rows)
     assert any(row["run_id"] == "run-04" and row["category"] == "failure" for row in rows)
-    assert any(row["category"] == "pending_review" and "stability" in row["message"] for row in rows)
+    assert any(
+        row["category"] == "pending_review" and "stability" in row["message"] for row in rows
+    )
 
 
 # ---------------------------------------------------------------------------
