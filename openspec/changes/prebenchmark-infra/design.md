@@ -186,3 +186,22 @@ No migration required — greenfield package; new directories only. `Experimento
 - [x] **Resolved** — enabling convergence: defaults are now declared and applied when a field is unspecified: `metric=val_loss, patience=20, min_delta=1e-4, mode=min`, plus `restore_best_weights=True` (the best-validation epoch weights are restored at the end, mirroring Keras semantics). The criterion stays OFF by default; the resolved criterion plus the trigger reason are recorded in metadata (see `resolve_convergence()` in `prebenchmark/config.py` and `run_experiment()` in `prebenchmark/runner.py`).
 - [x] **Resolved** — multi-seed protocol for stage 1 (exploratory): each configuration is run with the fixed seed set `(42, 123, 7, 2025, 999)` and compared by mean ± sample std over `val_loss` and `val_accuracy`. Later stages remain single-run until re-evaluated. The fixed set is defined in `prebenchmark/seeds.py` (`EXPLORATORY_SEEDS`).
 
+## Decision Records
+
+### 2026-11-18 — `sgd + lr=0.1`: keep the family, keep the WARNING, do not label it problematic
+
+**Context.** `space.py` emits `high_lr_sgd` (`SGD with learning rate >= 0.1 may diverge`) for this family. The rule is a conservative prior from general practice: the classic SGD + lr=0.1 recipe assumes momentum (~0.9), a learning-rate schedule, and medium/large batches. It is known to be fragile in fine-tuning, transformers and very small batches. This protocol runs **plain SGD** (`momentum=0`), **no scheduler**, `batch_size=32` and an MLP `[32, 16]` — exactly the "plain SGD" setting where caution is warranted.
+
+**Evidence from the two full sweeps** (5 seeds per configuration, completed runs):
+
+| Dataset | Experiment | Runs in family | F1 macro mean | Accuracy | Epochs | Time/run | Family rank |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| wine_quality | exp-sweep-01 | 60 | 0.2724 | 0.5091 | 83.8 | 5.7 s | 1 / 6 |
+| satimage | exp-sweep-02-satimage | 30 | 0.8793 | 0.9007 | 111.8 | 12.4 s | 2 / 6 |
+
+**Decision.** Keep the family in the search space, keep the static WARNING as a conservative prior, and let the "problematic family" badge remain **data-driven** (only the two lowest-F1 families per dataset). `sgd + lr=0.1` is therefore not labelled problematic, and the UI shows both the rule and the evidence side by side.
+
+**Consequences.** The UI must not equate a static warning with an empirical verdict; users see the rule, the family statistics and the family ranking. If the protocol later adds momentum, a scheduler, or a different batch size, both the warning and the evidence must be re-evaluated.
+
+**Runtime record.** `results/experiments/exp-sweep-01/decisions.jsonl` and `results/experiments/exp-sweep-02-satimage/decisions.jsonl` (append-only, gitignored). This section is the versioned rationale.
+
