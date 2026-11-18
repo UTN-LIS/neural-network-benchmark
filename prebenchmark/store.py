@@ -228,7 +228,14 @@ class ResultsStore:
         epochs: Sequence[Mapping[str, Any]] | None,
     ) -> None:
         buffer = io.StringIO()
-        writer = csv.DictWriter(buffer, fieldnames=EPOCH_COLUMNS, extrasaction="ignore")
+        # ``lineterminator="\n"`` evita el doble CR al escribir en Windows: el
+        # texto se persiste con ``write_text``, que traduce ``\n`` a ``\r\n``.
+        writer = csv.DictWriter(
+            buffer,
+            fieldnames=EPOCH_COLUMNS,
+            extrasaction="ignore",
+            lineterminator="\n",
+        )
         writer.writeheader()
         for row in epochs or ():
             record = dict(row)
