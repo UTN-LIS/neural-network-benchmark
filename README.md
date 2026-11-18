@@ -204,9 +204,10 @@ python -m uvicorn server.app:app --reload
 ```
 
 The UI has two implemented tabs: a **single-configuration run** (real training,
-live loss curve over SSE, validation metrics, optional comparison of up to three
-runs, full `metadata.json` viewer) and a **suite comparison** tab that reads the
-exported evidence and serves the generated HTML/PDF reports.
+live loss curve over SSE, validation metrics, cancel button, optional comparison
+of up to three runs with per-row removal, full `metadata.json` viewer) and a
+**suite comparison** tab that reads the exported evidence and serves the generated
+HTML/PDF reports.
 
 Endpoints:
 
@@ -218,6 +219,7 @@ Endpoints:
 | POST | `/api/validate` | `space.validate_config` without running |
 | POST | `/api/runs` | enqueue one run (202 + `job_id`) |
 | GET | `/api/runs/{id}` | job snapshot |
+| POST | `/api/runs/{id}/cancel` | cooperative cancel; the run ends as `INCOMPLETE` |
 | GET | `/api/runs/{id}/events` | SSE stream: `status`, `epoch`, `done`, `failed` |
 | GET | `/api/evidence` | family statistics and failure modes from `results/exports` |
 | GET | `/api/reports/{experiment}` | latest generated HTML report |
@@ -242,6 +244,10 @@ Design decisions the skeleton enforces:
   epochs (early collapse vs. exhausting the epoch cap).
 - **Observer hook.** `runner.run_experiment` accepts `on_epoch`, called with each
   `epochs.csv`-shaped record. A failing observer never aborts a run.
+- **Cooperative cancel.** `runner.run_experiment` accepts `should_stop`, checked
+  at the start of every epoch. A cancelled run is recorded as `INCOMPLETE`
+  (already part of the technical-state vocabulary) and excluded from aggregates
+  and reports; its best-epoch metrics are still available for inspection.
 
 `PREBENCHMARK_TORCH_THREADS` optionally pins `torch.set_num_threads` when the
 process shares the machine with other loads.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +41,7 @@ def _fake_run_experiment(
     *,
     df: Any = None,
     on_epoch: Any = None,
+    should_stop: Any = None,
 ) -> dict[str, Any]:
     assert store is not None, "la UI debe persistir la corrida en su store aislado"
     for epoch in range(1, 4):
@@ -223,6 +225,86 @@ def test_job_status_is_queryable(client: TestClient) -> None:
     assert status["epochs"] == 3
     assert status["execution_state"] == "COMPLETED"
     assert client.get("/api/runs/job-inexistente").status_code == 404
+
+
+def test_cancel_marks_the_run_incomplete(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def slow_run(
+        cfg: ExperimentConfig,
+        experiment_id: str = "exp-test",
+        store: Any = None,
+        *,
+        df: Any = None,
+        on_epoch: Any = None,
+        should_stop: Any = None,
+    ) -> dict[str, Any]:
+        emitted = 0
+        for epoch in range(1, 500):
+            if should_stop is not None and should_stop():
+                metadata = {
+                    "run_id": "run-cancel",
+                    "config_id": "cfg-cancel",
+                    "execution_state": "INCOMPLETE",
+                    "warnings": ["run cancelled by user request"],
+                    "config_snapshot": cfg.to_dict(),
+                    "validation_metrics": {"evaluation_set": "validation", "epoch": emitted},
+                    "final_metrics": {"evaluation_set": "test"},
+                    "training_time": 0.1,
+                    "n_params": 10,
+                }
+                return {
+                    "run_id": "run-cancel",
+                    "config_id": "cfg-cancel",
+                    "state": "INCOMPLETE",
+                    "epochs_executed": emitted,
+                    "convergence_trigger": {"reason": "cancelled_by_user"},
+                    "metadata": metadata,
+                    "epochs": [],
+                }
+            emitted = epoch
+            if on_epoch is not None:
+                on_epoch(
+                    {
+                        "run_id": "run-cancel",
+                        "config_id": "cfg-cancel",
+                        "epoch": epoch,
+                        "train_loss": 1.0 / epoch,
+                        "train_acc": 0.5,
+                        "val_loss": 1.0 / epoch,
+                        "val_acc": 0.5,
+                        "epoch_time": 0.01,
+                    }
+                )
+            time.sleep(0.02)
+        raise AssertionError("la corrida no fue cancelada")
+
+    monkeypatch.setattr(server_app.runner, "run_experiment", slow_run)
+    job_id = client.post("/api/runs", json=_payload(max_epochs=499)).json()["job_id"]
+
+    for _ in range(200):
+        if client.get(f"/api/runs/{job_id}").json()["epochs"] >= 2:
+            break
+        time.sleep(0.01)
+
+    cancelled = client.post(f"/api/runs/{job_id}/cancel")
+    assert cancelled.status_code == 200
+    assert cancelled.json()["cancel_requested"] is True
+
+    events = _sse_events(client, job_id)
+    done = [event for event in events if event.get("_event") == "done"][0]
+    assert done["result"]["execution_state"] == "INCOMPLETE"
+    assert done["result"]["epochs_executed"] < 499
+    assert done["result"]["convergence_trigger"]["reason"] == "cancelled_by_user"
+
+
+def test_cancel_is_idempotent_and_404_for_unknown_job(client: TestClient) -> None:
+    job_id = client.post("/api/runs", json=_payload()).json()["job_id"]
+    _sse_events(client, job_id)
+    response = client.post(f"/api/runs/{job_id}/cancel")
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+    assert client.post("/api/runs/job-inexistente/cancel").status_code == 404
 
 
 def test_evidence_derives_failure_modes_from_exports(client: TestClient, tmp_path: Path) -> None:

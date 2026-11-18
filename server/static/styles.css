@@ -69,6 +69,7 @@ pre{margin:0;padding:13px;overflow:auto;font:12px/1.5 Consolas,Menlo,monospace;m
   background:#eef2f7;color:var(--gris);border:1px solid var(--borde);margin-left:6px}
 .tag.ok{background:#eaf6f3;color:#0b4f45;border-color:#bfe0d8}
 .tag.bad{background:#fdecec;color:#7f1d1d;border-color:#f3bcbc}
+.tag.warn{background:#fff8e6;color:#7c4a03;border-color:#f0d795}
 .card{border:1px solid var(--borde);border-radius:10px;padding:15px 17px;background:var(--panel)}
 .card h2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .kv{font-size:13px;color:var(--gris);margin:2px 0}
@@ -78,9 +79,14 @@ a{color:var(--azul)}
 .empty{color:var(--gris);font-size:13px;font-style:italic;padding:14px 0}
 svg text{font:11px "Segoe UI",system-ui,sans-serif}
 .pill{font-size:11px;padding:2px 7px;border-radius:99px;background:#eef2f7;color:var(--gris)}
+.pill.ok{background:#eaf6f3;color:#0b4f45}
+.pill.warn{background:#fff8e6;color:#7c4a03}
+.pill.bad{background:#fdecec;color:#7f1d1d}
 .footer{margin-top:34px;padding-top:14px;border-top:1px solid var(--borde);font-size:12px;color:var(--gris)}
 code{background:#f0f2f5;padding:1px 5px;border-radius:4px;font-size:12px}
 .check{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:8px 0}
 .check input{margin-top:3px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .loading{font-size:13px;color:var(--gris);font-style:italic}
+.remove-run{padding:4px 9px;font-size:12px;width:auto;border-radius:6px}
+.remove-run:hover{background:#fdecec;border-color:#f3bcbc;color:#7f1d1d}

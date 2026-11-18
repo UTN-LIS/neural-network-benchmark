@@ -26,6 +26,7 @@ let busy = false;
 let source = null;
 let finished = false;
 let curveRows = [];
+let activeJobId = null;
 let validationTimer = null;
 let validationSeq = 0;
 
@@ -137,6 +138,7 @@ function wireControls() {
     renderWarnings();
   });
   $("run-btn").addEventListener("click", startRun);
+  $("cancel-btn").addEventListener("click", cancelRun);
 
   document.querySelectorAll("nav button[data-tab]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -519,8 +521,12 @@ async function startRun() {
   busy = true;
   finished = false;
   curveRows = [];
+  activeJobId = null;
   $("run-btn").disabled = true;
   $("run-btn").textContent = "Encolando…";
+  $("cancel-btn").style.display = "none";
+  $("cancel-btn").disabled = false;
+  $("cancel-btn").textContent = "■ Cancelar";
   $("run-state").textContent = "encolando";
   $("run-state").className = "tag";
   $("results").innerHTML = '<div class="empty">Esperando al worker…</div>';
@@ -538,8 +544,26 @@ async function startRun() {
     });
     state.liveValidation = created.validation;
     renderWarnings();
+    activeJobId = created.job_id;
+    $("cancel-btn").style.display = "";
     openStream(created.job_id);
   } catch (error) {
+    showRunError(error);
+  }
+}
+
+async function cancelRun() {
+  if (!activeJobId) return;
+  const button = $("cancel-btn");
+  button.disabled = true;
+  button.textContent = "Cancelando…";
+  try {
+    await api("/api/runs/" + activeJobId + "/cancel", { method: "POST" });
+    $("progress-text").textContent =
+      "Cancelación solicitada: la corrida se detendrá al terminar la época actual.";
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "■ Cancelar";
     showRunError(error);
   }
 }
@@ -601,10 +625,16 @@ function openStream(jobId) {
 
 function finishRun(payload) {
   busy = false;
+  activeJobId = null;
   $("run-btn").disabled = false;
   $("run-btn").textContent = "▶ Correr combinación";
-  $("run-state").textContent = payload.execution_state || "COMPLETED";
-  $("run-state").className = "tag " + (payload.execution_state === "FAILED" ? "bad" : "ok");
+  $("cancel-btn").style.display = "none";
+  $("cancel-btn").disabled = false;
+  $("cancel-btn").textContent = "■ Cancelar";
+  const stateName = payload.execution_state || "COMPLETED";
+  $("run-state").textContent = stateName;
+  $("run-state").className =
+    "tag " + (stateName === "COMPLETED" ? "ok" : stateName === "COMPLETED_WITH_WARNINGS" ? "warn" : "bad");
   $("progress").style.width = "100%";
   $("progress-text").innerHTML = "Corrida finalizada · <b>" + payload.epochs_executed + "</b> épocas · " +
     fmt(payload.training_time, 1) + " s";
@@ -633,6 +663,11 @@ function finishRun(payload) {
     '<div class="hint" style="margin-top:10px">config_id <code>' + esc(payload.config_id || "—") +
       "</code> · space_key <code>" + esc(payload.space_key || "—") + "</code> · group_key <code>" +
       esc(payload.group_key || "—") + "</code></div>" +
+    (stateName === "INCOMPLETE"
+      ? '<div class="alert warn" style="margin-top:12px"><span class="t">Corrida cancelada</span>' +
+        "Se conservaron las métricas de la mejor época alcanzada, pero el estado técnico es " +
+        "<b>INCOMPLETE</b>: la corrida no se incluye en agregados ni informes.</div>"
+      : "") +
     (warnings.length
       ? '<div class="alert warn" style="margin-top:12px"><span class="t">execution_state: ' +
         esc(payload.execution_state) + "</span>" + warnings.map(esc).join(" · ") + "</div>"
@@ -665,8 +700,12 @@ function finishRun(payload) {
 function showRunError(error) {
   busy = false;
   finished = true;
+  activeJobId = null;
   $("run-btn").disabled = false;
   $("run-btn").textContent = "▶ Correr combinación";
+  $("cancel-btn").style.display = "none";
+  $("cancel-btn").disabled = false;
+  $("cancel-btn").textContent = "■ Cancelar";
   $("run-state").textContent = "error";
   $("run-state").className = "tag bad";
   const detail = error.body && error.body.detail;
@@ -794,28 +833,49 @@ function renderCompare() {
     "<table><thead><tr><th>Configuración</th><th>Dataset</th><th class='num'>F1 val</th>" +
     "<th class='num'>Acc val</th><th class='num'>Bal. acc</th><th class='num'>Prec</th>" +
     "<th class='num'>Recall</th><th class='num'>Val loss</th><th class='num'>Épocas</th>" +
-    "<th class='num'>Tiempo</th></tr></thead><tbody>";
+    "<th class='num'>Tiempo</th><th></th></tr></thead><tbody>";
 
-  const best = Math.max(...runs.map((run) => Number(run.payload.validation_metrics.f1_macro || 0)));
-  runs.forEach((run) => {
+  const COMPLETE_STATES = ["COMPLETED", "COMPLETED_WITH_WARNINGS"];
+  const isComplete = (run) => COMPLETE_STATES.includes(run.payload.execution_state);
+  const comparable = runs.filter(isComplete);
+  const bestPool = comparable.length ? comparable : runs;
+  const incompleteCount = runs.length - comparable.length;
+  const best = Math.max(...bestPool.map((run) => Number(run.payload.validation_metrics.f1_macro || 0)));
+  let banner = "";
+  if (incompleteCount) {
+    banner =
+      '<div class="alert warn" style="margin-bottom:10px"><span class="t">Comparación con corridas incompletas</span>' +
+      incompleteCount + " corrida(s) cancelada(s) o incompleta(s). Se muestran, pero no se usan como referencia " +
+      "y no son comparables con las completas.</div>";
+  }
+
+  runs.forEach((run, index) => {
     const payload = run.payload;
     const validation = payload.validation_metrics || {};
     const config = payload.config || {};
     const delta = Number(validation.f1_macro || 0) - best;
     const label = [config.activation, config.optimizer, "lr " + config.lr, config.init].filter(Boolean).join(" · ");
+    const runComplete = isComplete(run);
+    const stateName = payload.execution_state || "COMPLETED";
+    const stateClass = stateName === "COMPLETED" ? "ok" : stateName === "COMPLETED_WITH_WARNINGS" ? "warn" : "bad";
     table += "<tr>" +
       "<td>" + esc(label) + "<br><span class='pill'>cw " +
-        esc(config.preprocessing ? config.preprocessing.class_weight || "none" : "none") + "</span></td>" +
+        esc(config.preprocessing ? config.preprocessing.class_weight || "none" : "none") + "</span> " +
+        "<span class='pill " + stateClass + "'>" + stateName + "</span></td>" +
       "<td>" + esc(payload.config && payload.config.dataset ? payload.config.dataset.name : state.dataset) + "</td>" +
       "<td class='num'><b>" + fmt(validation.f1_macro, 4) + "</b><br><span class='pill'>" +
-        (runs.length > 1 ? (delta === 0 ? "referencia" : (delta > 0 ? "+" : "") + fmt(delta, 4)) : "—") + "</span></td>" +
+        (runs.length > 1
+          ? (runComplete ? (delta === 0 ? "referencia" : (delta > 0 ? "+" : "") + fmt(delta, 4)) : "no comparable")
+          : "—") + "</span></td>" +
       "<td class='num'>" + fmt(validation.accuracy, 4) + "</td>" +
       "<td class='num'>" + fmt(validation.balanced_accuracy, 4) + "</td>" +
       "<td class='num'>" + fmt(validation.precision_macro, 4) + "</td>" +
       "<td class='num'>" + fmt(validation.recall_macro, 4) + "</td>" +
       "<td class='num'>" + fmt(validation.loss, 4) + "</td>" +
       "<td class='num'>" + payload.epochs_executed + "</td>" +
-      "<td class='num'>" + fmt(payload.training_time, 1) + " s</td></tr>";
+      "<td class='num'>" + fmt(payload.training_time, 1) + " s</td>" +
+      "<td class='num'><button class='btn ghost remove-run' type='button' data-index='" + index +
+      "' title='Quitar esta corrida de la comparación'>Quitar</button></td></tr>";
   });
   table += "</tbody></table>";
 
@@ -860,8 +920,14 @@ function renderCompare() {
       '<div class="hint">Curvas de <code>val_loss</code> superpuestas.</div></div>';
   }
 
-  $("compare").innerHTML = table + overlay +
+  $("compare").innerHTML = banner + table + overlay +
     '<div style="margin-top:12px"><button class="btn ghost" id="clear-runs" type="button">Limpiar comparaciones</button></div>';
+  document.querySelectorAll("#compare .remove-run").forEach((button) => {
+    button.addEventListener("click", () => {
+      runs.splice(Number(button.dataset.index), 1);
+      renderCompare();
+    });
+  });
   $("clear-runs").addEventListener("click", () => {
     runs.length = 0;
     renderCompare();
