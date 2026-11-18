@@ -235,3 +235,27 @@ def test_runner_supports_a_registered_dataset_with_generic_target_column():
         assert meta["architecture"]["output_dim"] == 3
         assert meta["epochs_executed"] == 2
         assert meta["final_metrics"]["f1_macro"] >= 0.0
+
+
+def test_runner_can_be_cancelled_cooperatively():
+    """La cancelación se consulta por época y deja el estado técnico INCOMPLETE.
+
+    INCOMPLETE ya existe en el vocabulario de estados y el análisis solo acepta
+    COMPLETED/COMPLETED_WITH_WARNINGS, así que una corrida cancelada nunca
+    contamina las métricas agregadas.
+    """
+    df = _make_df()
+    checks = {"count": 0}
+
+    def should_stop() -> bool:
+        checks["count"] += 1
+        return checks["count"] > 1
+
+    cfg = config.ExperimentConfig(max_epochs=50, seed=42)
+    res = runner.run_experiment(cfg, experiment_id="exp-cancel", df=df, should_stop=should_stop)
+
+    assert res["state"] == "INCOMPLETE"
+    assert res["epochs_executed"] == 1
+    assert res["metadata"]["execution_state"] == "INCOMPLETE"
+    assert res["convergence_trigger"]["reason"] == "cancelled_by_user"
+    assert any("cancelled" in warning for warning in res["metadata"]["warnings"])

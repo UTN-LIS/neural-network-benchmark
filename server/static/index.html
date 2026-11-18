@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prebenchmark UI</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<header>
+  <h1>Prebenchmark — Banco de pruebas de redes neuronales</h1>
+  <p class="sub">Corrida individual de configuraciones y comparación de las suites completas</p>
+</header>
+
+<nav role="tablist">
+  <button role="tab" id="tab-btn-run" aria-selected="true" data-tab="run">1 · Corrida individual</button>
+  <button role="tab" id="tab-btn-compare" aria-selected="false" data-tab="compare">2 · Comparación general</button>
+  <button role="tab" id="tab-btn-act" aria-selected="false" data-tab="act" disabled
+          title="Planificado para una etapa posterior">3 · Funciones de activación <span class="tag">planificado</span></button>
+</nav>
+
+<main>
+<div class="banner" id="banner">
+  <b>API real, sin simulación.</b> La corrida individual entrena de verdad con PyTorch y guarda su
+  evidencia en <code id="store-root">results/ui-runs</code>, separada del store de las suites.
+  La comparación general lee <code>results/exports</code> y sirve los informes de <code>results/reports</code>.
+</div>
+
+<!-- ============ PESTAÑA 1 ============ -->
+<section id="tab-run" role="tabpanel" aria-labelledby="tab-btn-run">
+<div class="grid g-2">
+
+  <div>
+    <div class="panel">
+      <h2>Configuración del experimento <span class="tag" id="api-status">conectando…</span></h2>
+
+      <div class="dim">
+        <label for="dataset">Dataset</label>
+        <select id="dataset"></select>
+        <div id="dataset-stats" style="margin-top:10px"></div>
+      </div>
+
+      <h3>Las 4 dimensiones libres del espacio</h3>
+
+      <div class="dim">
+        <label>Función de activación</label>
+        <div class="seg" id="seg-activation"></div>
+      </div>
+      <div class="dim">
+        <label>Optimizador</label>
+        <div class="seg" id="seg-optimizer"></div>
+      </div>
+      <div class="dim">
+        <label>Tasa de aprendizaje (lr)</label>
+        <div class="seg" id="seg-lr"></div>
+      </div>
+      <div class="dim">
+        <label>Inicialización de pesos</label>
+        <div class="seg" id="seg-init"></div>
+      </div>
+
+      <details>
+        <summary>Protocolo y ponderación de clases (no son dimensiones libres)</summary>
+        <div style="padding:12px 13px">
+          <div class="dim">
+            <label>class_weight</label>
+            <div class="seg" id="seg-cw"></div>
+            <div class="hint">Pondera la pérdida <b>solo en entrenamiento</b>. Validación y prueba
+              usan entropía cruzada sin ponderar para que las métricas sean comparables.</div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="seed">seed</label>
+              <input id="seed" type="number" value="42" min="0">
+            </div>
+            <div>
+              <label for="max-epochs">max_epochs</label>
+              <input id="max-epochs" type="number" value="500" min="1" max="5000">
+            </div>
+          </div>
+          <label class="check" for="early-stop">
+            <input type="checkbox" id="early-stop" checked>
+            <span>Early stopping sobre <code>val_loss</code> (patience 20, min_delta 1e-4).
+              Encendido por defecto: sin él una corrida puede agotar las 500 épocas.</span>
+          </label>
+          <label class="check" for="include-test">
+            <input type="checkbox" id="include-test">
+            <span>Incluir métricas del <b>set de prueba</b> en la respuesta. Está reservado para la
+              evaluación final: usarlo para elegir hiperparámetros sesga la estimación.</span>
+          </label>
+          <div id="protocol" style="margin-top:10px"></div>
+        </div>
+      </details>
+
+      <div style="margin-top:16px; display:flex; gap:8px">
+        <button class="btn" id="run-btn">▶ Correr combinación</button>
+        <button class="btn ghost" id="cancel-btn" type="button"
+                style="display:none; width:auto; white-space:nowrap">■ Cancelar</button>
+      </div>
+      <div class="hint" id="estimate"></div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h2>Arquitectura de la red</h2>
+      <div id="arch"><div class="loading">Cargando dataset…</div></div>
+      <div class="hint" id="arch-note"></div>
+    </div>
+  </div>
+
+  <div>
+    <div id="warnings"></div>
+
+    <div class="panel">
+      <h2>Entrenamiento <span class="tag" id="run-state">en espera</span></h2>
+      <div class="bar"><i id="progress"></i></div>
+      <div class="hint" id="progress-text">Seleccioná una configuración y presioná «Correr combinación».</div>
+      <div id="curve" style="margin-top:12px"></div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h2>Resultados <span class="tag" id="res-tag">sin corrida</span></h2>
+      <div id="results"><div class="empty">Todavía no se ejecutó ninguna configuración.</div></div>
+
+      <details id="meta-box" style="display:none">
+        <summary>Configuración completa de la corrida (metadata.json)</summary>
+        <pre id="meta-json"></pre>
+      </details>
+
+      <details id="test-box" style="display:none">
+        <summary>Evaluación final sobre el set de prueba (test) — uso reservado</summary>
+        <div style="padding:12px 13px">
+          <div class="alert warn">
+            <span class="t">Cuidado metodológico</span>
+            El set de prueba está reservado para la evaluación final. Si se usan sus métricas para
+            elegir configuraciones, deja de ser una estimación imparcial. Para comparar
+            hiperparámetros, la métrica de decisión es la de <b>validación</b>.
+          </div>
+          <div id="test-metrics" class="metrics"></div>
+          <div id="cm-wrap"></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h2>Comparación rápida <span class="tag" id="cmp-count">0 / 3</span></h2>
+      <div class="hint" style="margin-bottom:10px">
+        Se conservan las últimas 3 corridas de esta sesión. La comparación es descriptiva: una sola
+        semilla por configuración no permite inferencia estadística.
+      </div>
+      <div id="compare"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ PESTAÑA 2 ============ -->
+<section id="tab-compare" role="tabpanel" aria-labelledby="tab-btn-compare" hidden>
+  <div class="grid g-3" id="exp-cards"></div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Familias de hiperparámetros: optimizador × tasa de aprendizaje</h2>
+    <p class="sub" style="margin-top:0">
+      Medias reales por familia sobre las corridas completadas de cada suite. El modo de fallo se
+      infiere de las épocas ejecutadas: colapso temprano (lr alta) o agotamiento del tope (lr baja).
+    </p>
+    <div id="family-table"><div class="loading">Cargando evidencia…</div></div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Cobertura de datasets</h2>
+    <div id="coverage"></div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Advertencias para la lectura cruzada</h2>
+    <ul style="margin:0;padding-left:20px;font-size:13.5px">
+      <li>Las suites no son directamente comparables: exp-sweep-01 cubre 2 variantes de
+        <code>class_weight</code>; exp-sweep-02-satimage solo <code>none</code>.</li>
+      <li>Con 5 semillas la potencia estadística es baja: leer p-valores junto con intervalos de
+        confianza y tamaños del efecto.</li>
+      <li>En wine_quality todas las configuraciones son malas en términos absolutos; el dataset
+        (razón de desbalance 439.6) domina el resultado.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ PESTAÑA 3 ============ -->
+<section id="tab-act" role="tabpanel" aria-labelledby="tab-btn-act" hidden>
+  <div class="panel">
+    <h2>Prueba de funciones de activación</h2>
+    <p class="sub">Apartado planificado desde el diseño original. Se deja fuera del alcance de esta
+      etapa: primero la corrida individual y la comparación general.</p>
+  </div>
+</section>
+
+<div class="footer">
+  API: <code>server/app.py</code> · un worker · SSE · store aislado en <code>results/ui-runs</code> ·
+  informes: <code>results/reports</code> · evidencia: <code>results/exports</code>
+</div>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

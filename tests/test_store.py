@@ -91,6 +91,28 @@ def test_epochs_csv_uses_canonical_columns(store: ResultsStore) -> None:
     assert header.split(",") == list(EPOCH_COLUMNS)
 
 
+def test_epochs_csv_has_no_blank_lines(store: ResultsStore) -> None:
+    """El CSV persistido debe tener una línea por registro, sin dobles saltos.
+
+    En Windows, ``write_text`` traduce ``\\n`` a ``\\r\\n``; si el escritor CSV ya
+    usa ``\\r\\n`` como terminador, el archivo termina con ``\\r\\r\\n`` y una
+    línea en blanco por registro. Pandas lo tolera, pero el artefacto queda sucio.
+    """
+    store.persist_run(
+        EXPERIMENT_ID,
+        "run-1",
+        make_metadata(ExperimentConfig(), "run-1"),
+        [
+            {"epoch": 1, "train_loss": 1.0},
+            {"epoch": 2, "train_loss": 0.5},
+        ],
+    )
+    text = (store.run_dir(EXPERIMENT_ID, "run-1") / EPOCHS_CSV_FILE).read_text(encoding="utf-8")
+    lines = text.splitlines()
+    assert all(line.strip() for line in lines)
+    assert len(lines) == 3  # encabezado + 2 épocas
+
+
 def test_missing_val_metrics_load_as_none(store: ResultsStore) -> None:
     cfg = ExperimentConfig()
     store.persist_run(
