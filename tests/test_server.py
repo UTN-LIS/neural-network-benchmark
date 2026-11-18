@@ -1,0 +1,317 @@
+"""Tests del esqueleto HTTP: aislamiento, validación, SSE y evidencia."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+import pytest
+from fastapi.testclient import TestClient
+from prebenchmark import config as pb_config
+from prebenchmark.config import ConvergenceSpec, ExperimentConfig, PreprocessingSpec
+from server import app as server_app
+from server.jobs import JobRegistry
+from server.serialize import to_jsonable
+
+
+def _fake_build_config(request: Any) -> ExperimentConfig:
+    """Construye la config sin tocar datasets (tests offline y rápidos)."""
+    return ExperimentConfig(
+        activation=request.activation,
+        optimizer=request.optimizer,
+        lr=request.lr,
+        init=request.init,
+        seed=request.seed,
+        max_epochs=request.max_epochs,
+        preprocessing=PreprocessingSpec(
+            class_weight=None if request.class_weight == "none" else request.class_weight
+        ),
+        convergence=ConvergenceSpec(enabled=request.early_stop),
+    )
+
+
+def _fake_run_experiment(
+    cfg: ExperimentConfig,
+    experiment_id: str = "exp-test",
+    store: Any = None,
+    *,
+    df: Any = None,
+    on_epoch: Any = None,
+) -> dict[str, Any]:
+    assert store is not None, "la UI debe persistir la corrida en su store aislado"
+    for epoch in range(1, 4):
+        record = {
+            "run_id": "run-ui-test",
+            "config_id": "cfg-ui-test",
+            "epoch": epoch,
+            "train_loss": 2.0 / epoch,
+            "train_acc": 0.4 + epoch * 0.1,
+            "val_loss": 2.2 / epoch,
+            "val_acc": 0.35 + epoch * 0.1,
+            "epoch_time": 0.01,
+        }
+        if on_epoch is not None:
+            on_epoch(record)
+
+    metadata = {
+        "run_id": "run-ui-test",
+        "config_id": "cfg-ui-test",
+        "execution_state": "COMPLETED",
+        "warnings": [],
+        "config_snapshot": cfg.to_dict(),
+        "validation_metrics": {
+            "evaluation_set": "validation",
+            "epoch": 3,
+            "loss": 0.73,
+            "accuracy": 0.65,
+            "balanced_accuracy": 0.62,
+            "precision_macro": 0.64,
+            "recall_macro": 0.63,
+            "f1_macro": 0.63,
+            "confusion_matrix": [[1, 0], [0, 1]],
+        },
+        "final_metrics": {
+            "evaluation_set": "test",
+            "loss": 0.70,
+            "accuracy": 0.66,
+            "balanced_accuracy": 0.63,
+            "precision_macro": 0.65,
+            "recall_macro": 0.64,
+            "f1_macro": 0.64,
+            "confusion_matrix": [[1, 0], [0, 1]],
+        },
+        "training_time": 0.03,
+        "n_params": 1814,
+    }
+    return {
+        "run_id": "run-ui-test",
+        "config_id": "cfg-ui-test",
+        "state": "COMPLETED",
+        "epochs_executed": 3,
+        "convergence_trigger": {"reason": "early_stopping", "best_epoch": 3},
+        "metadata": metadata,
+        "epochs": [],
+    }
+
+
+@pytest.fixture()
+def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(server_app, "_build_config", _fake_build_config)
+    monkeypatch.setattr(server_app.runner, "run_experiment", _fake_run_experiment)
+    application = server_app.create_app(
+        store_root=tmp_path / "ui-store",
+        experiment_id="ui-test",
+        exports_root=tmp_path / "exports",
+        reports_root=tmp_path / "reports",
+    )
+    with TestClient(application) as test_client:
+        yield test_client
+
+
+def _payload(**overrides: Any) -> dict[str, Any]:
+    base = {
+        "dataset": "wine_quality",
+        "activation": "relu",
+        "optimizer": "adam",
+        "lr": 0.01,
+        "init": "he",
+        "class_weight": "none",
+        "seed": 42,
+        "max_epochs": 50,
+        "early_stop": True,
+        "include_test": False,
+        "device": "auto",
+    }
+    base.update(overrides)
+    return base
+
+
+def _sse_events(client: TestClient, job_id: str) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    event_name = None
+    with client.stream("GET", f"/api/runs/{job_id}/events") as response:
+        assert response.status_code == 200
+        for line in response.iter_lines():
+            if line.startswith("event: "):
+                event_name = line.removeprefix("event: ")
+            elif line.startswith("data: "):
+                payload = json.loads(line.removeprefix("data: "))
+                if event_name:
+                    payload["_event"] = event_name
+                events.append(payload)
+                event_name = None
+    return events
+
+
+def test_health_declares_single_worker_and_isolated_store(client: TestClient) -> None:
+    body = client.get("/api/health").json()
+    assert body["status"] == "ok"
+    assert body["max_workers"] == 1
+    assert body["experiment_id"] == "ui-test"
+    assert body["store_root"].endswith("ui-store")
+
+
+def test_options_exposes_the_four_dimensions_and_protocol(client: TestClient) -> None:
+    body = client.get("/api/options").json()
+    assert "wine_quality" in [dataset["name"] for dataset in body["datasets"]]
+    assert body["activations"] == ["relu", "sigmoid", "tanh"]
+    assert body["optimizers"] == ["sgd", "adam"]
+    assert body["learning_rates"] == [0.001, 0.01, 0.1]
+    assert body["initializations"] == ["xavier", "he"]
+    assert body["protocol"]["early_stopping"]["enabled_by_default"] is True
+    assert body["protocol"]["batch_size"] == 32
+
+
+def test_validate_returns_domain_state(client: TestClient) -> None:
+    invalid = client.post("/api/validate", json=_payload(activation="softmax")).json()
+    assert invalid["state"] == "INVALID"
+    assert invalid["errors"]
+
+    warning = client.post(
+        "/api/validate", json=_payload(activation="tanh", init="he", optimizer="sgd", lr=0.001)
+    ).json()
+    assert warning["state"] == "WARNING"
+    assert any("He/Kaiming" in message for message in warning["warnings"])
+
+
+def test_run_rejects_invalid_configuration(client: TestClient) -> None:
+    response = client.post("/api/runs", json=_payload(activation="softmax"))
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["validation"]["state"] == "INVALID"
+
+
+def test_run_streams_epochs_and_hides_test_by_default(client: TestClient) -> None:
+    created = client.post("/api/runs", json=_payload())
+    assert created.status_code == 202
+    job_id = created.json()["job_id"]
+
+    events = _sse_events(client, job_id)
+    epochs = [event for event in events if event.get("_event") == "epoch"]
+    done = [event for event in events if event.get("_event") == "done"]
+
+    assert [epoch["epoch"] for epoch in epochs] == [1, 2, 3]
+    assert len(done) == 1
+    result = done[0]["result"]
+    assert result["execution_state"] == "COMPLETED"
+    assert result["validation_metrics"]["f1_macro"] == pytest.approx(0.63)
+    assert result["test_metrics"] is None
+    assert result["test_hidden"] is True
+    assert "final_metrics" not in result["metadata"]
+    assert result["space_key"].startswith("space-v1-")
+    assert result["group_key"].startswith("grp-v1-")
+    assert result["n_params"] == 1814
+
+
+def test_run_includes_test_only_when_explicitly_requested(client: TestClient) -> None:
+    job_id = client.post("/api/runs", json=_payload(include_test=True)).json()["job_id"]
+    done = [event for event in _sse_events(client, job_id) if event.get("_event") == "done"][0]
+    result = done["result"]
+    assert result["test_metrics"]["evaluation_set"] == "test"
+    assert result["test_metrics"]["f1_macro"] == pytest.approx(0.64)
+    assert result["test_hidden"] is False
+
+
+def test_job_status_is_queryable(client: TestClient) -> None:
+    job_id = client.post("/api/runs", json=_payload()).json()["job_id"]
+    _sse_events(client, job_id)
+    status = client.get(f"/api/runs/{job_id}").json()
+    assert status["status"] == "completed"
+    assert status["epochs"] == 3
+    assert status["execution_state"] == "COMPLETED"
+    assert client.get("/api/runs/job-inexistente").status_code == 404
+
+
+def test_evidence_derives_failure_modes_from_exports(client: TestClient, tmp_path: Path) -> None:
+    exports = tmp_path / "exports" / "exp-demo"
+    exports.mkdir(parents=True)
+    rows = []
+    families = [
+        ("adam", 0.1, 30, 0.19, 4.0),
+        ("sgd", 0.001, 500, 0.21, 50.0),
+        ("adam", 0.001, 110, 0.88, 12.0),
+        ("adam", 0.01, 40, 0.88, 5.0),
+        ("sgd", 0.01, 300, 0.86, 30.0),
+        ("sgd", 0.1, 90, 0.87, 10.0),
+    ]
+    config_ids = []
+    for family_index, (optimizer, lr, epochs, f1, seconds) in enumerate(families):
+        for seed in (42, 123):
+            config_id = f"cfg-{family_index}-{seed}"
+            config_ids.append(config_id)
+            rows.append(
+                {
+                    "config_id": config_id,
+                    "dataset": "wine_quality",
+                    "optimizer": optimizer,
+                    "lr": lr,
+                    "f1_macro": f1,
+                    "accuracy": f1 + 0.05,
+                    "epochs_executed": epochs,
+                    "max_epochs": 500,
+                    "training_time": seconds,
+                    "execution_state": "COMPLETED",
+                    "seed": seed,
+                }
+            )
+    pd.DataFrame(rows).to_csv(exports / "master_20260101T000000Z.csv", index=False)
+    pd.DataFrame({"config_id": config_ids, "class_weight": [None] * len(config_ids)}).to_csv(
+        exports / "configs_20260101T000000Z.csv", index=False
+    )
+    pd.DataFrame({"group_key": [f"grp-{index}" for index in range(6)]}).to_csv(
+        exports / "aggregates_20260101T000000Z.csv", index=False
+    )
+
+    body = client.get("/api/evidence?dataset=wine_quality").json()
+    assert body["available"] is True
+    assert body["experiment_id"] == "exp-demo"
+    assert body["runs"] == 12
+    assert body["groups"] == 6
+    assert len(body["families"]) == 6
+
+    modes = {issue["family"]: issue["failure_mode"] for issue in body["known_issues"]}
+    assert modes["adam + lr=0.1"] == "collapse"
+    assert modes["sgd + lr=0.001"] == "no_converge"
+
+    catalog = client.get("/api/evidence").json()
+    assert catalog["datasets_with_suite"] == ["wine_quality"]
+
+
+def test_reports_are_served_without_path_traversal(client: TestClient, tmp_path: Path) -> None:
+    report_dir = tmp_path / "reports" / "exp-demo"
+    report_dir.mkdir(parents=True)
+    (report_dir / "analysis_20260101T000000Z.html").write_text(
+        "<html>informe</html>", encoding="utf-8"
+    )
+
+    response = client.get("/api/reports/exp-demo")
+    assert response.status_code == 200
+    assert "informe" in response.text
+
+    assert client.get("/api/reports/..%2F..%2Fetc").status_code == 404
+
+
+def test_registry_refuses_more_than_one_worker() -> None:
+    with pytest.raises(ValueError, match="max_workers"):
+        JobRegistry(lambda job: None, max_workers=2)
+
+
+def test_to_jsonable_makes_nan_and_numpy_safe() -> None:
+    payload = to_jsonable(
+        {"nan": float("nan"), "numpy": np.float64(1.5), "array": np.array([1, 2])}
+    )
+    assert payload == {"nan": None, "numpy": 1.5, "array": [1, 2]}
+
+
+def test_dataset_detail_is_404_for_unknown_dataset(client: TestClient) -> None:
+    assert client.get("/api/datasets/no_existe").status_code == 404
+
+
+def test_options_shape_matches_config_registry(client: TestClient) -> None:
+    body = client.get("/api/options").json()
+    assert body["activations"] == list(pb_config.KNOWN_ACTIVATIONS)
+    assert body["optimizers"] == list(pb_config.KNOWN_OPTIMIZERS)
+    assert body["initializations"] == list(pb_config.KNOWN_INITIALIZATIONS)

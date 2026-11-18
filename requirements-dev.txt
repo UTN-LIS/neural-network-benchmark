@@ -2,7 +2,9 @@
 #
 # Instalar con: pip install -r requirements-dev.txt
 
--r requirements.txt
+-r requirements-server.txt
 
+# Cliente HTTP usado por fastapi.testclient en la suite de tests.
+httpx==0.28.1
 mypy==2.4.1
 ruff==0.17.4

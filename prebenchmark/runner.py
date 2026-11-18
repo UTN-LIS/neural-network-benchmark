@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import time
 import traceback
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
@@ -88,8 +89,20 @@ def run_experiment(
     store: ResultsStore | None = None,
     *,
     df: Any = None,
+    on_epoch: Callable[[dict[str, Any]], None] | None = None,
+    should_stop: Callable[[], bool] | None = None,
 ) -> dict[str, Any]:
-    """Ejecuta el experimento de forma reproducible. Devuelve un dict similar a RunResult."""
+    """Ejecuta el experimento de forma reproducible. Devuelve un dict similar a RunResult.
+
+    ``on_epoch`` es un observador opcional que recibe cada registro de época en el
+    momento en que se produce (misma forma que las filas de ``epochs.csv``). Se usa
+    para streaming en vivo desde la UI. Un fallo del observador nunca aborta el
+    entrenamiento: la corrida es la fuente de verdad, el observador es prescindible.
+
+    ``should_stop`` habilita cancelación cooperativa. Se consulta al comienzo de
+    cada época; al activarse, el bucle se corta y la corrida se registra como
+    ``INCOMPLETE``, un estado técnico que el análisis ya excluye de las métricas.
+    """
     # Siembra determinista
     seed = cfg.seed if cfg.seed is not None else 42
     np.random.seed(seed)
@@ -156,6 +169,7 @@ def run_experiment(
     best_val_loss: float | None = None
     best_val_loss_epoch: int | None = None
     best_val_acc_at_best: float | None = None
+    best_val_metrics: dict[str, Any] | None = None
     failure_context: dict[str, Any] = {"epoch": None, "batch": None, "metric": None}
 
     try:
@@ -195,6 +209,10 @@ def run_experiment(
 
         max_epochs = cfg.max_epochs if cfg.max_epochs is not None else DEFAULT_MAX_EPOCHS
         for epoch in range(1, max_epochs + 1):
+            if should_stop is not None and should_stop():
+                stopped_reason = "cancelled_by_user"
+                warnings.append("run cancelled by user request")
+                break
             current_epoch = epoch
             epoch_start = time.time()
             train_res = metrics.epoch_train_step(m, train_loader, optimizer, criterion, device)
@@ -226,6 +244,19 @@ def run_experiment(
                     best_val_loss = val_res["val_loss"]
                     best_val_loss_epoch = epoch
                     best_val_acc_at_best = val_res["val_acc"]
+                    # ``evaluate`` ya calcula el conjunto macro completo; conservarlo
+                    # permite decidir sobre validación (F1, precisión, recall) sin
+                    # tocar el set de prueba, que queda reservado para la evaluación final.
+                    best_val_metrics = {
+                        "evaluation_set": "validation",
+                        "epoch": epoch,
+                        "loss": val_eval["loss"],
+                        **{
+                            key: value
+                            for key, value in val_eval.items()
+                            if key not in ("loss", "non_finite", "non_finite_source")
+                        },
+                    }
             if not model.parameters_are_finite(m):
                 failure_context = {"epoch": epoch, "batch": None, "metric": "parameters"}
                 raise ValueError(f"non-finite model parameters detected at epoch {epoch}")
@@ -240,6 +271,11 @@ def run_experiment(
                 "epoch_time": time.time() - epoch_start,
             }
             epoch_records.append(record)
+
+            if on_epoch is not None:
+                # Un observador no debe tumbar la corrida: la fuente de verdad es la corrida.
+                with contextlib.suppress(Exception):
+                    on_epoch(record)
 
             # Convergencia / parada temprana (solo cuando se habilita explícitamente).
             if cfg.convergence.enabled and not convergence_metric_unavailable:
@@ -282,7 +318,12 @@ def run_experiment(
         end_time = time.time()
         end_ts = utc_timestamp()
         state = "COMPLETED"
-        if validation.state == "WARNING":
+        if stopped_reason == "cancelled_by_user":
+            # Estado técnico ya previsto en el vocabulario: el análisis solo
+            # considera COMPLETED/COMPLETED_WITH_WARNINGS, así que una corrida
+            # cancelada no contamina las métricas agregadas.
+            state = "INCOMPLETE"
+        elif validation.state == "WARNING":
             state = "COMPLETED_WITH_WARNINGS"
 
         metadata = {
@@ -325,7 +366,8 @@ def run_experiment(
             EXECUTION_STATE_FIELD: state,
             "warnings": list(warnings),
             "final_metrics": {"evaluation_set": "test", **test_eval},
-            "validation_metrics": {
+            "validation_metrics": best_val_metrics
+            or {
                 "evaluation_set": "validation",
                 "epoch": best_val_loss_epoch,
                 "loss": best_val_loss,

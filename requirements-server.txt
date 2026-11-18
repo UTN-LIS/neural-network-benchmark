@@ -1,0 +1,10 @@
+# Servidor HTTP de la UI. No es necesario para el pipeline headless.
+#
+# Instalar con: pip install -r requirements-server.txt
+# Ejecutar con:  python -m uvicorn server.app:app --reload
+
+-r requirements.txt
+
+fastapi==0.164.0
+pydantic==2.14.3
+uvicorn[standard]==0.54.0

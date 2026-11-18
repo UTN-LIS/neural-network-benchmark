@@ -187,13 +187,64 @@ pip install -r requirements-dev.txt
 
 ruff check prebenchmark tests Experimentos   # lint
 ruff format prebenchmark tests Experimentos  # format
-mypy                                         # type checking (prebenchmark)
+mypy                                         # type checking (prebenchmark + server)
 ```
 
 Configuration for ruff and mypy is centralized in `pyproject.toml`. The file has
 no `[project]` or `[build-system]` section, so it configures tools only; the
 package is still executed from the repository root (`python -m prebenchmark`)
 rather than installed.
+
+## Web UI (single-run and suite comparison)
+
+```bash
+pip install -r requirements-server.txt
+python -m uvicorn server.app:app --reload
+# http://127.0.0.1:8000
+```
+
+The UI has two implemented tabs: a **single-configuration run** (real training,
+live loss curve over SSE, validation metrics, optional comparison of up to three
+runs, full `metadata.json` viewer) and a **suite comparison** tab that reads the
+exported evidence and serves the generated HTML/PDF reports.
+
+Endpoints:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/health` | worker count, isolated store root, experiment id |
+| GET | `/api/options` | datasets, the four free dimensions, protocol defaults |
+| GET | `/api/datasets/{name}` | real dimensions and class imbalance (loads/caches on demand) |
+| POST | `/api/validate` | `space.validate_config` without running |
+| POST | `/api/runs` | enqueue one run (202 + `job_id`) |
+| GET | `/api/runs/{id}` | job snapshot |
+| GET | `/api/runs/{id}/events` | SSE stream: `status`, `epoch`, `done`, `failed` |
+| GET | `/api/evidence` | family statistics and failure modes from `results/exports` |
+| GET | `/api/reports/{experiment}` | latest generated HTML report |
+| GET | `/api/reports/{experiment}/pdf` | latest generated PDF report |
+
+Design decisions the skeleton enforces:
+
+- **One worker.** `runner` seeds the process-global NumPy/torch RNGs, so
+  concurrent runs in the same process would break reproducibility. `JobRegistry`
+  refuses `max_workers != 1`.
+- **Isolated store.** UI runs go to `results/ui-runs/ui-exploratory/` by default,
+  never to the suite store. Override with `PREBENCHMARK_UI_STORE` and
+  `PREBENCHMARK_UI_EXPERIMENT`.
+- **Test set reserved.** The response exposes `validation_metrics` (now including
+  macro F1, precision, recall, balanced accuracy and confusion matrix at the best
+  epoch). `final_metrics` is returned only when the request sets
+  `include_test=true`, and is labelled as test.
+- **Early stopping on by default** in the UI, matching the sweeps; without it a
+  run can consume all 500 epochs.
+- **Evidence, not hardcoded lists.** The "problematic family" warnings are
+  computed from the exported runs and classify the failure mode from the executed
+  epochs (early collapse vs. exhausting the epoch cap).
+- **Observer hook.** `runner.run_experiment` accepts `on_epoch`, called with each
+  `epochs.csv`-shaped record. A failing observer never aborts a run.
+
+`PREBENCHMARK_TORCH_THREADS` optionally pins `torch.set_num_threads` when the
+process shares the machine with other loads.
 
 ## Tests
 
