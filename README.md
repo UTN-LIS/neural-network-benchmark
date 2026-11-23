@@ -260,6 +260,23 @@ python -m pytest -q
 
 The suite runs fully offline (in-memory datasets; no network required).
 
+## Docker (local deployment)
+
+A CPU-only image is provided for running the UI or the CLI on another machine
+without installing Python or PyTorch:
+
+```bash
+docker compose up --build
+# http://127.0.0.1:8000
+```
+
+`results/` and `.cache/` are bind-mounted from the host, so runs, exports,
+reports and dataset caches survive container recreation. The compose file binds
+to loopback because the API has no authentication. See
+[DEPLOYMENT.md](DEPLOYMENT.md) for persistence details, CLI usage, Linux
+permissions, and the known limits (single worker, no PDF generation in the
+image).
+
 ## Resolved decisions
 
 From `openspec/changes/prebenchmark-infra/design.md` (Open Questions) — these were

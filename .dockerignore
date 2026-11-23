@@ -1,0 +1,36 @@
+# Environments and language artifacts
+.venv/
+.venv-1/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Runtime data: mounted from the host by docker-compose, never baked in.
+results/
+.cache/
+
+# Git and local configuration
+.git/
+.gitignore
+.env
+.vscode/
+.idea/
+
+# Documentation artifacts that are not needed at runtime
+*.pdf
+Explicacion-Proyecto-Prebenchmark.html
+prototipo/
+openspec/
+HANDOFF.md
+DEPLOYMENT.md
+generar-pdf.ps1
