@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cómo funciona el benchmark definitivo — servidor FastAPI</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #0b5fa5;
+    --accent-soft: #eaf2fa;
+    --rule: #d8d8d8;
+    --code-bg: #f4f6f8;
+    --code-ink: #24303b;
+    --ok: #1f7a4d;
+    --warn: #a06000;
+    --bad: #a02020;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0 0 40px 0;
+  }
+  h1, h2, h3, h4 { color: var(--accent); line-height: 1.25; }
+  h1 { font-size: 24pt; margin: 0 0 4px 0; }
+  h2 {
+    font-size: 16pt;
+    margin: 26px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--rule);
+  }
+  h3 { font-size: 13pt; margin: 18px 0 4px 0; }
+  h4 { font-size: 11.5pt; margin: 12px 0 2px 0; color: #333; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 22px; padding: 0; }
+  li { margin: 3px 0; }
+  code {
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+    font-size: 9.5pt;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+  pre {
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+    font-size: 9pt;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.4;
+  }
+  pre code { background: none; padding: 0; font-size: 9pt; }
+  .toc { margin: 18px 0 26px 0; border: 1px solid var(--rule); border-radius: 6px; padding: 14px 18px; background: #fbfcfe; }
+  .toc h2 { margin-top: 0; border-bottom: none; padding-bottom: 0; font-size: 14pt; }
+  .toc ol { margin: 8px 0 0 22px; }
+  .toc li { margin: 4px 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc .sub { margin-left: 16px; list-style: none; }
+  .toc .sub li { margin: 2px 0; }
+  .cover {
+    border-bottom: 3px solid var(--accent);
+    padding: 10px 0 18px 0;
+    margin-bottom: 10px;
+  }
+  .subtitle { font-size: 12.5pt; color: var(--muted); margin: 0; }
+  .muted { color: var(--muted); }
+  .meta { font-size: 9.5pt; color: var(--muted); margin-top: 10px; }
+  .lead { font-size: 11pt; }
+  .card {
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    background: #fbfcfe;
+    border-radius: 5px;
+    padding: 10px 14px;
+    margin: 12px 0;
+  }
+  .card.warn { border-left-color: var(--warn); background: #fdf9f1; }
+  .card.bad { border-left-color: var(--bad); background: #fdf4f4; }
+  .card.ok { border-left-color: var(--ok); background: #f2faf6; }
+  .module {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 4px 16px 12px 16px;
+    margin: 16px 0;
+    page-break-inside: avoid;
+  }
+  .module h3 { margin-top: 12px; }
+  .tag {
+    display: inline-block;
+    font-size: 8.5pt;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 10px;
+    padding: 1px 9px;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  .tag.soft { background: #7a8a99; }
+  .tag.ok { background: var(--ok); }
+  .tag.warn { background: var(--warn); }
+  .tag.bad { background: var(--bad); }
+  .kv { margin: 4px 0; }
+  .kv b { color: #333; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 9.5pt;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 5px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--accent-soft); color: #123; }
+  .flow {
+    font-family: "Cascadia Mono", "Consolas", monospace;
+    font-size: 9pt;
+    border: 1px dashed var(--rule);
+    border-radius: 6px;
+    padding: 12px;
+    background: #fafafa;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .note { font-size: 9.5pt; color: var(--muted); }
+  .principle { margin: 8px 0; }
+  .principle b { color: var(--accent); }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 20px 0; }
+  .avoid-break { page-break-inside: avoid; }
+  .seq { margin: 10px 0 10px 4px; }
+  .seq .step {
+    border-left: 3px solid var(--accent-soft);
+    padding: 2px 0 8px 14px;
+    margin-left: 6px;
+    position: relative;
+  }
+  .seq .step::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 8px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .seq .step b { color: var(--accent); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+  .kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  .kpi .box { border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; background: #fbfcfe; }
+  .kpi .box b { display: block; color: var(--accent); font-size: 13pt; }
+  .kpi .box span { font-size: 9pt; color: var(--muted); }
+  @media print {
+    pre { white-space: pre-wrap; overflow-wrap: break-word; overflow-x: visible; }
+    .module, .card, table { break-inside: avoid; }
+  }
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>neural-network-benchmark</h1>
+  <p class="subtitle">Del <code>prebenchmark</code> por consola al benchmark definitivo con FastAPI — cómo se entrenan corridas reales sin bloquear la interfaz</p>
+  <p class="meta">Informe técnico · Paquete <code>server/</code> · Reutilización del núcleo <code>prebenchmark/</code> · Estado: esqueleto funcional</p>
+</div>
+
+<div class="toc">
+  <h2>Índice</h2>
+  <ol>
+    <li><a href="#s1">Qué se construyó y por qué</a></li>
+    <li><a href="#s2">El problema central: entrenar sin congelar la página</a>
+      <ul class="sub">
+        <li><a href="#s2_1">2.1 Por qué el entrenamiento no puede ser una corrutina más</a></li>
+        <li><a href="#s2_2">2.2 La solución: un hilo de trabajo y un estado observable</a></li>
+        <li><a href="#s2_3">2.3 Quién hace qué: los cuatro ejecutores del sistema</a></li>
+      </ul>
+    </li>
+    <li><a href="#s3">El ciclo de vida completo de una corrida</a></li>
+    <li><a href="#s4">El contrato de concurrencia: exactamente un worker</a></li>
+    <li><a href="#s5">Los módulos de <code>server/</code>, uno por uno</a>
+      <ul class="sub">
+        <li><a href="#s5_1">5.1 <code>app.py</code> — composición, rutas y adaptación</a></li>
+        <li><a href="#s5_2">5.2 <code>jobs.py</code> — el job, su máquina de estados y el pool de un hilo</a></li>
+        <li><a href="#s5_3">5.3 <code>schemas.py</code> — el contrato de la API</a></li>
+        <li><a href="#s5_4">5.4 <code>serialize.py</code> — JSON estricto para NumPy y NaN</a></li>
+        <li><a href="#s5_5">5.5 <code>evidence.py</code> — leer la evidencia de las suites</a></li>
+        <li><a href="#s5_6">5.6 <code>static/</code> — el frontend sin build step</a></li>
+        <li><a href="#s5_7">5.7 <code>__init__.py</code> — la superficie pública</a></li>
+      </ul>
+    </li>
+    <li><a href="#s6">Cómo se reutiliza la estructura original de <code>prebenchmark</code></a>
+      <ul class="sub">
+        <li><a href="#s6_1">6.1 La regla: la UI no reimplementa el dominio</a></li>
+        <li><a href="#s6_2">6.2 Mapa de reutilización, módulo por módulo</a></li>
+        <li><a href="#s6_3">6.3 Los dos hooks nuevos del runner: <code>on_epoch</code> y <code>should_stop</code></a></li>
+        <li><a href="#s6_4">6.4 Lo que la UI deliberadamente no hace</a></li>
+      </ul>
+    </li>
+    <li><a href="#s7">Persistencia y aislamiento de datos</a></li>
+    <li><a href="#s8">Referencia de la API HTTP</a></li>
+    <li><a href="#s9">El frontend: dos pestañas y un <code>EventSource</code></a></li>
+    <li><a href="#s10">Decisiones, límites y tradeoffs</a></li>
+    <li><a href="#s11">Camino al benchmark definitivo</a></li>
+    <li><a href="#s12">Guía práctica: levantarlo, probarlo y extenderlo</a></li>
+    <li><a href="#s13">Resumen en diez ideas</a></li>
+  </ol>
+</div>
+
+<p class="lead">
+Este documento explica la implementación del <b>esqueleto FastAPI</b> que convierte al
+<code>prebenchmark</code> —hasta ahora una herramienta de consola— en una aplicación con interfaz web.
+El foco está en una decisión concreta: <b>las corridas de entrenamiento se ejecutan en un hilo aparte</b>,
+de modo que el proceso HTTP y el componente principal de la página sigan respondiendo mientras PyTorch
+entrena. Además se detalla qué hace cada módulo de <code>server/</code> y cómo cada uno se apoya en la
+estructura que ya existía, sin duplicar el dominio.
+</p>
+
+<h2 id="s1">1. Qué se construyó y por qué</h2>
+<p>
+El paquete <code>prebenchmark/</code> ya resolvía el problema científico: registrar configuraciones,
+entrenarlas de forma reproducible, compararlas contra una línea base, agregar repeticiones por semilla,
+exportar tablas y generar un informe estadístico. Su interfaz era la línea de comandos. Eso es correcto
+para un barrido de 36 configuraciones × 5 semillas, pero es incómodo para el trabajo exploratorio:
+probar <i>una</i> combinación, ver la curva de pérdida en vivo, cancelar si va mal, y comparar dos o tres
+corridas sin escribir un comando distinto cada vez.
+</p>
+<p>
+La aplicación nueva no reemplaza al <code>prebenchmark</code>: lo <b>expone</b>. Se agregó una capa
+<code>server/</code> que traduce HTTP ↔ dominio. El benchmark definitivo, entonces, no es un segundo
+sistema con su propia lógica de entrenamiento; es una <b>fachada</b> sobre el mismo núcleo, para que la
+evidencia que produce la UI sea comparable con la que producen las suites.
+</p>
+
+<div class="kpi">
+  <div class="box"><b>1</b><span>worker de entrenamiento, por diseño</span></div>
+  <div class="box"><b>0</b><span>líneas de lógica de dominio duplicadas</span></div>
+  <div class="box"><b>2</b><span>pestañas implementadas (una tercera planificada)</span></div>
+</div>
+
+<div class="card">
+  <b>La idea en una frase.</b> El navegador pide una corrida, recibe un <code>job_id</code> al instante,
+  y se suscribe a un flujo de eventos; el entrenamiento ocurre en un hilo del servidor que no bloquea ni
+  al <i>event loop</i> de FastAPI ni a la página, y el resultado queda persistido en el mismo formato que
+  usa el resto del proyecto.
+</div>
+
+<h2 id="s2">2. El problema central: entrenar sin congelar la página</h2>
+
+<p>
+Entrenar un MLP no es una operación de red: es cómputo intensivo y <b>sostenido</b>. Una corrida puede
+durar desde unos segundos hasta más de un minuto (el tope de 500 épocas en <code>satimage</code> se midió
+en torno a 122 s). Si ese trabajo se ejecuta en el mismo hilo que atiende las peticiones HTTP, el servidor
+deja de responder: no se puede consultar el estado, no se puede cancelar y la página parece colgada.
+</p>
+
+<h3 id="s2_1">2.1 Por qué el entrenamiento no puede ser una corrutina más</h3>
+<p>
+La tentación natural es escribir el endpoint como <code>async def</code> y hacer <code>await</code> del
+entrenamiento. Eso <b>no funciona</b> y conviene entender por qué:
+</p>
+<ul>
+  <li><b>El entrenamiento es código síncrono y bloqueante.</b> <code>runner.run_experiment</code> es una
+  función común: recorre épocas y batches con PyTorch. No hay puntos de <code>await</code> reales dentro
+  de ese bucle. Si la llamás desde una corrutina, bloqueás el <i>event loop</i> hasta que termina.</li>
+  <li><b>Un <code>await</code> no vuelve mágicamente concurrente a una función síncrona.</b> Para ceder el
+  control habría que reescribir el runner con <code>asyncio</code>, y ni PyTorch ni el resto del paquete
+  están diseñados así. Sería una reescritura invasiva del núcleo, justo lo que se quería evitar.</li>
+  <li><b>El <i>event loop</i> es un recurso compartido.</b> Mientras está ocupado entrenando, no puede
+  aceptar conexiones, servir <code>/api/health</code>, ni mantener abierta la conexión SSE que transmite
+  las épocas. Todo el servidor queda de rehén de una sola corrida.</li>
+</ul>
+<p>
+La conclusión es la correcta para este tipo de carga: <b>el trabajo pesado va a un hilo</b>, y el
+<i>event loop</i> queda libre para la coordinación. PyTorch libera el GIL durante las operaciones
+numéricas, así que el hilo de entrenamiento realmente aprovecha la CPU; y aunque no lo hiciera, el
+objetivo principal —que el servidor siga atendiendo— se cumple igual porque el bloqueo está acotado al
+hilo de trabajo.
+</p>
+
+<h3 id="s2_2">2.2 La solución: un hilo de trabajo y un estado observable</h3>
+<p>
+El patrón implementado es <b>submit → observar</b>. El endpoint <code>POST /api/runs</code> no entrena:
+valida, crea un objeto <code>Job</code>, lo encola en un <code>ThreadPoolExecutor</code> de un solo hilo y
+responde <code>202 Accepted</code> con el identificador. El entrenamiento corre en ese hilo; la página se
+suscribe a <code>GET /api/runs/{id}/events</code> y recibe eventos a medida que se producen.
+</p>
+
+<div class="flow">NAVEGADOR                         SERVIDOR (proceso único)
+─────────                         ──────────────────────────────────────────────────────
+                                  ┌─ Event loop (asyncio) ─────────────────────────┐
+POST /api/runs ──────────────────►│ valida → crea Job → registry.submit(job)       │
+◄──── 202 { job_id } ─────────────│ responde YA, sin entrenar                      │
+                                  └──────────────────────┬─────────────────────────┘
+                                                         │ executor.submit
+                                  ┌──────────────────────▼─────────────────────────┐
+GET /api/runs/{id}/events ───────►│ Hilo "prebenchmark-ui" (1 worker)              │
+   (SSE, conexión abierta)        │   runner.run_experiment(...)                   │
+◄──── event: epoch ───────────────│     on_epoch → job.publish_epoch(record)       │
+◄──── event: epoch ───────────────│     should_stop ← job._cancel                  │
+◄──── event: done ────────────────│   mark_done(resultado)                         │
+                                  └────────────────────────────────────────────────┘</div>
+
+<p>
+El puente entre ambos mundos es el <code>Job</code>. No es un objeto pasivo: es el <b>estado compartido y
+observable</b> de una corrida. El hilo de entrenamiento escribe en él (agrega eventos, marca estados); el
+<i>event loop</i> lo lee (para el SSE, para el <i>snapshot</i> de estado, para cancelar). La sincronización
+se resuelve con un <code>threading.Lock</code> para la lista de eventos y un <code>threading.Event</code>
+para la cancelación. No hay memoria compartida sin protección entre los dos hilos.
+</p>
+
+<h3 id="s2_3">2.3 Quién hace qué: los cuatro ejecutores del sistema</h3>
+<p>
+Es fácil confundir "asíncrono" con "en otro hilo". En esta implementación conviven cuatro contextos de
+ejecución distintos, y cada uno tiene una responsabilidad acotada:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Contexto</th><th>Qué ejecuta</th><th>Por qué ahí</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Event loop</b> (asyncio)</td>
+      <td>El endpoint SSE <code>run_events</code> y la generación de eventos.</td>
+      <td>Necesita esperar sin bloquear: <code>await asyncio.sleep(0.05)</code> entre lecturas. Debe quedar libre para atender otras conexiones.</td>
+    </tr>
+    <tr>
+      <td><b>Threadpool de Starlette</b></td>
+      <td>Los endpoints declarados con <code>def</code> (no <code>async def</code>): <code>health</code>, <code>options</code>, <code>validate</code>, <code>create_run</code>, etc.</td>
+      <td>FastAPI los ejecuta en un pool de hilos precisamente para no bloquear el loop. Las operaciones son cortas (validar, leer metadatos).</td>
+    </tr>
+    <tr>
+      <td><b>Hilo de entrenamiento</b> (<code>ThreadPoolExecutor</code>, <code>max_workers=1</code>)</td>
+      <td><code>Service._execute</code> → <code>runner.run_experiment</code>.</td>
+      <td>Es el trabajo largo. Un solo hilo garantiza que nadie más pise los RNG globales (ver §4).</td>
+    </tr>
+    <tr>
+      <td><b>Navegador</b></td>
+      <td><code>app.js</code>: <code>fetch</code>, <code>EventSource</code>, dibujo de la curva.</td>
+      <td>Consume el estado. No entrena ni calcula métricas: solo presenta lo que el servidor emite.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card ok">
+  <b>Resultado práctico.</b> Mientras una corrida entrena, la página puede seguir cambiando de pestaña,
+  consultar el estado, ver evidencia de las suites o pedir la cancelación. El servidor nunca deja de
+  responder porque el cómputo vive fuera del <i>event loop</i>.
+</div>
+
+<h2 id="s3">3. El ciclo de vida completo de una corrida</h2>
+
+<p>Los pasos, en orden, con las funciones reales que intervienen:</p>
+
+<div class="seq">
+  <div class="step">
+    <b>1. El cliente envía la configuración.</b> <code>POST /api/runs</code> con un JSON que cumple
+    <code>RunRequest</code>. Pydantic valida <i>forma</i>: tipos, <code>lr &gt; 0</code>,
+    <code>max_epochs</code> entre 1 y 5000, <code>device</code> dentro del conjunto permitido.
+  </div>
+  <div class="step">
+    <b>2. Se construye la configuración de dominio.</b> <code>_build_config</code> parte de
+    <code>pb_data.dataset_base_config(dataset)</code> —que deriva <code>input_dim</code> y
+    <code>output_dim</code> de los datos reales— y aplica los parámetros libres con
+    <code>dataclasses.replace</code>. El early stopping se traduce a
+    <code>ConvergenceSpec(enabled=request.early_stop)</code>.
+  </div>
+  <div class="step">
+    <b>3. Se valida con las reglas del dominio.</b> <code>space.validate_config(cfg)</code> devuelve
+    <code>VALID</code>, <code>WARNING</code> o <code>INVALID</code>. Si no es ejecutable, el endpoint
+    responde <code>422</code> con el detalle de la validación y no se encola nada.
+  </div>
+  <div class="step">
+    <b>4. Se crea y encola el job.</b> <code>Job(dataset, config, include_test, validation)</code> nace en
+    estado <code>queued</code>. <code>service.registry.submit(job)</code> lo registra en memoria y lo
+    entrega al executor. El endpoint responde <code>202</code> con <code>job_id</code> y la validación:
+    el cliente ya puede abrir el flujo de eventos.
+  </div>
+  <div class="step">
+    <b>5. El worker arranca.</b> <code>Service._execute</code> llama <code>job.mark_running()</code>
+    (estado <code>running</code>, evento <code>status</code>) y ejecuta
+    <code>runner.run_experiment(cfg, experiment_id, store, on_epoch=job.publish_epoch, should_stop=job.should_stop)</code>.
+  </div>
+  <div class="step">
+    <b>6. Cada época se publica.</b> El runner invoca <code>on_epoch(record)</code> con la misma forma
+    que una fila de <code>epochs.csv</code>. <code>Job.publish_epoch</code> la convierte a JSON estricto y
+    la agrega al log de eventos bajo el lock.
+  </div>
+  <div class="step">
+    <b>7. El SSE la entrega.</b> El generador de <code>run_events</code> lee <code>events_from(index)</code>
+    cada 50 ms, emite lo nuevo con <code>event: epoch</code> y avanza el índice. Si no hay novedades
+    durante 15 s, envía un comentario <code>: ping</code> para mantener viva la conexión.
+  </div>
+  <div class="step">
+    <b>8. La corrida termina de tres formas posibles.</b> <code>mark_done(resultado)</code> si el runner
+    devolvió un resultado (incluido <code>INCOMPLETE</code> por cancelación); <code>mark_failed(mensaje)</code>
+    si lanzó una excepción. En ambos casos se agrega el evento terminal y se cierra el flujo.
+  </div>
+  <div class="step">
+    <b>9. El resultado se materializa.</b> <code>_result_payload</code> arma la respuesta: expone
+    <code>validation_metrics</code>, el <code>execution_state</code>, la configuración aplicada,
+    <code>space_key</code> y <code>group_key</code>. <code>final_metrics</code> (test) se elimina salvo que
+    el request tenga <code>include_test=true</code>. El store conserva el dato completo.
+  </div>
+</div>
+
+<p class="note">
+La corrida es la fuente de verdad; el observador es prescindible. Si <code>on_epoch</code> fallara, el
+runner lo ignora y el entrenamiento continúa. Ese contrato está documentado explícitamente en
+<code>runner.run_experiment</code> y es lo que permite que la UI sea un consumidor y no un socio del
+entrenamiento.
+</p>
+
+<h2 id="s4">4. El contrato de concurrencia: exactamente un worker</h2>
+
+<p>
+<code>JobRegistry</code> lanza <code>ValueError</code> si se lo instancia con
+<code>max_workers != 1</code>. No es una limitación pendiente: es una <b>decisión de reproducibilidad</b>.
+El motivo está en el runner:
+</p>
+
+<pre><code># prebenchmark/runner.py — inicio de cada corrida
+seed = cfg.seed if cfg.seed is not None else 42
+np.random.seed(seed)
+torch.manual_seed(seed)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(seed)</code></pre>
+
+<p>
+Esos sembrados son <b>globales al proceso</b>. De ellos dependen la partición train/val/test y la
+inicialización de pesos. Si dos entrenamientos corrieran a la vez en el mismo proceso, cada uno pisaría
+el estado global del otro y los resultados dejarían de ser reproducibles. Un solo worker garantiza que
+cada corrida vea exactamente el RNG que sembró, desde la primera hasta la última época.
+</p>
+
+<div class="card warn">
+  <b>Consecuencia operativa.</b> Las corridas se <b>encolan</b>: si llegan tres pedidos, se ejecutan una
+  tras otra. El estado <code>queued</code> existe justamente para eso, y el frontend muestra "Esperando al
+  worker…" cuando todavía no arrancó. Para paralelizar barridos independientes hay que usar
+  <b>procesos</b>, no hilos: cada proceso tiene su propio estado global de RNG. Eso queda fuera del
+  esqueleto actual y se discute en §11.
+</div>
+
+<p>
+El executor se crea con <code>thread_name_prefix="prebenchmark-ui"</code>, lo que hace que los hilos se
+vean identificables en un <i>profiler</i> o en un traceback. Al apagar la aplicación, el <code>lifespan</code>
+llama <code>registry.shutdown()</code> con <code>wait=False, cancel_futures=True</code>: no se cuelga
+esperando una corrida larga, pero tampoco deja tareas nuevas encoladas.
+</p>
+
+<h2 id="s5">5. Los módulos de <code>server/</code>, uno por uno</h2>
+
+<pre><code>server/
+├── __init__.py     superficie pública del paquete
+├── app.py          create_app(): composición, rutas, adaptadores HTTP ↔ dominio
+├── jobs.py         Job, JobRegistry: estado observable y pool de un hilo
+├── schemas.py      modelos Pydantic de entrada y salida
+├── serialize.py    conversión a JSON estricto (NumPy, Path, NaN/Inf)
+├── evidence.py     lectura de results/exports y results/reports
+└── static/
+    ├── index.html  estructura de las pestañas
+    ├── styles.css  estilos
+    └── app.js      fetch, EventSource, curva, tabla comparativa</code></pre>
+
+<div class="module">
+  <h3 id="s5_1">5.1 <code>app.py</code> — composición, rutas y adaptación <span class="tag">fachada</span></h3>
+  <p class="kv"><b>Qué hace.</b> Es el <i>composition root</i>. Define <code>create_app()</code> como
+  fábrica (no un módulo con estado global), monta los estáticos, declara todos los endpoints y construye
+  el <code>Service</code> de larga vida dentro del <code>lifespan</code>.</p>
+  <p class="kv"><b>Qué aporta.</b> Concentra la traducción entre HTTP y dominio. Tres funciones son el
+  corazón de esa traducción:</p>
+  <ul>
+    <li><code>_build_config(request)</code> — convierte un <code>RunRequest</code> en un
+    <code>ExperimentConfig</code> real, usando la configuración base del dataset y <code>replace</code>.</li>
+    <li><code>_result_payload(result, job)</code> — convierte el resultado del runner en la respuesta de la
+    API, aplicando la política del set de prueba y calculando las claves de identidad.</li>
+    <li><code>_dataset_payload(name, force_load)</code> — describe un dataset sin descargarlo por sorpresa:
+    el listado solo reporta lo cacheado; el detalle sí resuelve y cachea.</li>
+  </ul>
+  <p class="kv"><b>El <code>Service</code>.</b> Guarda lo que debe sobrevivir a cada request: el
+  <code>ResultsStore</code> aislado, el <code>experiment_id</code>, las raíces de export/report y el
+  <code>JobRegistry</code>. Se crea una vez al arrancar y se cierra al apagar. Su método
+  <code>_execute</code> es el único lugar donde se llama al runner.</p>
+  <p class="kv"><b>Por qué una fábrica.</b> <code>create_app</code> acepta <code>store_root</code>,
+  <code>experiment_id</code>, <code>exports_root</code> y <code>reports_root</code>. Eso permite montar la
+  app en tests con un store temporal, sin tocar <code>results/</code> ni depender de variables de
+  entorno. El módulo termina con <code>app = create_app()</code>, que es lo que consume Uvicorn.</p>
+  <p class="kv"><b>Detalle de arranque.</b> <code>_configure_torch_threads()</code> respeta
+  <code>PREBENCHMARK_TORCH_THREADS</code> si está definida. Con un solo worker, el valor por defecto de
+  PyTorch (todos los núcleos) es el correcto; la variable existe para evitar <i>oversubscription</i>
+  cuando el proceso convive con otras cargas.</p>
+</div>
+
+<div class="module">
+  <h3 id="s5_2">5.2 <code>jobs.py</code> — el job, su máquina de estados y el pool de un hilo <span class="tag">concurrencia</span></h3>
+  <p class="kv"><b>Qué hace.</b> Define <code>Job</code> (estado observable de una corrida) y
+  <code>JobRegistry</code> (registro en memoria + executor de un worker). Es el módulo que hace posible
+  el patrón <i>submit → observar</i>.</p>
+  <p class="kv"><b>El estado del <code>Job</code>.</b> Campos públicos: <code>dataset</code>,
+  <code>config</code>, <code>include_test</code>, <code>validation</code>, <code>id</code>,
+  <code>status</code>, marcas de tiempo, <code>execution_state</code>, <code>error</code>,
+  <code>result</code>, <code>epochs_seen</code> y <code>cancel_requested</code>. Campos privados:
+  <code>_events</code> (log append-only), <code>_done</code>, <code>_lock</code> y
+  <code>_cancel</code>.</p>
+
+  <h4>La máquina de estados</h4>
+  <div class="flow">queued ──mark_running()──► running ──mark_done()──► completed
+                                    │
+                                    └──mark_failed()──► failed
+
+cancel_requested no es un estado del job:
+es una señal que el runner consulta al inicio de cada época.
+La corrida cancelada termina como completed con execution_state = INCOMPLETE.</div>
+
+  <p>
+  Es importante no confundir <code>status</code> (estado del <b>job</b> en la cola) con
+  <code>execution_state</code> (estado <b>técnico</b> de la corrida, el vocabulario del store:
+  <code>COMPLETED</code>, <code>COMPLETED_WITH_WARNINGS</code>, <code>FAILED</code>,
+  <code>INCOMPLETE</code>). Una cancelación no es un fallo del job: el job termina normalmente y el
+  resultado dice <code>INCOMPLETE</code>. Esa distinción es la que permite excluir la corrida de los
+  agregados sin perder la evidencia de lo que sí alcanzó a entrenar.
+  </p>
+
+  <h4>El log de eventos y la recolocación</h4>
+  <p>
+  <code>_events</code> es una lista append-only protegida por <code>_lock</code>. Se guarda completa (hasta
+  <code>MAX_RETAINED_EVENTS = 2000</code>) en lugar de consumirse, para que un cliente que se reconecta
+  pueda reproducir desde el principio en vez de perder las épocas ya emitidas.
+  <code>events_from(index)</code> devuelve una copia de lo que hay desde ese índice más el flag
+  <code>_done</code>; el SSE avanza su propio índice. Es un patrón de <b>lector con cursor</b> sobre un
+  log inmutable: simple, sin condiciones de carrera y sin necesidad de una cola entre hilos.
+  </p>
+  <p class="note">
+  Detalle honesto: al llegar a <code>MAX_RETAINED_EVENTS</code> se dejan de registrar épocas nuevas, pero
+  <code>epochs_seen</code> sigue incrementándose y el evento terminal se agrega igual. Para el uso
+  previsto (corridas de hasta 500 épocas por defecto) el tope no se alcanza.
+  </p>
+
+  <h4>La cancelación cooperativa</h4>
+  <p>
+  <code>request_cancel()</code> activa un <code>threading.Event</code>. El runner lo consulta al
+  <b>comienzo de cada época</b> mediante <code>should_stop</code>. Por eso la cancelación no es
+  instantánea: la época en curso termina antes de cortar. Es el compromiso correcto — abortar un paso de
+  entrenamiento a la mitad dejaría el modelo y las métricas en un estado inconsistente.
+  </p>
+
+  <h4>El registro y la retención</h4>
+  <p>
+  <code>JobRegistry</code> guarda los jobs en un diccionario y mantiene un <code>deque</code> con el orden
+  de llegada. Conserva los últimos <code>MAX_RETAINED_JOBS = 50</code>; al superar ese número, descarta el
+  más viejo. <code>recent(limit)</code> devuelve los últimos en orden inverso (el más nuevo primero).
+  Todo el acceso al diccionario y al deque pasa por un lock propio, distinto del lock de cada job.
+  </p>
+  <p class="kv"><b>Por qué en memoria.</b> El esqueleto no necesita una cola persistente: el objetivo es
+  la corrida interactiva, no la tolerancia a reinicios. El costo es explícito y está documentado en §10:
+  si el proceso se reinicia, los jobs en vuelo se pierden (aunque lo ya persistido en el store sobrevive).
+  </p>
+</div>
+
+<div class="module">
+  <h3 id="s5_3">5.3 <code>schemas.py</code> — el contrato de la API <span class="tag soft">borde</span></h3>
+  <p class="kv"><b>Qué hace.</b> Define los modelos Pydantic de entrada y salida:
+  <code>RunRequest</code>, <code>ValidationOut</code>, <code>JobCreated</code> y <code>JobStatus</code>.</p>
+  <p class="kv"><b>Qué aporta.</b> Valida <b>forma</b>, no <b>metodología</b>. Los valores permitidos y las
+  reglas del experimento viven en <code>prebenchmark.space</code> y se aplican con
+  <code>validate_config</code>. Esta separación evita el error clásico de tener dos fuentes de verdad que
+  se desincronizan: si mañana se agrega una activación, se agrega en el dominio y la API la acepta sin
+  tocar el esquema.</p>
+  <p class="kv"><b>Decisiones codificadas en los defaults.</b></p>
+  <ul>
+    <li><code>early_stop=True</code>: las suites se corrieron con el criterio habilitado y sin él una
+    corrida puede consumir las 500 épocas completas.</li>
+    <li><code>include_test=False</code>: el set de prueba queda reservado. Solo se devuelve si el cliente
+    lo pide explícitamente, y la respuesta lo marca como tal (<code>test_hidden</code>).</li>
+    <li><code>max_epochs</code> acotado a <code>[1, 5000]</code> y <code>lr &gt; 0</code>: los límites
+    baratos se validan en el borde para no llegar al dominio con valores absurdos.</li>
+  </ul>
+  <p class="note">
+  <code>ClassWeight</code> y <code>Device</code> son <code>Literal</code>: el conjunto cerrado se declara
+  una vez y Pydantic lo rechaza antes de ejecutar nada.
+  </p>
+</div>
+
+<div class="module">
+  <h3 id="s5_4">5.4 <code>serialize.py</code> — JSON estricto para NumPy y NaN <span class="tag soft">utilidad</span></h3>
+  <p class="kv"><b>Qué hace.</b> <code>to_jsonable(value)</code> recorre recursivamente una estructura y
+  devuelve solo tipos JSON estrictos.</p>
+  <p class="kv"><b>Por qué es necesario.</b> Los metadatos del runner incluyen objetos de NumPy
+  (<code>np.float64</code>, arrays), <code>Path</code> y posiblemente <code>NaN</code> o
+  <code>Infinity</code>. <code>json.dumps</code> no acepta esos tipos, y el JSON estricto tampoco acepta
+  los no finitos. La función resuelve los tres casos:</p>
+  <ul>
+    <li><code>float</code> no finito → <code>null</code> (un <code>NaN</code> no es un número válido en
+    JSON; convertirlo a <code>null</code> es preferible a emitir un documento inválido).</li>
+    <li><code>Path</code> → <code>str</code>.</li>
+    <li>Objetos con <code>tolist()</code> o <code>item()</code> → se convierten y se vuelven a recorrer;
+    si falla, se usa <code>str(value)</code> como último recurso.</li>
+  </ul>
+  <p class="kv"><b>Dónde se usa.</b> En <code>Job.publish_epoch</code> (cada época), en
+  <code>_result_payload</code> (respuesta final) y en el <code>snapshot</code> del job. Es la frontera
+  que garantiza que lo que sale por HTTP siempre sea parseable por el navegador.</p>
+</div>
+
+<div class="module">
+  <h3 id="s5_5">5.5 <code>evidence.py</code> — leer la evidencia de las suites <span class="tag soft">solo lectura</span></h3>
+  <p class="kv"><b>Qué hace.</b> Lee <code>results/exports/&lt;experiment&gt;/master_*.csv</code> (y
+  <code>aggregates_*.csv</code>, <code>configs_*.csv</code>) y produce un registro por experimento con
+  estadísticas por familia <code>optimizer + lr</code>. También localiza el informe HTML/PDF más reciente
+  en <code>results/reports/</code>.</p>
+  <p class="kv"><b>Qué aporta a la UI.</b> Alimenta la pestaña de comparación y los avisos de "familia
+  problemática" de la pestaña de corrida. La UI no tiene listas fijas de qué configuraciones son malas:
+  las deduce de las corridas reales del dataset seleccionado.</p>
+  <p class="kv"><b>Dos decisiones de diseño notables.</b></p>
+  <ul>
+    <li><b>Ranking relativo, no umbral absoluto.</b> Un F1 de 0.35 es pésimo en <code>satimage</code>
+    (máximo ~0.898) y esperable en <code>wine_quality</code> (máximo ~0.346). Marcar "familias del fondo"
+    del propio ranking evita comparar peras con manzanas.</li>
+    <li><b>El modo de fallo se infiere de las épocas ejecutadas.</b> Una familia con F1 bajo y
+    <code>epochs_mean</code> menor o igual a 0.5× la mediana del dataset <i>colapsó temprano</i>; una con
+    F1 bajo y épocas mayores o iguales a 2× la mediana <i>no convergió</i>. Son causas opuestas (lr
+    demasiado alta vs. demasiado baja) y la UI las explica distinto. El umbral relativo hace que "lento"
+    signifique lo mismo en datasets con escalas de épocas distintas.</li>
+  </ul>
+  <p class="kv"><b>Seguridad.</b> <code>report_file</code> rechaza <code>experiment_id</code> con
+  <code>..</code>, <code>/</code> o <code>\</code>, y los informes se sirven por API con
+  <code>FileResponse</code>. No se expone el sistema de archivos.</p>
+  <p class="note">
+  La lectura es bajo demanda en cada request: no hay caché. Es aceptable para la escala del esqueleto; si
+  el número de experimentos creciera, el siguiente paso sería cachear por mtime.
+  </p>
+</div>
+
+<div class="module">
+  <h3 id="s5_6">5.6 <code>static/</code> — el frontend sin <i>build step</i> <span class="tag soft">cliente</span></h3>
+  <p class="kv"><b>Qué hace.</b> <code>index.html</code> define la estructura de pestañas;
+  <code>styles.css</code> los estilos; <code>app.js</code> la lógica del cliente. No hay bundler,
+  transpilador ni <code>node_modules</code>: se sirve tal cual desde <code>StaticFiles</code>.</p>
+  <p class="kv"><b>Qué aporta.</b> Dos pestañas implementadas:</p>
+  <ul>
+    <li><b>1 · Corrida individual.</b> Formulario de configuración, validación en vivo contra
+    <code>/api/validate</code>, estimación de costo y avisos de la familia elegida, botón de correr,
+    curva de pérdida en vivo por SSE, métricas de validación, matriz de confusión, visor de
+    <code>metadata.json</code>, y comparación de hasta tres corridas con remoción por fila.</li>
+    <li><b>2 · Comparación general.</b> Lee <code>/api/evidence</code> y ofrece enlaces a los informes
+    HTML/PDF generados por <code>analyze</code>.</li>
+    <li><b>3 · Funciones de activación.</b> Presente pero <b>deshabilitada</b> con la etiqueta
+    "planificado". No se declara como implementada.</li>
+  </ul>
+  <p class="kv"><b>Cómo consume el servidor.</b> <code>api(path, options)</code> centraliza
+  <code>fetch</code> y el manejo de errores; <code>openStream(jobId)</code> abre un
+  <code>EventSource</code> y registra listeners para <code>status</code>, <code>epoch</code>,
+  <code>done</code> y <code>failed</code>; <code>drawCurve</code> dibuja la curva en <code>canvas</code>
+  sin librerías. El estado del formulario vive en un objeto <code>state</code> y se envía como
+  <code>buildPayload()</code>.</p>
+  <p class="note">
+  El tercer botón existe en el HTML con <code>disabled</code> y <code>title="Planificado para una etapa
+  posterior"</code>. Es una decisión de producto: mostrar el rumbo sin fingir que está hecho.
+  </p>
+</div>
+
+<div class="module">
+  <h3 id="s5_7">5.7 <code>__init__.py</code> — la superficie pública <span class="tag soft">paquete</span></h3>
+  <p class="kv"><b>Qué hace.</b> Declara el paquete y expone <code>create_app</code> en
+  <code>__all__</code>. Es deliberadamente mínimo: el punto de entrada para tests e integraciones es la
+  fábrica, no los módulos internos.</p>
+</div>
+
+<h2 id="s6">6. Cómo se reutiliza la estructura original de <code>prebenchmark</code></h2>
+
+<h3 id="s6_1">6.1 La regla: la UI no reimplementa el dominio</h3>
+<p>
+La decisión arquitectónica más importante del servidor es <b>qué no hace</b>. No carga datasets por su
+cuenta, no arma modelos, no entrena, no calcula métricas, no valida reglas metodológicas ni escribe
+resultados. Todo eso ya existe en <code>prebenchmark/</code> y está probado. El servidor es una capa de
+<b>adaptación</b>: recibe HTTP, llama al núcleo, traduce la salida.
+</p>
+
+<div class="card">
+  <b>Prueba de la regla.</b> El único lugar de <code>server/</code> que ejecuta entrenamiento es
+  <code>Service._execute</code>, y lo hace con una sola llamada:
+  <code>runner.run_experiment(job.config, experiment_id=..., store=self.store, on_epoch=..., should_stop=...)</code>.
+  No hay un segundo bucle de épocas en el servidor. Si mañana cambia la métrica o el criterio de corte,
+  cambia en el núcleo y la UI lo hereda.
+</div>
+
+<h3 id="s6_2">6.2 Mapa de reutilización, módulo por módulo</h3>
+
+<table>
+  <thead>
+    <tr><th>Necesidad de la aplicación</th><th>Módulo original</th><th>Cómo lo usa <code>server/</code></th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Esquema de una configuración</td>
+      <td><code>config.ExperimentConfig</code> y sus sub-especificaciones</td>
+      <td><code>_build_config</code> parte de <code>dataset_base_config</code> y aplica los parámetros con
+      <code>replace</code>. El job guarda el objeto tipado, no un diccionario suelto.</td>
+    </tr>
+    <tr>
+      <td>Dimensiones reales del dataset</td>
+      <td><code>data.get_dataset</code>, <code>describe_dataset</code>, <code>dataset_base_config</code></td>
+      <td><code>_dataset_payload</code> reporta muestras, features, clases y desbalance; la configuración
+      base deriva <code>input_dim</code>/<code>output_dim</code> de los datos, nunca de constantes.</td>
+    </tr>
+    <tr>
+      <td>Opciones válidas para el formulario</td>
+      <td><code>config.KNOWN_ACTIVATIONS</code>, <code>KNOWN_OPTIMIZERS</code>,
+      <code>KNOWN_INITIALIZATIONS</code>, <code>space.ParameterSpace.learning_rates</code></td>
+      <td><code>/api/options</code> las publica. El frontend no hardcodea el catálogo.</td>
+    </tr>
+    <tr>
+      <td>Validación metodológica</td>
+      <td><code>space.validate_config</code></td>
+      <td><code>/api/validate</code> y <code>POST /api/runs</code>. Devuelve <code>state</code>,
+      <code>rationale</code>, <code>warnings</code> y <code>errors</code>; si es <code>INVALID</code>, no
+      se encola.</td>
+    </tr>
+    <tr>
+      <td>Identidad de la configuración</td>
+      <td><code>space.compute_space_key</code>, <code>aggregate.compute_group_key</code></td>
+      <td><code>_result_payload</code> las expone. Permiten comparar una corrida de la UI con las de las
+      suites sin ambigüedad.</td>
+    </tr>
+    <tr>
+      <td>Entrenamiento</td>
+      <td><code>runner.run_experiment</code></td>
+      <td>Única vía de ejecución. Aprovecha los hooks <code>on_epoch</code> y <code>should_stop</code>
+      (ver §6.3).</td>
+    </tr>
+    <tr>
+      <td>Persistencia</td>
+      <td><code>store.ResultsStore</code></td>
+      <td><code>Service</code> instancia un store con raíz aislada. Escrituras atómicas y append-only
+      heredadas: <code>metadata.json</code>, <code>epochs.csv</code>, <code>configs.jsonl</code>.</td>
+    </tr>
+    <tr>
+      <td>Evidencia de las suites</td>
+      <td><code>export</code> / <code>aggregate</code> / <code>report</code> / <code>analysis</code>
+      (artefactos ya generados)</td>
+      <td><code>evidence.py</code> lee <code>master_*.csv</code> y sirve los informes de
+      <code>results/reports</code>. La UI no recalcula estadística inferencial: muestra la que ya se
+      produjo.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="s6_3">6.3 Los dos hooks nuevos del runner: <code>on_epoch</code> y <code>should_stop</code></h3>
+<p>
+Para que la UI pudiera observar y cancelar sin duplicar el entrenamiento, el runner incorporó dos
+parámetros opcionales. Son la <b>única extensión</b> que el servidor necesitó del núcleo, y están
+diseñados para no cambiar el comportamiento cuando no se usan:
+</p>
+
+<pre><code>def run_experiment(
+    cfg: ExperimentConfig,
+    experiment_id: str = "exp-test",
+    store: ResultsStore | None = None,
+    *,
+    df: Any = None,
+    on_epoch: Callable[[dict[str, Any]], None] | None = None,
+    should_stop: Callable[[], bool] | None = None,
+) -&gt; dict[str, Any]:</code></pre>
+
+<ul>
+  <li><b><code>on_epoch(record)</code></b> — observador que recibe cada registro de época en el momento en
+  que se produce, con la misma forma que una fila de <code>epochs.csv</code>. Un fallo del observador
+  nunca aborta el entrenamiento: <i>la corrida es la fuente de verdad, el observador es prescindible</i>.
+  La UI lo implementa con <code>job.publish_epoch</code>.</li>
+  <li><b><code>should_stop()</code></b> — se consulta al comienzo de cada época. Si devuelve
+  <code>True</code>, el bucle se corta y la corrida se registra como <code>INCOMPLETE</code>, un estado
+  técnico que el análisis ya excluye de las métricas. La UI lo implementa con
+  <code>job.should_stop</code>, respaldado por un <code>threading.Event</code>.</li>
+</ul>
+
+<div class="card ok">
+  <b>Por qué hooks y no una clase base o una interfaz.</b> Porque el núcleo es procedural y no necesita
+  un framework de plugins. Dos callables opcionales resuelven el caso sin acoplar el runner a FastAPI, a
+  hilos ni a SSE. El runner sigue pudiendo ejecutarse desde la CLI exactamente igual, con
+  <code>on_epoch=None</code> y <code>should_stop=None</code>.
+</div>
+
+<h3 id="s6_4">6.4 Lo que la UI deliberadamente no hace</h3>
+<ul>
+  <li><b>No reimplementa la validación.</b> <code>schemas.py</code> valida forma; la metodología se
+  consulta en <code>space</code>.</li>
+  <li><b>No recalcula métricas.</b> Las recibe del runner
+  (<code>validation_metrics</code>, matriz de confusión, F1 macro, etc.) y las presenta.</li>
+  <li><b>No reanaliza las suites.</b> <code>evidence.py</code> agrega lo exportado; el informe
+  inferencial lo produce <code>analyze</code>.</li>
+  <li><b>No inventa una taxonomía de fallos.</b> La deriva de <code>f1_macro</code> y
+  <code>epochs_executed</code> reales.</li>
+  <li><b>No escribe en el store de las suites.</b> Usa <code>results/ui-runs/</code>, separado de
+  <code>results/experiments/</code> (ver §7).</li>
+</ul>
+
+<p>El contraste de flujos queda así:</p>
+
+<div class="two-col">
+  <div>
+    <h4>Antes: solo CLI</h4>
+    <div class="flow">generate → run → compare
+   → aggregate → export
+   → analyze → HTML/PDF
+
+Un comando por etapa.
+Sin estado en vivo.
+La curva se ve al final.</div>
+  </div>
+  <div>
+    <h4>Ahora: CLI + UI</h4>
+    <div class="flow">POST /api/runs → job_id
+   → SSE epoch/epoch/...
+   → done (metadata)
+   → store aislado
+
+La misma config, el mismo
+runner, el mismo formato.
+Solo cambia el transporte.</div>
+  </div>
+</div>
+
+<h2 id="s7">7. Persistencia y aislamiento de datos</h2>
+
+<p>
+La UI escribe en un store propio, por defecto <code>results/ui-runs/</code> con experimento
+<code>ui-exploratory</code>. Se puede cambiar con <code>PREBENCHMARK_UI_STORE</code> y
+<code>PREBENCHMARK_UI_EXPERIMENT</code>. La razón es simple: un job interactivo no puede contaminar
+<code>exp-sweep-*</code>, que es la evidencia de las suites y la base de los informes.
+</p>
+
+<div class="flow">results/
+├── ui-runs/                      ← store de la UI (aislado)
+│   └── ui-exploratory/
+│       ├── &lt;run_id&gt;/
+│       │   ├── metadata.json     configuración, dataset_version, entorno, estado, métricas
+│       │   └── epochs.csv        historia train/val por época
+│       └── configs.jsonl         registro append-only de configuraciones
+├── experiments/                  ← store de las suites (intacto)
+├── exports/&lt;experiment&gt;/         ← master/configs/epochs/aggregates CSV
+└── reports/&lt;experiment&gt;/         ← analysis_&lt;ts&gt;.html y .pdf</div>
+
+<p>
+La escritura la hace <code>ResultsStore</code>, no el servidor: el servidor solo le pasa la raíz. Eso
+hereda las garantías del núcleo —escritura atómica de <code>metadata.json</code> mediante temporal +
+<code>os.replace</code>, y <code>configs.jsonl</code> append-only deduplicado por <code>config_id</code>—
+sin reimplementar nada.
+</p>
+
+<div class="card warn">
+  <b>Consecuencia de <code>--reload</code>.</b> Uvicorn con <code>--reload</code> levanta un proceso
+  <i>reloader</i> y un proceso <i>worker</i>. Al cambiar un archivo, el worker se reinicia y los jobs en
+  memoria (<code>JobRegistry</code>) se pierden. Lo ya persistido en <code>results/ui-runs/</code>
+  sobrevive. Para producción se corre sin <code>--reload</code>.
+</div>
+
+<h2 id="s8">8. Referencia de la API HTTP</h2>
+
+<table>
+  <thead>
+    <tr><th>Método</th><th>Ruta</th><th>Qué hace</th><th>Respuesta</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/</code></td><td>Sirve <code>static/index.html</code>.</td><td>HTML</td></tr>
+    <tr><td>GET</td><td><code>/api/health</code></td><td>Estado, worker count, store y experimento.</td><td>JSON</td></tr>
+    <tr><td>GET</td><td><code>/api/options</code></td><td>Datasets, activaciones, optimizadores, lrs, inicializaciones, protocolo.</td><td>JSON</td></tr>
+    <tr><td>GET</td><td><code>/api/datasets/{name}</code></td><td>Dimensiones y desbalance reales; resuelve y cachea si hace falta.</td><td>JSON / 404 / 502</td></tr>
+    <tr><td>POST</td><td><code>/api/validate</code></td><td>Valida sin ejecutar.</td><td>JSON / 422 / 502</td></tr>
+    <tr><td>POST</td><td><code>/api/runs</code></td><td>Encola una corrida.</td><td><code>202</code> + <code>JobCreated</code></td></tr>
+    <tr><td>GET</td><td><code>/api/runs</code></td><td>Últimos jobs (por defecto 20).</td><td>lista de <code>JobStatus</code></td></tr>
+    <tr><td>GET</td><td><code>/api/runs/{id}</code></td><td>Snapshot del job: estado, épocas, resultado.</td><td><code>JobStatus</code> / 404</td></tr>
+    <tr><td>POST</td><td><code>/api/runs/{id}/cancel</code></td><td>Cancelación cooperativa.</td><td><code>JobStatus</code> / 404</td></tr>
+    <tr><td>GET</td><td><code>/api/runs/{id}/events</code></td><td>Flujo SSE: <code>status</code>, <code>epoch</code>, <code>done</code>, <code>failed</code>.</td><td><code>text/event-stream</code></td></tr>
+    <tr><td>GET</td><td><code>/api/evidence</code></td><td>Experimentos exportados; con <code>?dataset=</code>, evidencia de ese dataset.</td><td>JSON</td></tr>
+    <tr><td>GET</td><td><code>/api/reports/{experiment}</code></td><td>Último informe HTML.</td><td>HTML / 404</td></tr>
+    <tr><td>GET</td><td><code>/api/reports/{experiment}/pdf</code></td><td>Último informe PDF.</td><td>PDF / 404</td></tr>
+  </tbody>
+</table>
+
+<p>Ejemplo mínimo de request de corrida:</p>
+<pre><code>POST /api/runs
+Content-Type: application/json
+
+{
+  "dataset": "wine_quality",
+  "activation": "relu",
+  "optimizer": "adam",
+  "lr": 0.001,
+  "init": "he",
+  "class_weight": "none",
+  "seed": 42,
+  "max_epochs": 500,
+  "early_stop": true,
+  "include_test": false,
+  "device": "auto"
+}</code></pre>
+
+<p>Y el inicio del flujo SSE que consume el navegador:</p>
+<pre><code>id: 1
+event: status
+data: {"type":"status","status":"running","dataset":"wine_quality"}
+
+id: 2
+event: epoch
+data: {"type":"epoch","epoch":1,"train_loss":1.83,"val_loss":1.79,...}
+
+: ping
+
+id: 3
+event: done
+data: {"type":"done","result":{"run_id":"...","execution_state":"COMPLETED",...}}</code></pre>
+
+<h2 id="s9">9. El frontend: dos pestañas y un <code>EventSource</code></h2>
+
+<p>
+El cliente es deliberadamente simple y sin dependencias. El flujo de la pestaña de corrida es:
+</p>
+
+<ol>
+  <li><b>Inicialización.</b> <code>init()</code> pide <code>/api/options</code> y <code>/api/health</code>,
+  llena los selectores con lo que publica el servidor y engancha los controles.</li>
+  <li><b>Selección de dataset.</b> <code>loadDataset()</code> consulta <code>/api/datasets/{name}</code>,
+  muestra muestras/features/clases/desbalance y actualiza la arquitectura estimada.</li>
+  <li><b>Validación en vivo.</b> Cada cambio se debouncea y se manda a <code>/api/validate</code>. El
+  resultado se pinta como advertencias o errores; una configuración <code>INVALID</code> bloquea el
+  botón.</li>
+  <li><b>Evidencia.</b> <code>loadEvidence()</code> consulta <code>/api/evidence?dataset=...</code> y
+  muestra las familias problemáticas del dataset, con su modo de fallo inferido.</li>
+  <li><b>Corrida.</b> <code>startRun()</code> hace <code>POST /api/runs</code>, guarda el
+  <code>job_id</code> y abre <code>openStream(jobId)</code>.</li>
+  <li><b>Streaming.</b> Los listeners de <code>EventSource</code> actualizan estado, agregan filas a
+  <code>curveRows</code>, redibujan la curva y, al llegar <code>done</code>, renderizan métricas,
+  matriz de confusión y el visor de <code>metadata.json</code>.</li>
+  <li><b>Cancelación.</b> <code>cancelRun()</code> hace <code>POST /api/runs/{id}/cancel</code>; el
+  servidor responde de inmediato y el corte efectivo ocurre al final de la época en curso.</li>
+  <li><b>Comparación local.</b> Hasta tres corridas se guardan en el array <code>runs</code> y se
+  muestran en una tabla con botón de remoción por fila. Es comparación de sesión, no de suite: para eso
+  está la pestaña 2.</li>
+</ol>
+
+<p class="note">
+El servidor no mantiene el estado del formulario ni la tabla comparativa: eso vive en el navegador. El
+servidor solo conoce jobs y evidencia. Esa separación evita sesiones y simplifica el esqueleto; el costo
+es que al recargar la página se pierde la tabla comparativa local.
+</p>
+
+<h2 id="s10">10. Decisiones, límites y tradeoffs</h2>
+
+<table>
+  <thead>
+    <tr><th>Decisión</th><th>Por qué</th><th>Costo / límite asumido</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Un solo worker de entrenamiento</td>
+      <td>Los RNG son globales al proceso; dos corridas concurrentes romperían la reproducibilidad.</td>
+      <td>Las corridas se serializan. El paralelismo real requiere procesos (§11).</td>
+    </tr>
+    <tr>
+      <td>Jobs en memoria</td>
+      <td>Simplicidad para un esqueleto interactivo; no hace falta una cola durable.</td>
+      <td>Un reinicio pierde los jobs en vuelo. Lo persistido en el store sobrevive.</td>
+    </tr>
+    <tr>
+      <td>SSE en vez de WebSocket</td>
+      <td>El flujo es unidireccional (servidor → cliente) y SSE es nativo, con reconexión automática del navegador.</td>
+      <td>No hay canal cliente → servidor por el stream; cancelar usa otro endpoint.</td>
+    </tr>
+    <tr>
+      <td>Lectura por cursor cada 50 ms</td>
+      <td>El hilo de entrenamiento no puede <code>await</code>; un log append-only con índice es simple y seguro entre hilos.</td>
+      <td>Latencia de hasta ~50 ms y costo mínimo de sondeo. Se envía ping cada 15 s.</td>
+    </tr>
+    <tr>
+      <td>Log de eventos con tope (2000)</td>
+      <td>Evita crecimiento ilimitado de memoria en jobs largos.</td>
+      <td>Pasado el tope se dejan de registrar épocas nuevas (el contador y el evento final siguen).</td>
+    </tr>
+    <tr>
+      <td>Store aislado <code>results/ui-runs</code></td>
+      <td>La UI no puede contaminar la evidencia de las suites.</td>
+      <td>La comparación general no incluye automáticamente las corridas de la UI; hay que exportarlas si se quieren agregar.</td>
+    </tr>
+    <tr>
+      <td>Set de prueba reservado por defecto</td>
+      <td>Evita fuga de información y mantiene el protocolo: se compara por validación, el test es para evaluación final.</td>
+      <td>El cliente debe pedir <code>include_test=true</code> explícitamente y la respuesta lo marca.</td>
+    </tr>
+    <tr>
+      <td>Cancelación cooperativa por época</td>
+      <td>Abortar a mitad de una época dejaría estado inconsistente.</td>
+      <td>La cancelación no es instantánea: espera el final de la época en curso.</td>
+    </tr>
+    <tr>
+      <td>Sin autenticación ni CORS abierto</td>
+      <td>Herramienta local de investigación, un solo usuario.</td>
+      <td>No debe exponerse a una red no confiable tal como está.</td>
+    </tr>
+    <tr>
+      <td>Endpoints <code>def</code> (no <code>async</code>) para lo corto</td>
+      <td>FastAPI los corre en su threadpool; no bloquean el loop aunque hagan I/O de archivos.</td>
+      <td>Ocupan un hilo del pool mientras dura la operación (validar, leer CSV).</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card bad">
+  <b>Límite que conviene tener presente.</b> <code>/api/runs</code> y <code>/api/validate</code> llaman a
+  <code>dataset_base_config</code>, que puede resolver y cachear un dataset. La primera vez que se usa un
+  dataset con <code>force_load</code>, esa operación puede tardar (red incluida) y ocurre en el hilo del
+  request, no en el worker. Para datasets ya cacheados es inmediata. Si se quisiera eliminar esa
+  latencia, el paso siguiente sería precargar en el <code>lifespan</code> o mover la resolución a un job.
+</div>
+
+<h2 id="s11">11. Camino al benchmark definitivo</h2>
+
+<p>
+El esqueleto ya demuestra el patrón completo: HTTP → validación de dominio → job → hilo → SSE → store.
+Lo que falta para un benchmark definitivo no es reescribir esto, sino <b>escalarlo y endurecerlo</b>.
+Ordenado por impacto:
+</p>
+
+<ol>
+  <li><b>Paralelismo por procesos.</b> Reemplazar el <code>ThreadPoolExecutor</code> de un worker por un
+  pool de <b>procesos</b> (por ejemplo <code>ProcessPoolExecutor</code> o workers externos tipo Celery/
+  RQ). Cada proceso tiene su propio RNG global, así que la reproducibilidad se mantiene. El
+  <code>JobsRegistry</code> pasaría a ser un coordinador, no un executor.</li>
+  <li><b>Cola durable.</b> Persistir el estado de los jobs (SQLite o similar) para sobrevivir reinicios y
+  poder reanudar o auditar. Hoy el estado vive solo en memoria.</li>
+  <li><b>Barridos desde la UI.</b> Exponer <code>generate_configs</code> + <code>run --multi-seed</code>
+  como un "suite job" que encola N corridas y muestra progreso agregado. El dominio ya lo soporta; falta
+  la capa de orquestación.</li>
+  <li><b>Comparación con evidencia de suite.</b> Permitir que una corrida de UI se exporte y se agregue
+  al análisis, para que la comparación general incluya también lo exploratorio.</li>
+  <li><b>Pestaña de funciones de activación.</b> Ya está anunciada y deshabilitada; requiere curvas
+  comparativas por activación, que el export ya contiene.</li>
+  <li><b>Autenticación y límites.</b> Si se expone fuera de <i>localhost</i>: auth, CORS restringido,
+  rate limiting y cuotas de CPU/memoria por job.</li>
+  <li><b>Persistencia del stream.</b> Si se quiere reconexión exacta tras un corte, honrar
+  <code>Last-Event-ID</code> en lugar de replay desde cero (hoy el servidor siempre empieza en el índice
+  0, que es correcto para corridas cortas).</li>
+</ol>
+
+<div class="card">
+  <b>Lo que no hay que cambiar.</b> La dirección de dependencia. El núcleo <code>prebenchmark/</code> no
+  debe importar <code>server/</code>. Los hooks <code>on_epoch</code> y <code>should_stop</code> son la
+  frontera: cualquier transporte futuro (CLI, UI, API externa) los usa igual. Si esa dirección se
+  invierte, se pierde la posibilidad de correr el mismo experimento desde la consola y desde la web con
+  resultados comparables.
+</div>
+
+<h2 id="s12">12. Guía práctica: levantarlo, probarlo y extenderlo</h2>
+
+<h3>Levantar la aplicación</h3>
+<pre><code>pip install -r requirements-server.txt
+python -m uvicorn server.app:app --reload
+# http://127.0.0.1:8000</code></pre>
+
+<p>Con el entorno virtual del proyecto:</p>
+<pre><code>.venv\Scripts\python.exe -m uvicorn server.app:app --reload --host 127.0.0.1 --port 8000</code></pre>
+
+<h3>Verificar que responde</h3>
+<pre><code>curl http://127.0.0.1:8000/api/health
+# {"status":"ok","max_workers":1,"experiment_id":"ui-exploratory","store_root":"results\\ui-runs"}</code></pre>
+
+<h3>Correr los tests</h3>
+<pre><code>python -m pytest -q</code></pre>
+<p class="note">
+La suite corre offline con datasets en memoria. Los tests del servidor montan <code>create_app</code> con
+un store temporal, que es exactamente para lo que existe la fábrica.
+</p>
+
+<h3>Agregar un endpoint nuevo</h3>
+<ol>
+  <li>Si necesita un tipo de request/response nuevo, declaralo en <code>schemas.py</code>.</li>
+  <li>Si toca dominio, llamá a <code>prebenchmark</code>; no reimplementes la regla en el servidor.</li>
+  <li>Declará la ruta dentro de <code>create_app</code>, usando <code>_service(request)</code> para
+  acceder al estado de larga vida.</li>
+  <li>Si la respuesta puede traer objetos de NumPy, pasala por <code>to_jsonable</code>.</li>
+  <li>Si es I/O corto, <code>def</code>; si necesita esperar sin bloquear, <code>async def</code>.</li>
+</ol>
+
+<h3>Cambiar el store o el experimento de la UI</h3>
+<pre><code>$env:PREBENCHMARK_UI_STORE = "results/ui-runs-2"
+$env:PREBENCHMARK_UI_EXPERIMENT = "ui-exploratory-2"
+python -m uvicorn server.app:app --reload</code></pre>
+
+<h2 id="s13">13. Resumen en diez ideas</h2>
+
+<ol>
+  <li>El servidor es una <b>fachada</b> sobre <code>prebenchmark</code>; no un segundo sistema.</li>
+  <li>El entrenamiento corre en un <b>hilo dedicado</b>, fuera del <i>event loop</i>, para que la página
+  nunca se congele.</li>
+  <li>El puente es el <code>Job</code>: estado compartido, protegido por lock, observable por SSE.</li>
+  <li><b>Un solo worker</b> porque los RNG son globales al proceso; es una decisión de reproducibilidad.</li>
+  <li><code>POST /api/runs</code> responde <code>202</code> al instante; el progreso llega por
+  <code>/events</code>.</li>
+  <li>Los dos hooks del runner —<code>on_epoch</code> y <code>should_stop</code>— son toda la extensión
+  que el núcleo necesitó.</li>
+  <li>La validación metodológica vive en <code>space</code>; Pydantic solo valida la forma.</li>
+  <li>El set de prueba queda reservado salvo pedido explícito y marcado como tal.</li>
+  <li>La UI escribe en <code>results/ui-runs</code>, aislada de la evidencia de las suites.</li>
+  <li>La evidencia no se hardcodea: se deriva de las corridas reales, con umbrales relativos al dataset.</li>
+</ol>
+
+<hr>
+<p class="note">
+Documento generado a partir del código de <code>server/</code> y de los contratos públicos de
+<code>prebenchmark/</code>. Las rutas, nombres de funciones, límites (<code>MAX_RETAINED_JOBS = 50</code>,
+<code>MAX_RETAINED_EVENTS = 2000</code>), defaults y estados descriptos corresponden a la implementación
+actual del esqueleto.
+</p>
+
+</body>
+</html>

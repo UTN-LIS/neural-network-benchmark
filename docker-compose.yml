@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Must exist on https://download.pytorch.org/whl/cpu for the image's Python.
+        TORCH_VERSION: "2.14.1"
+    image: neural-network-benchmark:local
+    container_name: prebenchmark
+    init: true
+    ports:
+      # Bound to loopback: the API has no authentication. Change to
+      # "0.0.0.0:${PREBENCHMARK_PORT:-8000}:8000" only on a trusted network.
+      - "127.0.0.1:${PREBENCHMARK_PORT:-8000}:8000"
+    environment:
+      # Paths are relative to /app and must match the volume mounts below.
+      PREBENCHMARK_UI_STORE: results/ui-runs
+      PREBENCHMARK_UI_EXPERIMENT: ${PREBENCHMARK_UI_EXPERIMENT:-ui-exploratory}
+      PREBENCHMARK_EXPORTS: results/exports
+      PREBENCHMARK_REPORTS: results/reports
+      # 0 keeps torch's default (all cores). Set it when the host runs other work.
+      PREBENCHMARK_TORCH_THREADS: ${PREBENCHMARK_TORCH_THREADS:-0}
+    volumes:
+      # Runs, exports and reports live on the host, not in the container layer.
+      - ./results:/app/results
+      # Dataset cache: the first load of each dataset needs network access.
+      # Matches the CLI default (.cache/prebenchmark), so both share the cache.
+      - ./.cache:/app/.cache
+    restart: unless-stopped
+
+# On Linux, if the bind mounts are not writable by uid 1000:
+#   mkdir -p results .cache && sudo chown -R 1000:1000 results .cache
+#
+# On Windows/macOS with Docker Desktop the bind mounts ignore the container uid.
