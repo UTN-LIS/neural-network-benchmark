@@ -376,6 +376,104 @@ def test_reports_are_served_without_path_traversal(client: TestClient, tmp_path:
     assert client.get("/api/reports/..%2F..%2Fetc").status_code == 404
 
 
+def _write_history_run(store_root: Path, run_id: str, start_time: str, **overrides: Any) -> Path:
+    """Crea un run persistido mínimo con el mismo layout que ``persist_run``."""
+    run_dir = store_root / "ui-test" / run_id
+    run_dir.mkdir(parents=True)
+    metadata: dict[str, Any] = {
+        "run_id": run_id,
+        "config_id": "cfg-history",
+        "experiment_id": "ui-test",
+        "start_time": start_time,
+        "end_time": start_time,
+        "dataset": {"name": "wine_quality", "target": "quality"},
+        "architecture": {"name": "wine_quality_mlp", "hidden_layers": [32, 16]},
+        "activation": "relu",
+        "optimizer": "adam",
+        "lr": 0.01,
+        "init": "he",
+        "seed": 42,
+        "batch_size": 32,
+        "max_epochs": 50,
+        "epochs_executed": 4,
+        "preprocessing": {"scaler": "standard", "class_weight": None},
+        "execution_state": "COMPLETED",
+        "warnings": [],
+        "validation_metrics": {
+            "evaluation_set": "validation",
+            "epoch": 3,
+            "loss": 0.7,
+            "accuracy": 0.66,
+            "balanced_accuracy": 0.63,
+            "precision_macro": 0.65,
+            "recall_macro": 0.64,
+            "f1_macro": 0.64,
+        },
+        "final_metrics": {"evaluation_set": "test", "f1_macro": 0.99},
+        "training_time": 1.5,
+        "n_params": 1814,
+    }
+    metadata.update(overrides)
+    (run_dir / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+    return run_dir
+
+
+def test_history_lists_persisted_runs_newest_first(client: TestClient, tmp_path: Path) -> None:
+    store_root = tmp_path / "ui-store"
+    _write_history_run(store_root, "20260101T000000Z-aaaaaa", "20260101T000000Z")
+    _write_history_run(
+        store_root,
+        "20260102T000000Z-bbbbbb",
+        "20260102T000000Z",
+        execution_state="INCOMPLETE",
+        warnings=["run cancelled by user request"],
+    )
+    (store_root / "ui-test" / "sin-metadata").mkdir()  # se ignora: no es una corrida
+
+    body = client.get("/api/history").json()
+    assert body["experiment_id"] == "ui-test"
+    assert body["total"] == 2
+    assert body["returned"] == 2
+    assert [row["run_id"] for row in body["runs"]] == [
+        "20260102T000000Z-bbbbbb",
+        "20260101T000000Z-aaaaaa",
+    ]
+
+    newest = body["runs"][0]
+    assert newest["dataset"] == "wine_quality"
+    assert newest["execution_state"] == "INCOMPLETE"
+    assert newest["f1_macro"] == pytest.approx(0.64)
+    assert newest["class_weight"] is None
+    assert newest["warning_count"] == 1
+    assert "final_metrics" not in json.dumps(body)
+
+    limited = client.get("/api/history", params={"limit": 1}).json()
+    assert limited["total"] == 2
+    assert limited["returned"] == 1
+    assert [row["run_id"] for row in limited["runs"]] == ["20260102T000000Z-bbbbbb"]
+
+
+def test_history_detail_returns_epochs_and_hides_test_metrics(
+    client: TestClient, tmp_path: Path
+) -> None:
+    store_root = tmp_path / "ui-store"
+    run_dir = _write_history_run(store_root, "20260103T000000Z-cccccc", "20260103T000000Z")
+    (run_dir / "epochs.csv").write_text(
+        "run_id,config_id,epoch,train_loss,train_acc,val_loss,val_acc,epoch_time\n"
+        "20260103T000000Z-cccccc,cfg-history,1,1.0,0.5,0.9,0.5,0.1\n",
+        encoding="utf-8",
+    )
+
+    body = client.get("/api/history/20260103T000000Z-cccccc").json()
+    assert body["run_id"] == "20260103T000000Z-cccccc"
+    assert body["metadata"]["validation_metrics"]["f1_macro"] == pytest.approx(0.64)
+    assert "final_metrics" not in body["metadata"]
+    assert body["test_hidden"] is True
+    assert body["epochs"][0]["val_loss"] == pytest.approx(0.9)
+
+    assert client.get("/api/history/inexistente").status_code == 404
+
+
 def test_registry_refuses_more_than_one_worker() -> None:
     with pytest.raises(ValueError, match="max_workers"):
         JobRegistry(lambda job: None, max_workers=2)
