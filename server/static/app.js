@@ -72,6 +72,58 @@ function metric(key, value, note, primary) {
   );
 }
 
+/* Textos para mostrar valores técnicos (los códigos de la API no cambian). */
+const EXECUTION_STATE_LABELS = {
+  COMPLETED: "Completada",
+  COMPLETED_WITH_WARNINGS: "Completada con advertencias",
+  INCOMPLETE: "Incompleta",
+  FAILED: "Fallida",
+  VALID: "Válida",
+  WARNING: "Advertencia",
+  INVALID: "Inválida",
+};
+
+const JOB_STATUS_LABELS = {
+  queued: "en cola",
+  running: "entrenando",
+  completed: "completada",
+  failed: "fallida",
+};
+
+const executionStateLabel = (state) => EXECUTION_STATE_LABELS[state] || state || "—";
+const jobStatusLabel = (status) => JOB_STATUS_LABELS[status] || status || "—";
+
+/* Corridas persistidas antes de traducir el dominio guardaron avisos en inglés.
+   Esta tabla solo adapta esos metadatos históricos para mostrarlos en español. */
+const LEGACY_WARNING_TRANSLATIONS = {
+  "Adam with learning rate >= 0.1 may be unstable":
+    "Adam con tasa de aprendizaje >= 0.1 puede ser inestable",
+  "SGD with learning rate >= 0.1 may diverge":
+    "SGD con tasa de aprendizaje >= 0.1 puede divergir",
+  "He/Kaiming initialization is not conventionally recommended for sigmoid/tanh activations":
+    "La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh",
+  "Xavier/Glorot initialization is not conventionally recommended for ReLU activations":
+    "La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU",
+  "run cancelled by user request": "Corrida cancelada por pedido del usuario",
+};
+
+function localizedWarning(message) {
+  const text = String(message);
+  if (LEGACY_WARNING_TRANSLATIONS[text]) return LEGACY_WARNING_TRANSLATIONS[text];
+  const version = /^dataset version unavailable: (.*)$/.exec(text);
+  if (version) return "Versión del dataset no disponible: " + version[1];
+  const environment = /^environment capture skipped: (.*)$/.exec(text);
+  if (environment) return "Captura del entorno omitida: " + environment[1];
+  const convergence = /^convergence metric '(.*)' unavailable; running to max_epochs$/.exec(text);
+  if (convergence) {
+    return (
+      "La métrica de convergencia '" + convergence[1] +
+      "' no está disponible; se ejecuta hasta max_epochs"
+    );
+  }
+  return text;
+}
+
 /* ============================================================
    Inicialización
    ============================================================ */
@@ -299,13 +351,19 @@ function renderWarnings() {
       items.push({
         level: "bad",
         title: "Configuración inválida: no se puede ejecutar",
-        text: (validation.errors || validation.rationale || []).map(esc).join(" · "),
+        text: (validation.errors || validation.rationale || [])
+          .map(localizedWarning)
+          .map(esc)
+          .join(" · "),
       });
     } else if (validation.state === "WARNING") {
       items.push({
         level: "warn",
-        title: "WARNING de validación",
-        text: (validation.warnings || validation.rationale || []).map(esc).join(" · "),
+        title: "Advertencia de validación",
+        text: (validation.warnings || validation.rationale || [])
+          .map(localizedWarning)
+          .map(esc)
+          .join(" · "),
       });
     }
   }
@@ -326,7 +384,7 @@ function renderWarnings() {
       level: "ok",
       title: "Evidencia medida para esta familia (" + evidence.experiment_id + ")",
       text:
-        "F1 macro medio <b>" + fmt(family.f1_mean, 4) + "</b>, accuracy <b>" + fmt(family.accuracy_mean, 4) +
+        "F1 macro medio <b>" + fmt(family.f1_mean, 4) + "</b>, exactitud <b>" + fmt(family.accuracy_mean, 4) +
         "</b>, <b>" + fmt(family.epochs_mean, 1) + "</b> épocas y <b>" + fmt(family.time_mean, 1) +
         " s</b> por corrida (n=" + family.n + ").",
     });
@@ -578,9 +636,11 @@ function openStream(jobId) {
 
   source.addEventListener("status", (event) => {
     const data = JSON.parse(event.data);
-    $("run-state").textContent = data.status;
+    $("run-state").textContent = jobStatusLabel(data.status);
     $("run-state").className = "tag";
-    $("progress-text").textContent = data.status === "running" ? "Entrenando…" : data.status;
+    $("run-state").title = data.status;
+    $("progress-text").textContent =
+      data.status === "running" ? "Entrenando…" : jobStatusLabel(data.status);
   });
 
   source.addEventListener("epoch", (event) => {
@@ -632,7 +692,8 @@ function finishRun(payload) {
   $("cancel-btn").disabled = false;
   $("cancel-btn").textContent = "■ Cancelar";
   const stateName = payload.execution_state || "COMPLETED";
-  $("run-state").textContent = stateName;
+  $("run-state").textContent = executionStateLabel(stateName);
+  $("run-state").title = stateName;
   $("run-state").className =
     "tag " + (stateName === "COMPLETED" ? "ok" : stateName === "COMPLETED_WITH_WARNINGS" ? "warn" : "bad");
   $("progress").style.width = "100%";
@@ -666,13 +727,14 @@ function finishRun(payload) {
     (stateName === "INCOMPLETE"
       ? '<div class="alert warn" style="margin-top:12px"><span class="t">Corrida cancelada</span>' +
         "Se conservaron las métricas de la mejor época alcanzada, pero el estado técnico es " +
-        "<b>INCOMPLETE</b>: la corrida no se incluye en agregados ni informes.</div>"
+        "<b>INCOMPLETA</b>: la corrida no se incluye en agregados ni informes.</div>"
       : "") +
     (warnings.length
-      ? '<div class="alert warn" style="margin-top:12px"><span class="t">execution_state: ' +
-        esc(payload.execution_state) + "</span>" + warnings.map(esc).join(" · ") + "</div>"
-      : '<div class="alert ok" style="margin-top:12px"><span class="t">execution_state: ' +
-        esc(payload.execution_state) + "</span>Sin advertencias.</div>");
+      ? '<div class="alert warn" style="margin-top:12px"><span class="t">Estado de ejecución: ' +
+        esc(executionStateLabel(payload.execution_state)) + "</span>" +
+        warnings.map(localizedWarning).map(esc).join(" · ") + "</div>"
+      : '<div class="alert ok" style="margin-top:12px"><span class="t">Estado de ejecución: ' +
+        esc(executionStateLabel(payload.execution_state)) + "</span>Sin advertencias.</div>");
 
   $("meta-box").style.display = "";
   $("meta-json").textContent = JSON.stringify(payload.metadata, null, 2);
@@ -695,6 +757,7 @@ function finishRun(payload) {
   runs.unshift({ payload, curve: curveRows.slice() });
   if (runs.length > 3) runs.pop();
   renderCompare();
+  if (historyModalOpen()) loadHistory();
 }
 
 function showRunError(error) {
@@ -711,7 +774,11 @@ function showRunError(error) {
   const detail = error.body && error.body.detail;
   let extra = "";
   if (detail && detail.validation) {
-    extra = (detail.validation.errors || []).concat(detail.validation.warnings || []).map(esc).join(" · ");
+    extra = (detail.validation.errors || [])
+      .concat(detail.validation.warnings || [])
+      .map(localizedWarning)
+      .map(esc)
+      .join(" · ");
   } else if (detail && typeof detail === "object") {
     extra = esc(JSON.stringify(detail));
   }
@@ -722,8 +789,7 @@ function showRunError(error) {
 /* ============================================================
    Curvas
    ============================================================ */
-function drawCurve(rows, bestEpoch, complete) {
-  if (!rows.length) return;
+function lossCurveSvg(rows, bestEpoch) {
   const width = 700, height = 250, left = 46, right = 14, top = 16, bottom = 34;
   const maxEpoch = Math.max(rows[rows.length - 1].epoch, 1);
   let maxLoss = 0;
@@ -754,7 +820,7 @@ function drawCurve(rows, bestEpoch, complete) {
   }
 
   let marker = "";
-  if (complete && bestEpoch != null) {
+  if (bestEpoch != null) {
     const row = rows.find((item) => item.epoch === bestEpoch) || rows[rows.length - 1];
     if (row.val_loss != null) {
       marker =
@@ -767,8 +833,7 @@ function drawCurve(rows, bestEpoch, complete) {
     }
   }
 
-  $("curve").innerHTML =
-    '<svg viewBox="0 0 ' + width + " " + height + '" width="100%" role="img" aria-label="Curvas de pérdida">' +
+  return '<svg viewBox="0 0 ' + width + " " + height + '" width="100%" role="img" aria-label="Curvas de pérdida">' +
     grid + xAxis + marker +
     '<path d="' + path("train_loss") + '" fill="none" stroke="#93c5fd" stroke-width="1.8"/>' +
     '<path d="' + path("val_loss") + '" fill="none" stroke="#0b5fa5" stroke-width="2"/>' +
@@ -779,7 +844,12 @@ function drawCurve(rows, bestEpoch, complete) {
       '<text x="38" y="16" fill="#111827">val_loss</text>' +
       '<line x1="98" y1="12" x2="120" y2="12" stroke="#93c5fd" stroke-width="1.8"/>' +
       '<text x="126" y="16" fill="#111827">train_loss</text>' +
-    "</g></svg>" +
+    "</g></svg>";
+}
+
+function drawCurve(rows, bestEpoch, complete) {
+  if (!rows.length) return;
+  $("curve").innerHTML = lossCurveSvg(rows, complete ? bestEpoch : null) +
     '<div class="hint">Equivalente visual de <code>epochs.csv</code>: <code>epoch</code>, ' +
     "<code>train_loss</code>, <code>val_loss</code>. La línea ámbar marca la época con menor " +
     "<code>val_loss</code>.</div>";
@@ -861,7 +931,8 @@ function renderCompare() {
     table += "<tr>" +
       "<td>" + esc(label) + "<br><span class='pill'>cw " +
         esc(config.preprocessing ? config.preprocessing.class_weight || "none" : "none") + "</span> " +
-        "<span class='pill " + stateClass + "'>" + stateName + "</span></td>" +
+        "<span class='pill " + stateClass + "' title='execution_state: " + esc(stateName) + "'>" +
+        esc(executionStateLabel(stateName)) + "</span></td>" +
       "<td>" + esc(payload.config && payload.config.dataset ? payload.config.dataset.name : state.dataset) + "</td>" +
       "<td class='num'><b>" + fmt(validation.f1_macro, 4) + "</b><br><span class='pill'>" +
         (runs.length > 1
@@ -1009,6 +1080,268 @@ function renderCompareTab() {
 }
 
 /* ============================================================
+   Historial persistido (results/ui-runs)
+   ============================================================ */
+let historyRows = [];
+let historyFilterText = "";
+let historyDetail = null;
+let historyReturnFocus = null;
+
+const HISTORY_STATE_CLASS = {
+  COMPLETED: "ok",
+  COMPLETED_WITH_WARNINGS: "warn",
+  INCOMPLETE: "bad",
+  FAILED: "bad",
+};
+
+function historyModalOpen() {
+  return !$("history-modal").hidden;
+}
+
+function formatRunTime(value) {
+  if (!value) return "—";
+  const match = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(String(value));
+  if (!match) return String(value);
+  return match[3] + "/" + match[2] + "/" + match[1] + " " + match[4] + ":" + match[5] + ":" + match[6];
+}
+
+function historyStateTag(stateName) {
+  const name = stateName || "DESCONOCIDO";
+  return (
+    '<span class="tag ' + (HISTORY_STATE_CLASS[name] || "") +
+    '" title="execution_state: ' + esc(name) + '">' + esc(executionStateLabel(name)) + "</span>"
+  );
+}
+
+function historyConfigLabel(row) {
+  return [row.activation, row.optimizer, row.lr != null ? "lr " + row.lr : null, row.init]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function setHistoryDetailMode(isDetail) {
+  $("history-toolbar").hidden = isDetail;
+  $("history-hint").hidden = isDetail;
+  $("history-detail-back").hidden = !isDetail;
+  $("history-count").hidden = isDetail;
+  $("history-title-text").textContent = isDetail ? "Detalle de la corrida" : "Historial de corridas";
+}
+
+function openHistory() {
+  if (historyModalOpen()) return;
+  historyReturnFocus = document.activeElement;
+  historyFilterText = "";
+  $("history-filter").value = "";
+  $("history-modal").hidden = false;
+  setHistoryDetailMode(false);
+  document.body.style.overflow = "hidden";
+  $("history-filter").focus();
+  loadHistory();
+}
+
+function closeHistory() {
+  if (!historyModalOpen()) return;
+  $("history-modal").hidden = true;
+  document.body.style.overflow = "";
+  historyDetail = null;
+  if (historyReturnFocus && typeof historyReturnFocus.focus === "function") {
+    historyReturnFocus.focus();
+  }
+}
+
+async function loadHistory() {
+  $("history-body").innerHTML = '<div class="loading">Leyendo corridas persistidas…</div>';
+  try {
+    const body = await api("/api/history");
+    historyRows = body.runs || [];
+    historyDetail = null;
+    $("history-hint").innerHTML =
+      "Corridas persistidas en <code>" + esc(body.store_root || "results/ui-runs") +
+      "</code> · experimento <code>" + esc(body.experiment_id || "—") +
+      "</code> · fechas en UTC. Sobreviven a reinicios del servidor.";
+    renderHistory();
+  } catch (error) {
+    $("history-body").innerHTML =
+      '<div class="alert bad"><span class="t">No se pudo leer el historial</span>' + esc(error.message) + "</div>";
+  }
+}
+
+function renderHistory() {
+  if (historyDetail) {
+    renderHistoryDetail(historyDetail);
+    return;
+  }
+  setHistoryDetailMode(false);
+
+  const needle = historyFilterText.trim().toLowerCase();
+  const rows = historyRows.filter((row) => {
+    if (!needle) return true;
+    return [
+      row.run_id,
+      row.config_id,
+      row.dataset,
+      row.execution_state,
+      historyConfigLabel(row),
+      row.class_weight || "none",
+      "seed " + (row.seed != null ? row.seed : ""),
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(needle);
+  });
+  $("history-count").textContent = needle
+    ? rows.length + " de " + historyRows.length
+    : String(historyRows.length);
+
+  if (!historyRows.length) {
+    $("history-body").innerHTML =
+      '<div class="empty">Todavía no hay corridas persistidas. Ejecutá una combinación y aparecerá acá.</div>';
+    return;
+  }
+  if (!rows.length) {
+    $("history-body").innerHTML = '<div class="empty">Ninguna corrida coincide con el filtro.</div>';
+    return;
+  }
+
+  let table =
+    "<div class='history-table'><table><thead><tr>" +
+    "<th>Fecha (UTC)</th><th>Corrida</th><th>Dataset</th><th>Configuración</th>" +
+    "<th>Estado</th><th class='num'>F1 val</th><th class='num'>Acc val</th>" +
+    "<th class='num'>Épocas</th><th class='num'>Tiempo</th><th></th>" +
+    "</tr></thead><tbody>";
+
+  rows.forEach((row) => {
+    table += "<tr>" +
+      "<td>" + formatRunTime(row.start_time) + "</td>" +
+      "<td><span class='history-run-id'>" + esc(row.run_id || "—") + "</span>" +
+        (row.warning_count
+          ? '<br><span class="pill warn">' + row.warning_count + " aviso(s)</span>"
+          : "") + "</td>" +
+      "<td>" + esc(row.dataset || "—") + "</td>" +
+      "<td>" + esc(historyConfigLabel(row) || "—") +
+        "<br><span class='pill'>cw " + esc(row.class_weight || "none") + "</span> " +
+        "<span class='pill'>seed " + esc(row.seed != null ? row.seed : "—") + "</span></td>" +
+      "<td>" + historyStateTag(row.execution_state) + "</td>" +
+      "<td class='num'><b>" + fmt(row.f1_macro, 4) + "</b></td>" +
+      "<td class='num'>" + fmt(row.accuracy, 4) + "</td>" +
+      "<td class='num'>" + (row.epochs_executed != null ? row.epochs_executed : "—") +
+        (row.max_epochs != null ? "<br><span class='pill'>tope " + esc(row.max_epochs) + "</span>" : "") +
+        "</td>" +
+      "<td class='num'>" + (row.training_time != null ? fmt(row.training_time, 1) + " s" : "—") + "</td>" +
+      "<td class='num'>" + (row.run_id
+        ? "<button class='btn ghost history-row-btn' type='button' data-run-id='" + esc(row.run_id) +
+          "'>Detalle</button>"
+        : "—") + "</td>" +
+      "</tr>";
+  });
+  table += "</tbody></table></div>";
+  $("history-body").innerHTML = table;
+
+  document.querySelectorAll("#history-body .history-row-btn").forEach((button) => {
+    button.addEventListener("click", () => showHistoryDetail(button.dataset.runId));
+  });
+}
+
+async function showHistoryDetail(runId) {
+  setHistoryDetailMode(true);
+  $("history-body").innerHTML =
+    '<div class="loading">Cargando corrida <code>' + esc(runId) + "</code>…</div>";
+  try {
+    const detail = await api("/api/history/" + encodeURIComponent(runId));
+    if (!historyModalOpen()) return;
+    historyDetail = detail;
+    renderHistoryDetail(detail);
+  } catch (error) {
+    if (!historyModalOpen()) return;
+    historyDetail = null;
+    setHistoryDetailMode(false);
+    $("history-body").innerHTML =
+      '<div class="alert bad"><span class="t">No se pudo abrir la corrida</span>' + esc(error.message) + "</div>";
+  }
+}
+
+function renderHistoryDetail(detail) {
+  setHistoryDetailMode(true);
+  $("history-detail-back").focus();
+  const metadata = detail.metadata || {};
+  const validation = metadata.validation_metrics || {};
+  const warnings = metadata.warnings || [];
+  const epochs = detail.epochs || [];
+  const architecture = metadata.architecture || {};
+  const preprocessing = metadata.preprocessing || {};
+
+  let html =
+    "<h3 style='margin:0;text-transform:none;font-size:14px;font-weight:600;color:var(--tinta)'>" +
+      "<span class='history-run-id'>" + esc(detail.run_id || "—") + "</span> " +
+      historyStateTag(metadata.execution_state || metadata.state) + "</h3>" +
+    '<div class="hint">Inicio ' + formatRunTime(metadata.start_time) + " · fin " +
+      formatRunTime(metadata.end_time) + " · config_id <code>" + esc(detail.config_id || "—") + "</code></div>" +
+    '<div class="hint">Persistida en <code>' +
+      esc(detail.path || "results/ui-runs/" + (detail.experiment_id || "") + "/" + (detail.run_id || "")) +
+      "</code></div>";
+
+  html += '<div class="metrics" style="margin-top:14px">' +
+    metric("F1 macro (val)", fmt(validation.f1_macro, 4), "métrica de decisión", true) +
+    metric("Accuracy (val)", fmt(validation.accuracy, 4), "set de validación") +
+    metric("Balanced acc.", fmt(validation.balanced_accuracy, 4), "sensible a clases") +
+    metric("Val loss", fmt(validation.loss, 4), "mejor época") +
+    metric("Épocas", metadata.epochs_executed != null ? metadata.epochs_executed : "—",
+      "tope " + (metadata.max_epochs != null ? metadata.max_epochs : "—")) +
+    metric("Mejor época", validation.epoch != null ? validation.epoch : "—", "restore_best_weights") +
+    metric("Tiempo", fmt(metadata.training_time, 1) + " s", "CPU") +
+    metric("Parámetros",
+      metadata.n_params != null ? Number(metadata.n_params).toLocaleString("es-AR") : "—",
+      "MLP [" + (Array.isArray(architecture.hidden_layers) ? architecture.hidden_layers.join(",") : "") + "]") +
+    "</div>";
+
+  html += '<div class="hint" style="margin-top:12px">Configuración: <b>' +
+    esc([metadata.activation, metadata.optimizer, metadata.lr != null ? "lr " + metadata.lr : null, metadata.init]
+      .filter(Boolean).join(" · ") || "—") + "</b> · dataset <b>" +
+    esc((metadata.dataset || {}).name || "—") + "</b> · cw <b>" + esc(preprocessing.class_weight || "none") +
+    "</b> · seed <b>" + esc(metadata.seed != null ? metadata.seed : "—") + "</b>" +
+    (metadata.batch_size != null ? " · batch_size <b>" + esc(metadata.batch_size) + "</b>" : "") + "</div>";
+
+  if (epochs.length) {
+    html += '<div style="margin-top:16px">' + lossCurveSvg(epochs, validation.epoch) +
+      '<div class="hint">Curva reconstruida desde <code>epochs.csv</code>.</div></div>';
+  } else {
+    html += '<div class="empty" style="margin-top:16px">Esta corrida no tiene <code>epochs.csv</code> persistido.</div>';
+  }
+
+  if (warnings.length) {
+    html += '<div class="alert warn" style="margin-top:14px"><span class="t">Advertencias</span>' +
+      warnings.map(localizedWarning).map(esc).join(" · ") + "</div>";
+  }
+
+  html += "<details><summary>Metadata completa de la corrida (metadata.json)</summary><pre>" +
+    esc(JSON.stringify(detail.metadata, null, 2)) + "</pre></details>";
+
+  $("history-body").innerHTML = html;
+}
+
+function wireHistory() {
+  $("history-btn").addEventListener("click", openHistory);
+  $("history-close").addEventListener("click", closeHistory);
+  $("history-refresh").addEventListener("click", loadHistory);
+  $("history-detail-back").addEventListener("click", () => {
+    historyDetail = null;
+    renderHistory();
+    $("history-filter").focus();
+  });
+  $("history-filter").addEventListener("input", (event) => {
+    historyFilterText = event.target.value || "";
+    if (historyDetail) historyDetail = null;
+    renderHistory();
+  });
+  $("history-modal").addEventListener("click", (event) => {
+    if (event.target === $("history-modal")) closeHistory();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && historyModalOpen()) closeHistory();
+  });
+}
+
+/* ============================================================
    Navegación
    ============================================================ */
 function selectTab(name) {
@@ -1023,6 +1356,7 @@ function selectTab(name) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+wireHistory();
 init().then(() => {
   const initial = window.location.hash.replace("#", "");
   if (initial === "compare") selectTab("compare");

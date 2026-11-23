@@ -207,7 +207,9 @@ The UI has two implemented tabs: a **single-configuration run** (real training,
 live loss curve over SSE, validation metrics, cancel button, optional comparison
 of up to three runs with per-row removal, full `metadata.json` viewer) and a
 **suite comparison** tab that reads the exported evidence and serves the generated
-HTML/PDF reports.
+HTML/PDF reports. A compact **history** button above the loss curve opens a modal
+with every run persisted in `results/ui-runs`, so the traceability survives server
+restarts; each row can be expanded into its full metadata and rebuilt loss curve.
 
 Endpoints:
 
@@ -218,9 +220,11 @@ Endpoints:
 | GET | `/api/datasets/{name}` | real dimensions and class imbalance (loads/caches on demand) |
 | POST | `/api/validate` | `space.validate_config` without running |
 | POST | `/api/runs` | enqueue one run (202 + `job_id`) |
-| GET | `/api/runs/{id}` | job snapshot |
+| GET | `/api/runs/{id}` | job snapshot (in-memory) |
 | POST | `/api/runs/{id}/cancel` | cooperative cancel; the run ends as `INCOMPLETE` |
 | GET | `/api/runs/{id}/events` | SSE stream: `status`, `epoch`, `done`, `failed` |
+| GET | `/api/history` | persisted runs from disk, newest first (`limit` ≤ 500) |
+| GET | `/api/history/{run_id}` | one persisted run: metadata + `epochs.csv` rows |
 | GET | `/api/evidence` | family statistics and failure modes from `results/exports` |
 | GET | `/api/reports/{experiment}` | latest generated HTML report |
 | GET | `/api/reports/{experiment}/pdf` | latest generated PDF report |

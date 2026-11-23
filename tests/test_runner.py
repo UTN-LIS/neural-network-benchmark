@@ -258,4 +258,4 @@ def test_runner_can_be_cancelled_cooperatively():
     assert res["epochs_executed"] == 1
     assert res["metadata"]["execution_state"] == "INCOMPLETE"
     assert res["convergence_trigger"]["reason"] == "cancelled_by_user"
-    assert any("cancelled" in warning for warning in res["metadata"]["warnings"])
+    assert any("cancelada" in warning for warning in res["metadata"]["warnings"])

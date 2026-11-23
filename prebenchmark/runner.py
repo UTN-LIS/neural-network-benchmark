@@ -148,14 +148,14 @@ def run_experiment(
     try:
         dataset_meta["version"] = data.resolve_dataset_version(df, cfg.dataset.name)
     except Exception as error:  # pragma: no cover - defensivo: problemas de red/caché
-        warnings.append(f"dataset version unavailable: {error}")
+        warnings.append(f"Versión del dataset no disponible: {error}")
 
     # Captura del entorno (de mejor esfuerzo).
     try:
         env = environment.capture_environment()
     except Exception as error:  # pragma: no cover - defensivo
         env = {"hardware": {}, "library_versions": {}}
-        warnings.append(f"environment capture skipped: {error}")
+        warnings.append(f"Captura del entorno omitida: {error}")
 
     epoch_records: list[dict[str, Any]] = []
     best_value: float | None = None
@@ -211,7 +211,7 @@ def run_experiment(
         for epoch in range(1, max_epochs + 1):
             if should_stop is not None and should_stop():
                 stopped_reason = "cancelled_by_user"
-                warnings.append("run cancelled by user request")
+                warnings.append("Corrida cancelada por pedido del usuario")
                 break
             current_epoch = epoch
             epoch_start = time.time()
@@ -223,8 +223,8 @@ def run_experiment(
                     "metric": train_res["non_finite_source"],
                 }
                 raise ValueError(
-                    f"non-finite validation detected in {train_res['non_finite_source']} "
-                    f"at epoch {epoch}, batch {train_res['non_finite_batch']}"
+                    f"Se detectaron valores no finitos en {train_res['non_finite_source']} "
+                    f"en la época {epoch}, batch {train_res['non_finite_batch']}"
                 )
             val_res: dict[str, Any] = {}
             if val_loader is not None:
@@ -235,7 +235,9 @@ def run_experiment(
                         "batch": None,
                         "metric": "val_loss",
                     }
-                    raise ValueError(f"non-finite validation loss detected at epoch {epoch}")
+                    raise ValueError(
+                        f"Se detectó una pérdida de validación no finita en la época {epoch}"
+                    )
                 val_res = {"val_loss": val_eval["loss"], "val_acc": val_eval["accuracy"]}
                 # Mejor época por val_loss: métrica de comparación de la etapa exploratoria.
                 if np.isfinite(val_res["val_loss"]) and (
@@ -259,7 +261,9 @@ def run_experiment(
                     }
             if not model.parameters_are_finite(m):
                 failure_context = {"epoch": epoch, "batch": None, "metric": "parameters"}
-                raise ValueError(f"non-finite model parameters detected at epoch {epoch}")
+                raise ValueError(
+                    f"Se detectaron parámetros no finitos del modelo en la época {epoch}"
+                )
 
             record = {
                 "run_id": run_id,
@@ -288,7 +292,8 @@ def run_experiment(
                     convergence_metric_unavailable = True
                     stopped_reason = "metric_unavailable"
                     warnings.append(
-                        f"convergence metric '{metric_name}' unavailable; running to max_epochs"
+                        f"La métrica de convergencia '{metric_name}' no está disponible; "
+                        "se ejecuta hasta max_epochs"
                     )
                 elif best_value is None or _improved(value, best_value, min_delta, mode):
                     best_value = value
@@ -311,7 +316,9 @@ def run_experiment(
         test_eval = metrics.evaluate(m, test_loader, device, eval_criterion)
         if test_eval["non_finite"]:
             failure_context = {"epoch": current_epoch, "batch": None, "metric": "test_loss"}
-            raise ValueError("non-finite test loss detected during final evaluation")
+            raise ValueError(
+                "Se detectó una pérdida de prueba no finita durante la evaluación final"
+            )
         test_eval.pop("non_finite", None)
         test_eval.pop("non_finite_source", None)
 

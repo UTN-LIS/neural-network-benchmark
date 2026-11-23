@@ -158,6 +158,50 @@ def _result_payload(result: dict[str, Any], job: Job) -> dict[str, Any]:
     return to_jsonable(payload)
 
 
+def _history_row(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Proyección compacta de ``metadata.json`` para la tabla de historial.
+
+    Solo usa datos ya presentes en los metadatos: no abre ``epochs.csv``, así
+    que listar cientos de corridas sigue siendo barato. ``final_metrics`` (set
+    de prueba) se omite a propósito, igual que en la corrida en vivo.
+    """
+    dataset = metadata.get("dataset") or {}
+    architecture = metadata.get("architecture") or {}
+    preprocessing = metadata.get("preprocessing") or {}
+    validation = metadata.get("validation_metrics") or {}
+    warnings = metadata.get("warnings") or []
+    return {
+        "run_id": metadata.get("run_id"),
+        "config_id": metadata.get("config_id"),
+        "experiment_id": metadata.get("experiment_id"),
+        "start_time": metadata.get("start_time"),
+        "end_time": metadata.get("end_time"),
+        "execution_state": metadata.get("execution_state") or metadata.get("state"),
+        "dataset": dataset.get("name") if isinstance(dataset, dict) else dataset,
+        "activation": metadata.get("activation"),
+        "optimizer": metadata.get("optimizer"),
+        "lr": metadata.get("lr"),
+        "init": metadata.get("init"),
+        "seed": metadata.get("seed"),
+        "class_weight": (
+            preprocessing.get("class_weight") if isinstance(preprocessing, dict) else None
+        ),
+        "hidden_layers": (
+            architecture.get("hidden_layers") if isinstance(architecture, dict) else None
+        ),
+        "max_epochs": metadata.get("max_epochs"),
+        "epochs_executed": metadata.get("epochs_executed"),
+        "f1_macro": validation.get("f1_macro"),
+        "accuracy": validation.get("accuracy"),
+        "balanced_accuracy": validation.get("balanced_accuracy"),
+        "val_loss": validation.get("loss"),
+        "best_epoch": validation.get("epoch"),
+        "training_time": metadata.get("training_time"),
+        "n_params": metadata.get("n_params"),
+        "warning_count": len(warnings) if isinstance(warnings, list) else 0,
+    }
+
+
 class Service:
     """Estado de larga vida del proceso: store aislado y cola de un worker."""
 
@@ -283,11 +327,13 @@ def create_app(
     @application.get("/api/datasets/{name}")
     def dataset_detail(name: str) -> dict[str, Any]:
         if name not in pb_data.DATASETS:
-            raise HTTPException(status_code=404, detail=f"unknown dataset: {name}")
+            raise HTTPException(status_code=404, detail=f"dataset desconocido: {name}")
         try:
             return _dataset_payload(name, force_load=True)
         except Exception as error:  # noqa: BLE001 - fallo de red/caché al cargar
-            raise HTTPException(status_code=502, detail=f"dataset load failed: {error}") from error
+            raise HTTPException(
+                status_code=502, detail=f"No se pudo cargar el dataset: {error}"
+            ) from error
 
     @application.post("/api/validate")
     def validate(request: RunRequest) -> dict[str, Any]:
@@ -296,7 +342,9 @@ def create_app(
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         except Exception as error:  # noqa: BLE001 - fallo de red/caché al cargar
-            raise HTTPException(status_code=502, detail=f"dataset load failed: {error}") from error
+            raise HTTPException(
+                status_code=502, detail=f"No se pudo cargar el dataset: {error}"
+            ) from error
         return space.validate_config(cfg).to_dict()
 
     @application.post("/api/runs", status_code=202, response_model=JobCreated)
@@ -307,14 +355,16 @@ def create_app(
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         except Exception as error:  # noqa: BLE001 - fallo de red/caché al cargar
-            raise HTTPException(status_code=502, detail=f"dataset load failed: {error}") from error
+            raise HTTPException(
+                status_code=502, detail=f"No se pudo cargar el dataset: {error}"
+            ) from error
 
         validation = space.validate_config(cfg)
         if not validation.is_executable():
             raise HTTPException(
                 status_code=422,
                 detail={
-                    "message": "configuration is INVALID and cannot be executed",
+                    "message": "La configuración es inválida y no se puede ejecutar",
                     "validation": validation.to_dict(),
                 },
             )
@@ -337,14 +387,14 @@ def create_app(
     def run_status(job_id: str, request: Request) -> JobStatus:
         job = _service(request).registry.get(job_id)
         if job is None:
-            raise HTTPException(status_code=404, detail="job not found")
+            raise HTTPException(status_code=404, detail="No se encontró la corrida")
         return JobStatus(**job.snapshot())
 
     @application.post("/api/runs/{job_id}/cancel", response_model=JobStatus)
     def cancel_run(job_id: str, request: Request) -> JobStatus:
         job = _service(request).registry.get(job_id)
         if job is None:
-            raise HTTPException(status_code=404, detail="job not found")
+            raise HTTPException(status_code=404, detail="No se encontró la corrida")
         if not job.done:
             job.request_cancel()
         return JobStatus(**job.snapshot())
@@ -353,7 +403,7 @@ def create_app(
     async def run_events(job_id: str, request: Request) -> StreamingResponse:
         job = _service(request).registry.get(job_id)
         if job is None:
-            raise HTTPException(status_code=404, detail="job not found")
+            raise HTTPException(status_code=404, detail="No se encontró la corrida")
 
         async def generate() -> AsyncIterator[str]:
             index = 0
@@ -384,6 +434,53 @@ def create_app(
             },
         )
 
+    @application.get("/api/history")
+    def run_history(request: Request, limit: int = 100) -> dict[str, Any]:
+        """Corridas persistidas en disco, de la más reciente a la más antigua.
+
+        A diferencia de ``GET /api/runs`` (estado en memoria del proceso), este
+        listado se reconstruye desde ``results/ui-runs/<experiment_id>/`` y por
+        lo tanto sobrevive a reinicios del servidor.
+        """
+        service = _service(request)
+        records = service.store.query_runs(service.experiment_id)
+        records.reverse()  # query_runs ordena ascendente por start_time
+        bounded = max(1, min(limit, 500))
+        return to_jsonable(
+            {
+                "experiment_id": service.experiment_id,
+                "store_root": str(service.store_root),
+                "total": len(records),
+                "returned": min(len(records), bounded),
+                "runs": [_history_row(metadata) for metadata in records[:bounded]],
+            }
+        )
+
+    @application.get("/api/history/{run_id}")
+    def run_history_detail(run_id: str, request: Request) -> dict[str, Any]:
+        """Detalle de una corrida persistida: metadatos completos + épocas."""
+        service = _service(request)
+        try:
+            record = service.store.load_run(run_id, service.experiment_id)
+        except FileNotFoundError as error:
+            raise HTTPException(status_code=404, detail="No se encontró la corrida") from error
+
+        metadata = dict(record.get("metadata") or {})
+        # Misma política que la corrida en vivo: el set de prueba queda
+        # persistido para trazabilidad, pero no se expone por defecto.
+        metadata.pop("final_metrics", None)
+        return to_jsonable(
+            {
+                "run_id": record.get("run_id"),
+                "experiment_id": record.get("experiment_id"),
+                "config_id": record.get("config_id"),
+                "metadata": metadata,
+                "epochs": record.get("epochs") or [],
+                "path": record.get("path"),
+                "test_hidden": True,
+            }
+        )
+
     @application.get("/api/evidence")
     def get_evidence(request: Request, dataset: str | None = None) -> dict[str, Any]:
         service = _service(request)
@@ -399,14 +496,14 @@ def create_app(
     def report_html(experiment_id: str, request: Request) -> FileResponse:
         path = evidence.report_file(_service(request).reports_root, experiment_id, "html")
         if path is None:
-            raise HTTPException(status_code=404, detail="report not found")
+            raise HTTPException(status_code=404, detail="No se encontró el informe")
         return FileResponse(path, media_type="text/html")
 
     @application.get("/api/reports/{experiment_id}/pdf", include_in_schema=False)
     def report_pdf(experiment_id: str, request: Request) -> FileResponse:
         path = evidence.report_file(_service(request).reports_root, experiment_id, "pdf")
         if path is None:
-            raise HTTPException(status_code=404, detail="report not found")
+            raise HTTPException(status_code=404, detail="No se encontró el informe")
         return FileResponse(path, media_type="application/pdf")
 
     return application
