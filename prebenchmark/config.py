@@ -41,6 +41,15 @@ KNOWN_DATASETS: tuple[str, ...] = (
     "segment",
     "digits",
 )
+
+# Subconjunto curado que la aplicación expone como menú. Los datasets restantes
+# siguen registrados y disponibles para la CLI y las pruebas, pero no se ofrecen
+# en la UI porque no aportan un régimen analítico distinto.
+DATASET_MENU: tuple[str, ...] = (
+    "wine_quality",
+    "satimage",
+    "vehicle",
+)
 KNOWN_DEVICES: tuple[str, ...] = ("auto", "cpu", "cuda")
 KNOWN_CONVERGENCE_METRICS: tuple[str, ...] = ("val_loss", "train_loss")
 KNOWN_CONVERGENCE_MODES: tuple[str, ...] = ("min", "max")
@@ -59,8 +68,8 @@ DEFAULT_DEVICE = "auto"
 DEFAULT_RUN_TYPE = "prebenchmark"
 
 # ---------------------------------------------------------------------------
-# Referencia de línea base: la única configuración que se ejecuta en este repositorio
-# (Experimentos/wine_quality.py): ReLU + Adam + lr 0.001 + He + CrossEntropyLoss.
+# Referencia de línea base: la configuración histórica del proyecto
+# (ReLU + Adam + lr 0.001 + He + CrossEntropyLoss).
 # ---------------------------------------------------------------------------
 
 BASELINE_ACTIVATION = "relu"

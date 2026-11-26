@@ -15,6 +15,7 @@ Decisiones de diseño
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from pathlib import Path
 from typing import Any
 
@@ -192,17 +193,30 @@ def _experiment_record(
     }
 
 
-def load_experiments(exports_root: Path, reports_root: Path) -> list[dict[str, Any]]:
-    """Devuelve un registro por experimento exportado, con sus familias."""
+def load_experiments(
+    exports_root: Path,
+    reports_root: Path,
+    datasets: Collection[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Devuelve un registro por experimento exportado, con sus familias.
+
+    ``datasets`` restringe la carga al menú curado de la aplicación. Los
+    experimentos de prueba sobre datasets internos siguen en disco, pero no se
+    mezclan con la comparación general.
+    """
     if not exports_root.is_dir():
         return []
+    selected = set(datasets) if datasets is not None else None
     records = []
     for experiment_dir in sorted(exports_root.iterdir()):
         if not experiment_dir.is_dir():
             continue
         record = _experiment_record(experiment_dir, reports_root)
-        if record is not None:
-            records.append(record)
+        if record is None:
+            continue
+        if selected is not None and record["dataset"] not in selected:
+            continue
+        records.append(record)
     records.sort(key=lambda item: (-item["runs"], item["experiment_id"]))
     return records
 

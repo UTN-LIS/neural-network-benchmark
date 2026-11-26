@@ -36,7 +36,6 @@ RUN useradd --create-home --uid 1000 app \
 
 COPY --chown=app:app prebenchmark ./prebenchmark
 COPY --chown=app:app server ./server
-COPY --chown=app:app Experimentos ./Experimentos
 COPY --chown=app:app pyproject.toml ./
 
 USER app

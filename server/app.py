@@ -301,7 +301,9 @@ def create_app(
     def options() -> dict[str, Any]:
         parameter_space = space.ParameterSpace()
         return {
-            "datasets": [_dataset_payload(name, force_load=False) for name in pb_data.DATASETS],
+            "datasets": [
+                _dataset_payload(name, force_load=False) for name in pb_config.DATASET_MENU
+            ],
             "activations": list(pb_config.KNOWN_ACTIVATIONS),
             "optimizers": list(pb_config.KNOWN_OPTIMIZERS),
             "learning_rates": list(parameter_space.learning_rates),
@@ -481,10 +483,28 @@ def create_app(
             }
         )
 
+    @application.delete("/api/history/{run_id}")
+    def delete_history_run(run_id: str, request: Request) -> dict[str, Any]:
+        """Elimina una corrida persistida. La acción es irreversible."""
+        service = _service(request)
+        try:
+            path = service.store.delete_run(service.experiment_id, run_id)
+        except FileNotFoundError as error:
+            raise HTTPException(status_code=404, detail="No se encontró la corrida") from error
+        except OSError as error:
+            raise HTTPException(
+                status_code=500, detail=f"No se pudo eliminar la corrida: {error}"
+            ) from error
+        return {"run_id": run_id, "deleted": True, "path": str(path)}
+
     @application.get("/api/evidence")
     def get_evidence(request: Request, dataset: str | None = None) -> dict[str, Any]:
         service = _service(request)
-        experiments = evidence.load_experiments(service.exports_root, service.reports_root)
+        experiments = evidence.load_experiments(
+            service.exports_root,
+            service.reports_root,
+            datasets=pb_config.DATASET_MENU,
+        )
         if dataset is not None:
             return evidence.dataset_evidence(dataset, experiments)
         return {

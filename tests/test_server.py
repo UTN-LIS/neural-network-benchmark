@@ -167,6 +167,13 @@ def test_options_exposes_the_four_dimensions_and_protocol(client: TestClient) ->
     assert body["protocol"]["batch_size"] == 32
 
 
+def test_options_exposes_only_the_curated_dataset_menu(client: TestClient) -> None:
+    body = client.get("/api/options").json()
+    names = [dataset["name"] for dataset in body["datasets"]]
+    assert names == list(pb_config.DATASET_MENU)
+    assert "digits" not in names
+
+
 def test_validate_returns_domain_state(client: TestClient) -> None:
     invalid = client.post("/api/validate", json=_payload(activation="softmax")).json()
     assert invalid["state"] == "INVALID"
@@ -347,6 +354,27 @@ def test_evidence_derives_failure_modes_from_exports(client: TestClient, tmp_pat
         exports / "aggregates_20260101T000000Z.csv", index=False
     )
 
+    # Un experimento de prueba sobre un dataset interno no debe aparecer en la
+    # comparación general: el menú curado filtra por DATASET_MENU.
+    internal = tmp_path / "exports" / "exp-internal"
+    internal.mkdir()
+    pd.DataFrame(
+        [
+            {
+                "config_id": "cfg-digits",
+                "dataset": "digits",
+                "optimizer": "adam",
+                "lr": 0.001,
+                "epochs_executed": 50,
+                "f1_macro": 0.97,
+                "accuracy": 0.97,
+                "training_time": 1.0,
+                "seed": 42,
+                "execution_state": "COMPLETED",
+            }
+        ]
+    ).to_csv(internal / "master_20260101T000000Z.csv", index=False)
+
     body = client.get("/api/evidence?dataset=wine_quality").json()
     assert body["available"] is True
     assert body["experiment_id"] == "exp-demo"
@@ -360,6 +388,7 @@ def test_evidence_derives_failure_modes_from_exports(client: TestClient, tmp_pat
 
     catalog = client.get("/api/evidence").json()
     assert catalog["datasets_with_suite"] == ["wine_quality"]
+    assert all(item["dataset"] != "digits" for item in catalog["experiments"])
 
 
 def test_reports_are_served_without_path_traversal(client: TestClient, tmp_path: Path) -> None:
@@ -472,6 +501,26 @@ def test_history_detail_returns_epochs_and_hides_test_metrics(
     assert body["epochs"][0]["val_loss"] == pytest.approx(0.9)
 
     assert client.get("/api/history/inexistente").status_code == 404
+
+
+def test_history_delete_removes_only_the_selected_run(client: TestClient, tmp_path: Path) -> None:
+    store_root = tmp_path / "ui-store"
+    doomed = _write_history_run(store_root, "20260106T000000Z-dddddd", "20260106T000000Z")
+    survivor = _write_history_run(store_root, "20260107T000000Z-eeeeee", "20260107T000000Z")
+    stray = store_root / "ui-test" / "sin-metadata"
+    stray.mkdir()
+
+    response = client.delete("/api/history/20260106T000000Z-dddddd")
+    assert response.status_code == 200
+    assert response.json()["deleted"] is True
+    assert not doomed.exists()
+    assert survivor.exists()
+    assert stray.exists()  # un directorio que no es una corrida no se elimina
+
+    remaining = client.get("/api/history").json()
+    assert [row["run_id"] for row in remaining["runs"]] == ["20260107T000000Z-eeeeee"]
+    assert client.delete("/api/history/20260106T000000Z-dddddd").status_code == 404
+    assert client.delete("/api/history/..%2F..%2Fetc").status_code == 404
 
 
 def test_registry_refuses_more_than_one_worker() -> None:

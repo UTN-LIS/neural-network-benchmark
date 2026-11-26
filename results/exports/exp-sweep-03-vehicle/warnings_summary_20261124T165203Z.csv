@@ -1,0 +1,151 @@
+run_id,config_id,state,category,message,epoch,source
+20261124T163551Z-c23898,cfg-v1-3b056ae70c3f,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163602Z-de4e7b,cfg-v1-dddd0385d710,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163610Z-3848b8,cfg-v1-a5db78cba4b2,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163619Z-ad03e2,cfg-v1-8795a5c654f5,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163629Z-795494,cfg-v1-667f6c5b31c8,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163724Z-a90730,cfg-v1-58d45d96b3e1,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163732Z-b31cb0,cfg-v1-b0df27fbefae,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163741Z-4ac96b,cfg-v1-ca23122bc803,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163750Z-498eef,cfg-v1-f1eab66d12a6,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163758Z-ea913c,cfg-v1-321f207bc86c,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163928Z-65e741,cfg-v1-9ef76bb1f6f8,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T163928Z-65e741,cfg-v1-9ef76bb1f6f8,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163933Z-998f07,cfg-v1-c1066fe98953,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T163933Z-998f07,cfg-v1-c1066fe98953,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163937Z-e3918d,cfg-v1-a54a228a3d54,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T163937Z-e3918d,cfg-v1-a54a228a3d54,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163941Z-16a772,cfg-v1-84ba77e3b8e0,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T163941Z-16a772,cfg-v1-84ba77e3b8e0,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163946Z-89b413,cfg-v1-be280e7b6cea,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T163946Z-89b413,cfg-v1-be280e7b6cea,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T163950Z-b22ed5,cfg-v1-fabf0228a1a4,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T163956Z-33af04,cfg-v1-ef311560dde7,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164001Z-00e8e1,cfg-v1-fa41c3682cbf,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164006Z-296879,cfg-v1-63b90d93accb,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164010Z-0cf7e8,cfg-v1-c6317a7f45c4,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164019Z-446af1,cfg-v1-fa36b8a15f05,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164035Z-fe9fa6,cfg-v1-f6cd933ee274,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164043Z-ab3d0d,cfg-v1-18939f8dfc62,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164055Z-4cbd3d,cfg-v1-a5a71c9dbeb5,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164058Z-179457,cfg-v1-f7bb069ff2f7,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164128Z-985e17,cfg-v1-7c883c034e70,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164129Z-4afe43,cfg-v1-1a537ab08705,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164130Z-3f7ce7,cfg-v1-8f895dd8e5d0,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164131Z-c19329,cfg-v1-7b4048470258,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164132Z-3cafd3,cfg-v1-d93120806eb6,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164137Z-b1ff85,cfg-v1-fcc1c1f017bb,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164137Z-b1ff85,cfg-v1-fcc1c1f017bb,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164138Z-56e753,cfg-v1-7b00e91b02ff,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164138Z-56e753,cfg-v1-7b00e91b02ff,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164138Z-de61c0,cfg-v1-79574f6eb59e,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164138Z-de61c0,cfg-v1-79574f6eb59e,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164139Z-613d41,cfg-v1-013d30954306,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164139Z-613d41,cfg-v1-013d30954306,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164140Z-bc839e,cfg-v1-8eeb6d24a780,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164140Z-bc839e,cfg-v1-8eeb6d24a780,COMPLETED_WITH_WARNINGS,warning,La inicialización Xavier/Glorot no es la recomendación convencional para activaciones ReLU,N/A,run
+20261124T164140Z-f66e93,cfg-v1-3fc78a609495,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164141Z-615f8a,cfg-v1-02b7c7ec79db,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164142Z-9a3b30,cfg-v1-73ac323b6b3a,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164143Z-0c7189,cfg-v1-9b7da4ef7641,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164144Z-7bce76,cfg-v1-2c47fbba4356,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164230Z-d34465,cfg-v1-49096f9b2b62,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164238Z-b19d7e,cfg-v1-18018b0c6abc,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164246Z-95d74e,cfg-v1-e94ee6c62da4,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164255Z-63be06,cfg-v1-4b8633562d86,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164303Z-e8f0ab,cfg-v1-644035654d71,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164352Z-9648c5,cfg-v1-d4de4214cc7d,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164401Z-dba68e,cfg-v1-819f8122595a,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164409Z-bf4f6a,cfg-v1-b74fbeebcdc2,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164418Z-aff7f7,cfg-v1-20a023afe216,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164426Z-af8c37,cfg-v1-3ec7c9197408,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164434Z-4836b1,cfg-v1-6f02f5193aa3,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164442Z-fff09f,cfg-v1-98ea5a9ac525,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164448Z-7c1208,cfg-v1-a9b5438e75de,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164457Z-dff7ef,cfg-v1-de141462d716,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164506Z-bb56db,cfg-v1-71b42dd4f950,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164514Z-b42a0c,cfg-v1-ab3500b52693,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164514Z-b42a0c,cfg-v1-ab3500b52693,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164523Z-3d7362,cfg-v1-cc4804362ed3,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164523Z-3d7362,cfg-v1-cc4804362ed3,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164529Z-994a13,cfg-v1-8d5c5b8a3762,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164529Z-994a13,cfg-v1-8d5c5b8a3762,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164537Z-c98475,cfg-v1-1c2adc92f97b,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164537Z-c98475,cfg-v1-1c2adc92f97b,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164545Z-aeae9f,cfg-v1-12c8f5fbc5a1,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T164545Z-aeae9f,cfg-v1-12c8f5fbc5a1,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164638Z-3a177f,cfg-v1-80590f5f4b36,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164649Z-5dcb1d,cfg-v1-4ae094f19a16,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164657Z-5309f0,cfg-v1-73476bba49e8,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164707Z-0c5e07,cfg-v1-cfffab08ae53,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164715Z-16706a,cfg-v1-a712f64e172a,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164735Z-19046b,cfg-v1-d6768310dc46,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164737Z-dc728c,cfg-v1-aacbfb843715,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164739Z-d604bb,cfg-v1-f298dd8d6afe,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164740Z-cadb9a,cfg-v1-c3a933c0cc4e,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164743Z-e2b5ab,cfg-v1-43d7f14324e1,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164745Z-672f4a,cfg-v1-bf580ea00eb0,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164746Z-f70274,cfg-v1-f1e2a8550a97,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164747Z-709c3e,cfg-v1-c21a0e86e272,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164748Z-c21b99,cfg-v1-e53090a368f6,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164749Z-69216f,cfg-v1-d79b58b96f64,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164750Z-45df13,cfg-v1-06633acf2cd0,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164750Z-45df13,cfg-v1-06633acf2cd0,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164751Z-59c366,cfg-v1-601c2437ee2c,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164751Z-59c366,cfg-v1-601c2437ee2c,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164752Z-f8b0d7,cfg-v1-9b48ae164fb8,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164752Z-f8b0d7,cfg-v1-9b48ae164fb8,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164753Z-eef78a,cfg-v1-bd26c3fae105,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164753Z-eef78a,cfg-v1-bd26c3fae105,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164754Z-661e51,cfg-v1-59658a92ac0b,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T164754Z-661e51,cfg-v1-59658a92ac0b,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164843Z-21e0f7,cfg-v1-fb8fe231842f,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164853Z-dc2d6d,cfg-v1-4119828a6b82,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164901Z-1b36b9,cfg-v1-9f0aa18688a5,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164910Z-d6c230,cfg-v1-ae20e2c2a71a,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T164920Z-f11291,cfg-v1-8f9700106127,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165008Z-54a761,cfg-v1-ec280b30aec7,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165015Z-8211b7,cfg-v1-95669e948a94,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165022Z-84bb53,cfg-v1-3e95e4bd2226,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165028Z-023e2d,cfg-v1-931b2916136a,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165033Z-63a62f,cfg-v1-b9b6a3ef0858,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165040Z-ae5454,cfg-v1-9a431636142a,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165042Z-e20446,cfg-v1-dff0caefb763,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165043Z-1a048a,cfg-v1-4908cacfb5f5,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165045Z-dae44b,cfg-v1-07d119178f89,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165046Z-83aa11,cfg-v1-18d9359451d5,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165048Z-7049f3,cfg-v1-9d0910b1ddbc,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165048Z-7049f3,cfg-v1-9d0910b1ddbc,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165049Z-33edea,cfg-v1-2c514ebff083,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165049Z-33edea,cfg-v1-2c514ebff083,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165051Z-9d5366,cfg-v1-f3e43803d98d,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165051Z-9d5366,cfg-v1-f3e43803d98d,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165052Z-ea1aab,cfg-v1-e387c20c043c,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165052Z-ea1aab,cfg-v1-e387c20c043c,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165053Z-57194e,cfg-v1-152517aa76fe,COMPLETED_WITH_WARNINGS,warning,SGD con tasa de aprendizaje >= 0.1 puede divergir,N/A,run
+20261124T165053Z-57194e,cfg-v1-152517aa76fe,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165112Z-11b575,cfg-v1-dfff172aa049,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165116Z-e9d090,cfg-v1-65fe3fc03352,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165119Z-f807d1,cfg-v1-28ff201fdf74,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165122Z-e69dd2,cfg-v1-28779b350543,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165124Z-ece0cc,cfg-v1-8a366752a388,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165132Z-08b32d,cfg-v1-48a5c7e9f220,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165133Z-3f952a,cfg-v1-ca0df67a6e7d,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165134Z-e48b90,cfg-v1-d7d55822166e,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165135Z-e7ebd9,cfg-v1-4aebf12adc10,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165136Z-b5d17e,cfg-v1-088b99891b5f,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165137Z-cfb4b7,cfg-v1-76a7575d01b0,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165137Z-f7ad22,cfg-v1-773386cbff02,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165138Z-1d5311,cfg-v1-478480542056,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165139Z-a531e1,cfg-v1-1776041b03ec,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165140Z-063a65,cfg-v1-a2d288d3ccb4,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165140Z-063a65,cfg-v1-a2d288d3ccb4,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165140Z-7604f8,cfg-v1-a83feaf6c1ba,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165141Z-11a39a,cfg-v1-2ebdc9561216,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165141Z-11a39a,cfg-v1-2ebdc9561216,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165142Z-834820,cfg-v1-9e6d85ddb949,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165142Z-834820,cfg-v1-9e6d85ddb949,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165142Z-947916,cfg-v1-d033ad2c1e51,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165142Z-947916,cfg-v1-d033ad2c1e51,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run
+20261124T165143Z-cb2b2b,cfg-v1-952d7bdfd640,COMPLETED_WITH_WARNINGS,warning,Adam con tasa de aprendizaje >= 0.1 puede ser inestable,N/A,run
+20261124T165143Z-cb2b2b,cfg-v1-952d7bdfd640,COMPLETED_WITH_WARNINGS,warning,La inicialización He/Kaiming no es la recomendación convencional para activaciones sigmoid/tanh,N/A,run

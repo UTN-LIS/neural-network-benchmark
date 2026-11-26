@@ -13,8 +13,10 @@ Disposición en disco (bajo una raíz configurable, por defecto ``results/``)::
 Cada directorio de ejecución se crea con :func:`os.mkdir`, que es atómico y lanza
 ``FileExistsError`` si el directorio ya existe. Por lo tanto, "nunca sobrescribir una
 ejecución persistida" es estructural: una ejecución se escribe una vez y no existe
-API para modificarla. Los dos registros JSONL son de solo adición -- las líneas existentes
-nunca se reescriben. Nada aquí depende de la salida de consola ni del estado en memoria.
+API para modificarla. La única operación destructiva es :meth:`ResultsStore.delete_run`,
+que retira el directorio completo de forma explícita. Los dos registros JSONL son de
+solo adición -- las líneas existentes nunca se reescriben. Nada aquí depende de la
+salida de consola ni del estado en memoria.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ import csv
 import io
 import json
 import os
+import shutil
 from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -257,6 +260,20 @@ class ResultsStore:
                     "epochs": self._read_epochs(run_path / EPOCHS_CSV_FILE),
                     "path": str(run_path),
                 }
+        raise FileNotFoundError(f"run '{run_id}' not found")
+
+    def delete_run(self, experiment_id: str, run_id: str) -> Path:
+        """Elimina una corrida persistida y devuelve la ruta retirada.
+
+        Solo considera directorios que ya existen dentro del experimento, así
+        que un ``run_id`` con separadores de ruta no puede escapar del store.
+        Es una operación explícita del operador: no reescribe registros, retira
+        el directorio completo de la corrida.
+        """
+        for _exp_id, run_path in self._iter_run_paths(experiment_id):
+            if run_path.name == run_id:
+                shutil.rmtree(run_path)
+                return run_path
         raise FileNotFoundError(f"run '{run_id}' not found")
 
     @staticmethod
