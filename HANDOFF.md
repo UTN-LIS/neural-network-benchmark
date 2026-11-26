@@ -344,3 +344,89 @@ ruido al export (216 filas de configs y una advertencia en el informe). Se podó
 semillas); el archivo original quedó como
 `results/exp-sweep-02-satimage/configs.jsonl.bak-20261105`.
 
+## Actualización 2026-11-24 — menú curado de datasets y `exp-sweep-03-vehicle`
+
+### Decisión: tres datasets, tres regímenes
+
+Se analizaron los seis datasets registrados con un perfilado estático
+(dimensiones, desbalance, solapamiento 1-NN, baselines simples) y una sonda de
+configuraciones con el runner real. El resultado fue que los seis colapsan en
+tres regímenes analíticos:
+
+1. **Difícil / desbalanceado / techo bajo:** `wine_quality`.
+2. **Intermedio / techo alto / gradiente real:** `satimage` y `vehicle`.
+3. **Saturado o limitado por ruido:** `segment`, `digits` y `waveform_5000`.
+
+En el régimen 3, `segment` y `digits` son casi el mismo experimento (baselines
+simples alcanzan el techo de la MLP; `segment` además tiene 9,7 % de filas
+duplicadas) y `waveform_5000` es un problema dominado por ruido (las seis
+configuraciones de la sonda quedaron dentro de 0,018 de F1). Por eso el menú de
+la aplicación quedó en tres datasets: `wine_quality`, `satimage` y `vehicle`.
+
+Los otros tres siguen registrados en `prebenchmark/data.py` para la CLI y las
+pruebas, pero no se exponen en la UI (`DATASET_MENU` en
+`prebenchmark/config.py`). El módulo de comparación también filtra por ese menú:
+un experimento de prueba sobre un dataset interno no contamina la comparación
+general.
+
+### Suite de `vehicle`
+
+Protocolo: 36 configuraciones × 5 semillas, `--earlyStop`, `class_weight=none`,
+máx. 500 épocas. 180 corridas, 0,26 h de CPU (media 5,3 s/corrida).
+
+- F1 macro: media 0,798; rango 0,316–0,838.
+- Mejor: `tanh | sgd | lr=0.01 | xavier` → 0,8382 ± 0,0292.
+- Segundo: `tanh | adam | lr=0.001 | xavier` → 0,8327 ± 0,0330.
+- Peor: `sigmoid | sgd | lr=0.001` → 0,3164 (xavier) y 0,3245 (he).
+- La tasa de aprendizaje es el factor marginal dominante (Kruskal p=0,004):
+  0,01 con 0,7880 contra 0,001 con 0,6907.
+- Las dos familias malas son las mismas que en los otros datasets:
+  `adam + lr=0.1` colapsa (0,7071) y `sgd + lr=0.001` no converge (0,5657).
+- 43 de 180 corridas (23,9 %) alcanzaron el tope de épocas en su mejor época.
+- Reporte: `results/reports/exp-sweep-03-vehicle/analysis_20261124T165218Z.html`
+  y `.pdf`.
+- Export: `results/exports/exp-sweep-03-vehicle/` (master 180, configs 180,
+  aggregates 36).
+
+Reproducir (la convención de este repositorio es `--root results/experiments`):
+
+```bash
+python -m prebenchmark run --experiment-id exp-sweep-03-vehicle --dataset vehicle \
+  --root results/experiments --limit 36 --multi-seed --earlyStop --class-weight none
+python -m prebenchmark compare --experiment-id exp-sweep-03-vehicle \
+  --root results/experiments --documented-default
+python -m prebenchmark aggregate --experiment-id exp-sweep-03-vehicle \
+  --root results/experiments --grouping config
+python -m prebenchmark export --experiment-id exp-sweep-03-vehicle \
+  --root results/experiments --out results/exports --documented-default
+python -m prebenchmark analyze --experiment-id exp-sweep-03-vehicle \
+  --exports results/exports --out results/reports --pdf
+```
+
+### Limpieza
+
+- Eliminado `results/experiments/exp-smoke-01` y su export
+  `results/exports/exp-smoke-01`: era una prueba técnica de 5 corridas que no
+  aportaba valor y aparecía en el módulo de comparación.
+- Eliminados los scripts legacy `Experimentos/banknote.py`, `Experimentos/wine.py`
+  y `Experimentos/wine_quality.py`. Antes de borrarlos se analizaron sus dos
+  datasets:
+  - **Banknote authentication:** 1.372 × 4, binario, ratio 1,25. 1-NN da 0,998 y
+    la MLP CV da 1,000: está saturado.
+  - **Wine (sklearn, 178 muestras):** 178 × 13, 3 clases, ratio 1,48. La MLP CV da
+    0,983 con desvío 0,022: saturado y además demasiado chico para un split
+    60/20/20 estable.
+  - Ninguno se incorporó a la aplicación.
+
+### Cambios de código
+
+- `prebenchmark/config.py`: `DATASET_MENU` con los tres datasets curados.
+- `server/app.py`: `/api/options` expone solo `DATASET_MENU`; `/api/evidence`
+  filtra los experimentos por ese menú.
+- `server/evidence.py`: `load_experiments(..., datasets=...)`.
+- `Dockerfile`, `pyproject.toml` y `README.md`: eliminadas las referencias a
+  `Experimentos/`; el README documenta el menú curado y los datasets internos.
+- Tests: 274 pasan; se agregaron casos para el menú y para el filtrado de
+  experimentos internos.
+
+

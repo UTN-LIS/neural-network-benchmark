@@ -244,6 +244,25 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="confirm-modal" hidden>
+  <div class="modal confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title"
+       aria-describedby="confirm-text">
+    <div class="modal-head">
+      <h2 id="confirm-title">Eliminar corrida</h2>
+      <button class="icon-btn square" id="confirm-close" type="button"
+              aria-label="Cerrar confirmación" title="Cerrar (Esc)">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-text" id="confirm-text">¿Eliminar la corrida seleccionada?</p>
+      <div class="alert bad" id="confirm-error" hidden></div>
+      <div class="confirm-actions">
+        <button class="btn ghost" id="confirm-cancel" type="button">Cancelar</button>
+        <button class="btn danger" id="confirm-delete" type="button">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/static/app.js"></script>
 </body>
 </html>

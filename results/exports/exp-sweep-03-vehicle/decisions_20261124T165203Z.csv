@@ -1,0 +1,2 @@
+decision_id,run_id,config_id,group_id,decision_type,label,justification,actor,timestamp,evidence
+dec-20261124T165158Z-16a49f,20261124T164101Z-840689,cfg-v1-0427a348b7ae,,validate,,documented default baseline: ReLU + Adam + lr 0.001 + He (matched by the four free dimensions; dataset: vehicle),export,20261124T165158Z,"{""source"": ""export"", ""state"": ""COMPLETED""}"

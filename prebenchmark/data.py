@@ -6,8 +6,8 @@ target y la resolución de la versión son genéricos: cualquier entrada de
 :data:`DATASETS` puede usarse como ``cfg.dataset.name``.
 
 Los datasets se cachean como CSV con separador ``';'`` y saltos de línea ``\\n``
-para que la huella SHA-256 sea estable entre sistemas. Nunca importa desde
-``Experimentos/``.
+para que la huella SHA-256 sea estable entre sistemas. El paquete no depende de
+los scripts legacy que vivían en ``Experimentos/``.
 """
 
 from __future__ import annotations

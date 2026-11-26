@@ -126,6 +126,14 @@ def test_dataset_registry_matches_known_datasets():
     assert set(data.DATASETS) == set(KNOWN_DATASETS)
 
 
+def test_dataset_menu_is_a_curated_subset_of_the_registry():
+    from prebenchmark.config import DATASET_MENU, KNOWN_DATASETS
+
+    assert DATASET_MENU == ("wine_quality", "satimage", "vehicle")
+    assert set(DATASET_MENU).issubset(set(KNOWN_DATASETS))
+    assert set(DATASET_MENU).issubset(set(data.DATASETS))
+
+
 def test_registered_dataset_is_cached_and_described(tmp_path, monkeypatch):
     definition = _toy_definition()
     calls = []

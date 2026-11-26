@@ -55,20 +55,35 @@ derived from the loaded dataset, never hardcoded. Every dataset is cached as a
 canonical CSV under `.cache/prebenchmark/` so `dataset_version` remains a stable
 `sha256-<digest>` fingerprint.
 
-| Name | Source | Samples | Features | Classes | Max/min class |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `wine_quality` | UCI winequality-white | 4,898 | 11 | 7 | 439.6 |
-| `satimage` | OpenML satimage v1 | 6,430 | 36 | 6 | 2.45 |
-| `vehicle` | OpenML vehicle v1 | 846 | 18 | 4 | 1.10 |
-| `waveform_5000` | OpenML waveform-5000 v1 | 5,000 | 40 | 3 | 1.02 |
-| `segment` | OpenML segment v1 | 2,310 | 19 | 7 | 1.00 |
-| `digits` | scikit-learn `load_digits` | 1,797 | 64 | 10 | 1.05 |
+| Name | Source | Samples | Features | Classes | Max/min class | App menu |
+| --- | --- | ---: | ---: | ---: | ---: | :---: |
+| `wine_quality` | UCI winequality-white | 4,898 | 11 | 7 | 439.6 | yes |
+| `satimage` | OpenML satimage v1 | 6,430 | 36 | 6 | 2.45 | yes |
+| `vehicle` | OpenML vehicle v1 | 846 | 18 | 4 | 1.10 | yes |
+| `waveform_5000` | OpenML waveform-5000 v1 | 5,000 | 40 | 3 | 1.02 | no |
+| `segment` | OpenML segment v1 | 2,310 | 19 | 7 | 1.00 | no |
+| `digits` | scikit-learn `load_digits` | 1,797 | 64 | 10 | 1.05 | no |
+
+The **app menu** is the curated subset in `prebenchmark.config.DATASET_MENU`
+(`wine_quality`, `satimage`, `vehicle`) and is what `/api/options` exposes to the
+UI. The remaining datasets stay registered for the CLI and for tests, but they
+are not offered as first-class comparison options: `segment` and `digits` are
+saturated (simple baselines reach the MLP ceiling) and `waveform_5000` is
+noise-limited (all reasonable configurations converge to the same F1).
 
 ```bash
-# Full sweep on a registered dataset
-python -m prebenchmark generate --experiment-id exp-sweep-02 --dataset satimage
+# Full sweep on a registered dataset. This repository keeps raw runs under
+# results/experiments and derived artifacts under results/exports and
+# results/reports; the defaults are the same paths without the intermediate
+# directory, so pass --root/--out/--exports explicitly.
+python -m prebenchmark generate --experiment-id exp-sweep-02 --dataset satimage \
+  --root results/experiments
 python -m prebenchmark run --experiment-id exp-sweep-02 --dataset satimage \
-  --multi-seed --earlyStop --class-weight none
+  --root results/experiments --multi-seed --earlyStop --class-weight none
+python -m prebenchmark export --experiment-id exp-sweep-02 \
+  --root results/experiments --out results/exports
+python -m prebenchmark analyze --experiment-id exp-sweep-02 \
+  --exports results/exports --out results/reports
 ```
 
 `wine_quality` keeps the historical UCI download and dimensions, so existing
@@ -185,8 +200,8 @@ Development tools live in `requirements-dev.txt`:
 ```bash
 pip install -r requirements-dev.txt
 
-ruff check prebenchmark tests Experimentos   # lint
-ruff format prebenchmark tests Experimentos  # format
+ruff check prebenchmark tests   # lint
+ruff format prebenchmark tests  # format
 mypy                                         # type checking (prebenchmark + server)
 ```
 
@@ -209,14 +224,15 @@ of up to three runs with per-row removal, full `metadata.json` viewer) and a
 **suite comparison** tab that reads the exported evidence and serves the generated
 HTML/PDF reports. A compact **history** button above the loss curve opens a modal
 with every run persisted in `results/ui-runs`, so the traceability survives server
-restarts; each row can be expanded into its full metadata and rebuilt loss curve.
+restarts; each row can be expanded into its full metadata and rebuilt loss curve,
+or permanently deleted after an explicit confirmation.
 
 Endpoints:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/api/health` | worker count, isolated store root, experiment id |
-| GET | `/api/options` | datasets, the four free dimensions, protocol defaults |
+| GET | `/api/options` | curated dataset menu, the four free dimensions, protocol defaults |
 | GET | `/api/datasets/{name}` | real dimensions and class imbalance (loads/caches on demand) |
 | POST | `/api/validate` | `space.validate_config` without running |
 | POST | `/api/runs` | enqueue one run (202 + `job_id`) |
@@ -225,6 +241,7 @@ Endpoints:
 | GET | `/api/runs/{id}/events` | SSE stream: `status`, `epoch`, `done`, `failed` |
 | GET | `/api/history` | persisted runs from disk, newest first (`limit` ≤ 500) |
 | GET | `/api/history/{run_id}` | one persisted run: metadata + `epochs.csv` rows |
+| DELETE | `/api/history/{run_id}` | permanently delete one persisted run directory |
 | GET | `/api/evidence` | family statistics and failure modes from `results/exports` |
 | GET | `/api/reports/{experiment}` | latest generated HTML report |
 | GET | `/api/reports/{experiment}/pdf` | latest generated PDF report |

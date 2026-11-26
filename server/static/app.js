@@ -823,21 +823,49 @@ function lossCurveSvg(rows, bestEpoch) {
   if (bestEpoch != null) {
     const row = rows.find((item) => item.epoch === bestEpoch) || rows[rows.length - 1];
     if (row.val_loss != null) {
+      const label = "mejor época " + bestEpoch;
+      const textWidth = label.length * 6.2;
+      const boxWidth = textWidth + 6;
+      const legendLeft = width - 190;
+      const legendRight = width - 14;
+      const legendTop = top + 2;
+      const legendBottom = top + 36;
+      let anchor = "start";
+      let textX = x(bestEpoch) + 8;
+      // Si la etiqueta se saldría por la derecha, se dibuja a la izquierda del marcador.
+      if (textX + boxWidth > width - right) {
+        anchor = "end";
+        textX = x(bestEpoch) - 8;
+      }
+      let textY = top + 12;
+      const bgX = anchor === "end" ? textX - textWidth - 3 : textX - 3;
+      const overlapsLegend =
+        bgX + boxWidth >= legendLeft &&
+        bgX <= legendRight &&
+        textY - 10 <= legendBottom &&
+        textY + 4 >= legendTop;
+      if (overlapsLegend) {
+        // La leyenda ocupa el extremo superior derecho: la etiqueta baja debajo de ella.
+        textY = legendBottom + 14;
+      }
       marker =
         '<line x1="' + x(bestEpoch).toFixed(1) + '" y1="' + top + '" x2="' + x(bestEpoch).toFixed(1) +
         '" y2="' + (height - bottom) + '" stroke="#d97706" stroke-dasharray="4 3"/>' +
         '<circle cx="' + x(bestEpoch).toFixed(1) + '" cy="' + y(row.val_loss).toFixed(1) +
         '" r="4.5" fill="#d97706"/>' +
-        '<text x="' + (x(bestEpoch) + 8).toFixed(1) + '" y="' + (top + 12) + '" fill="#d97706">mejor época ' +
-        bestEpoch + "</text>";
+        '<rect x="' + bgX.toFixed(1) + '" y="' + (textY - 10) + '" width="' + boxWidth.toFixed(1) +
+        '" height="14" rx="3" fill="#fff" opacity="0.9"/>' +
+        '<text x="' + textX.toFixed(1) + '" y="' + textY + '" text-anchor="' + anchor +
+        '" fill="#d97706">' + label + "</text>";
     }
   }
 
   return '<svg viewBox="0 0 ' + width + " " + height + '" width="100%" role="img" aria-label="Curvas de pérdida">' +
-    grid + xAxis + marker +
+    grid + xAxis +
     '<path d="' + path("train_loss") + '" fill="none" stroke="#93c5fd" stroke-width="1.8"/>' +
     '<path d="' + path("val_loss") + '" fill="none" stroke="#0b5fa5" stroke-width="2"/>' +
     '<text x="' + left + '" y="' + (height - 1) + '" fill="#6b7280">época</text>' +
+    marker +
     '<g transform="translate(' + (width - 190) + "," + (top + 2) + ')">' +
       '<rect width="176" height="34" fill="#fff" opacity="0.85" rx="5"/>' +
       '<line x1="10" y1="12" x2="32" y2="12" stroke="#0b5fa5" stroke-width="2"/>' +
@@ -1094,6 +1122,20 @@ const HISTORY_STATE_CLASS = {
   FAILED: "bad",
 };
 
+const ICON_EYE =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+
+const ICON_TRASH =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>' +
+  '<path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+
+let pendingDeleteRunId = null;
+let confirmReturnFocus = null;
+
 function historyModalOpen() {
   return !$("history-modal").hidden;
 }
@@ -1141,6 +1183,7 @@ function openHistory() {
 
 function closeHistory() {
   if (!historyModalOpen()) return;
+  if (!$("confirm-modal").hidden) closeConfirm();
   $("history-modal").hidden = true;
   document.body.style.overflow = "";
   historyDetail = null;
@@ -1181,6 +1224,7 @@ function renderHistory() {
       row.config_id,
       row.dataset,
       row.execution_state,
+      executionStateLabel(row.execution_state),
       historyConfigLabel(row),
       row.class_weight || "none",
       "seed " + (row.seed != null ? row.seed : ""),
@@ -1218,9 +1262,12 @@ function renderHistory() {
           ? '<br><span class="pill warn">' + row.warning_count + " aviso(s)</span>"
           : "") + "</td>" +
       "<td>" + esc(row.dataset || "—") + "</td>" +
-      "<td>" + esc(historyConfigLabel(row) || "—") +
-        "<br><span class='pill'>cw " + esc(row.class_weight || "none") + "</span> " +
-        "<span class='pill'>seed " + esc(row.seed != null ? row.seed : "—") + "</span></td>" +
+      "<td><div class='history-config'>" +
+        "<span>" + esc([row.activation, row.optimizer].filter(Boolean).join(" · ") || "—") + "</span>" +
+        "<span>" + esc([row.lr != null ? "lr " + row.lr : null, row.init].filter(Boolean).join(" · ")) +
+        "</span></div>" +
+        "<div class='history-pills'><span class='pill'>cw " + esc(row.class_weight || "none") +
+        "</span> <span class='pill'>seed " + esc(row.seed != null ? row.seed : "—") + "</span></div></td>" +
       "<td>" + historyStateTag(row.execution_state) + "</td>" +
       "<td class='num'><b>" + fmt(row.f1_macro, 4) + "</b></td>" +
       "<td class='num'>" + fmt(row.accuracy, 4) + "</td>" +
@@ -1229,8 +1276,14 @@ function renderHistory() {
         "</td>" +
       "<td class='num'>" + (row.training_time != null ? fmt(row.training_time, 1) + " s" : "—") + "</td>" +
       "<td class='num'>" + (row.run_id
-        ? "<button class='btn ghost history-row-btn' type='button' data-run-id='" + esc(row.run_id) +
-          "'>Detalle</button>"
+        ? "<div class='history-actions'>" +
+          "<button class='icon-action history-row-btn' type='button' data-run-id='" + esc(row.run_id) +
+          "' title='Ver detalle de la corrida' aria-label='Ver detalle de la corrida " +
+          esc(row.run_id) + "'>" + ICON_EYE + "</button>" +
+          "<button class='icon-action danger history-delete-btn' type='button' data-run-id='" +
+          esc(row.run_id) + "' title='Eliminar corrida' aria-label='Eliminar la corrida " +
+          esc(row.run_id) + "'>" + ICON_TRASH + "</button>" +
+          "</div>"
         : "—") + "</td>" +
       "</tr>";
   });
@@ -1240,6 +1293,54 @@ function renderHistory() {
   document.querySelectorAll("#history-body .history-row-btn").forEach((button) => {
     button.addEventListener("click", () => showHistoryDetail(button.dataset.runId));
   });
+  document.querySelectorAll("#history-body .history-delete-btn").forEach((button) => {
+    button.addEventListener("click", () => openConfirmDelete(button.dataset.runId, button));
+  });
+}
+
+function openConfirmDelete(runId, trigger) {
+  pendingDeleteRunId = runId;
+  confirmReturnFocus = trigger || null;
+  $("confirm-error").hidden = true;
+  $("confirm-error").textContent = "";
+  const button = $("confirm-delete");
+  button.disabled = false;
+  button.textContent = "Eliminar";
+  $("confirm-text").innerHTML =
+    "¿Eliminar la corrida <code>" + esc(runId) + "</code>? Se borrarán sus metadatos y su " +
+    "historial de épocas. <b>Si la eliminás, no se podrá recuperar.</b>";
+  $("confirm-modal").hidden = false;
+  $("confirm-cancel").focus();
+}
+
+function closeConfirm() {
+  if ($("confirm-modal").hidden) return;
+  $("confirm-modal").hidden = true;
+  pendingDeleteRunId = null;
+  if (confirmReturnFocus && confirmReturnFocus.isConnected) {
+    confirmReturnFocus.focus();
+  }
+  confirmReturnFocus = null;
+}
+
+async function confirmDeleteRun() {
+  if (!pendingDeleteRunId) return;
+  const runId = pendingDeleteRunId;
+  const button = $("confirm-delete");
+  button.disabled = true;
+  button.textContent = "Eliminando…";
+  try {
+    await api("/api/history/" + encodeURIComponent(runId), { method: "DELETE" });
+    closeConfirm();
+    await loadHistory();
+    $("history-filter").focus();
+  } catch (error) {
+    $("confirm-error").hidden = false;
+    $("confirm-error").innerHTML =
+      '<span class="t">No se pudo eliminar</span>' + esc(error.message);
+    button.disabled = false;
+    button.textContent = "Eliminar";
+  }
 }
 
 async function showHistoryDetail(runId) {
@@ -1336,8 +1437,19 @@ function wireHistory() {
   $("history-modal").addEventListener("click", (event) => {
     if (event.target === $("history-modal")) closeHistory();
   });
+  $("confirm-close").addEventListener("click", closeConfirm);
+  $("confirm-cancel").addEventListener("click", closeConfirm);
+  $("confirm-delete").addEventListener("click", confirmDeleteRun);
+  $("confirm-modal").addEventListener("click", (event) => {
+    if (event.target === $("confirm-modal")) closeConfirm();
+  });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && historyModalOpen()) closeHistory();
+    if (event.key !== "Escape") return;
+    if (!$("confirm-modal").hidden) {
+      closeConfirm();
+      return;
+    }
+    if (historyModalOpen()) closeHistory();
   });
 }
 

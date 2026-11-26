@@ -26,7 +26,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B011"]      # asserts en tests son intencionales
-"Experimentos/*" = ["E402"]  # scripts legados con imports a mitad de archivo
 
 [tool.ruff.format]
 quote-style = "double"
