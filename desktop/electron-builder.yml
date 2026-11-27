@@ -37,6 +37,9 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Neural Network Benchmark
+  # Reserve three lines for the localized finish-page title.
+  # Resolved inside the buildResources directory (desktop/build).
+  include: installer.nsh
 
 mac:
   target:
