@@ -166,7 +166,7 @@ results/
     <run-id>/
       metadata.json      # run record: config snapshot, dataset version, env, state
       epochs.csv         # per-epoch train/val history
-    configs.jsonl        # append-only configuration registry (one per config_id)
+    configs.jsonl        # configuration registry (one per config_id; orphaned entries are purged on delete)
     decisions.jsonl      # append-only decision log (justification required)
   exports/               # timestamped CSV tables from `export`
 ```
@@ -241,7 +241,7 @@ Endpoints:
 | GET | `/api/runs/{id}/events` | SSE stream: `status`, `epoch`, `done`, `failed` |
 | GET | `/api/history` | persisted runs from disk, newest first (`limit` ≤ 500) |
 | GET | `/api/history/{run_id}` | one persisted run: metadata + `epochs.csv` rows |
-| DELETE | `/api/history/{run_id}` | permanently delete one persisted run directory |
+| DELETE | `/api/history/{run_id}` | permanently delete a run; purge its config only if unreferenced |
 | GET | `/api/evidence` | family statistics and failure modes from `results/exports` |
 | GET | `/api/reports/{experiment}` | latest generated HTML report |
 | GET | `/api/reports/{experiment}/pdf` | latest generated PDF report |

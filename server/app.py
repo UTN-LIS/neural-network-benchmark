@@ -488,14 +488,14 @@ def create_app(
         """Elimina una corrida persistida. La acción es irreversible."""
         service = _service(request)
         try:
-            path = service.store.delete_run(service.experiment_id, run_id)
+            result = service.store.delete_run(service.experiment_id, run_id)
         except FileNotFoundError as error:
             raise HTTPException(status_code=404, detail="No se encontró la corrida") from error
         except OSError as error:
             raise HTTPException(
                 status_code=500, detail=f"No se pudo eliminar la corrida: {error}"
             ) from error
-        return {"run_id": run_id, "deleted": True, "path": str(path)}
+        return {"deleted": True, **result}
 
     @application.get("/api/evidence")
     def get_evidence(request: Request, dataset: str | None = None) -> dict[str, Any]:
