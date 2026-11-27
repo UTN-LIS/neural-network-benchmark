@@ -13,10 +13,11 @@ Disposición en disco (bajo una raíz configurable, por defecto ``results/``)::
 Cada directorio de ejecución se crea con :func:`os.mkdir`, que es atómico y lanza
 ``FileExistsError`` si el directorio ya existe. Por lo tanto, "nunca sobrescribir una
 ejecución persistida" es estructural: una ejecución se escribe una vez y no existe
-API para modificarla. La única operación destructiva es :meth:`ResultsStore.delete_run`,
-que retira el directorio completo de forma explícita. Los dos registros JSONL son de
-solo adición -- las líneas existentes nunca se reescriben. Nada aquí depende de la
-salida de consola ni del estado en memoria.
+API para modificarla. La única operación destructiva es :meth:`ResultsStore.delete_run`, que retira el
+directorio de la corrida y, si nadie referencia su configuración, purga esa línea
+de ``configs.jsonl``. Es la excepción controlada al registro append-only; las demás
+líneas existentes nunca se reescriben. Nada aquí depende de la salida de consola ni
+del estado en memoria.
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ import io
 import json
 import os
 import shutil
+import threading
 from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -90,6 +92,11 @@ class ResultsStore:
 
     def __init__(self, root: str | os.PathLike[str] = "results") -> None:
         self.root = Path(root)
+        # Serializa las mutaciones dentro de un proceso: registro de configs,
+        # persistencia de corridas, decisiones, baseline y borrado. Así la purga
+        # de configuraciones no compite con una corrida que acaba de persistir.
+        # No sustituye el modelo de un solo escritor entre procesos.
+        self._mutation_lock = threading.RLock()
 
     # ------------------------------------------------------------------
     # Rutas
@@ -148,7 +155,7 @@ class ResultsStore:
         return json.loads(path.read_text(encoding="utf-8"))
 
     # ------------------------------------------------------------------
-    # Registro de configuración (solo adición, deduplicado)
+    # Registro de configuración (deduplicado; purga explícita de huérfanas)
     # ------------------------------------------------------------------
 
     def register_config(
@@ -162,26 +169,29 @@ class ResultsStore:
         """Añade una definición de configuración a ``configs.jsonl`` una vez por ``config_id``.
 
         Volver a registrar la misma configuración (mismo ``config_id``) no tiene efecto
-        y devuelve el registro existente -- el registro es de solo adición y nunca
-        se reescribe.
+        y devuelve el registro existente. La única excepción al carácter de solo adición
+        es la purga de una configuración huérfana al borrar su última corrida.
         """
         config_id = compute_config_id(config)
-        for existing in self._read_jsonl(self._configs_path(experiment_id)):
-            if existing.get("config_id") == config_id:
-                return existing
+        with self._mutation_lock:
+            for existing in self._read_jsonl(self._configs_path(experiment_id)):
+                if existing.get("config_id") == config_id:
+                    return existing
 
-        record: dict[str, Any] = {
-            "config_id": config_id,
-            "space_key": compute_space_key(config),
-            "config": config.to_dict(),
-            "preprocessing": config.preprocessing.to_dict(),
-            "convergence": config.convergence.to_dict(),
-            "validation_state": validation.state if validation is not None else None,
-            "validation_rationale": list(validation.rationale) if validation is not None else [],
-            "timestamp": timestamp or utc_timestamp(),
-        }
-        self._append_jsonl(self._configs_path(experiment_id), record)
-        return record
+            record: dict[str, Any] = {
+                "config_id": config_id,
+                "space_key": compute_space_key(config),
+                "config": config.to_dict(),
+                "preprocessing": config.preprocessing.to_dict(),
+                "convergence": config.convergence.to_dict(),
+                "validation_state": validation.state if validation is not None else None,
+                "validation_rationale": list(validation.rationale)
+                if validation is not None
+                else [],
+                "timestamp": timestamp or utc_timestamp(),
+            }
+            self._append_jsonl(self._configs_path(experiment_id), record)
+            return record
 
     def load_configs(self, experiment_id: str) -> list[dict[str, Any]]:
         return self._read_jsonl(self._configs_path(experiment_id))
@@ -207,21 +217,22 @@ class ResultsStore:
         ``FileExistsError`` si la ejecución ya existe. Opcionalmente registra primero la
         instantánea de configuración (solo adición, deduplicada).
         """
-        if config is not None:
-            self.register_config(experiment_id, config, validation)
+        with self._mutation_lock:
+            if config is not None:
+                self.register_config(experiment_id, config, validation)
 
-        run_path = self.run_dir(experiment_id, run_id)
-        self._atomic_mkdir(run_path)
+            run_path = self.run_dir(experiment_id, run_id)
+            self._atomic_mkdir(run_path)
 
-        payload = dict(metadata)
-        payload.setdefault("run_id", run_id)
-        payload.setdefault("experiment_id", experiment_id)
-        self._write_text_atomic(
-            run_path / RUN_METADATA_FILE,
-            json.dumps(payload, indent=2, ensure_ascii=True) + "\n",
-        )
-        self._write_epochs(run_path / EPOCHS_CSV_FILE, run_id, payload.get("config_id"), epochs)
-        return run_path
+            payload = dict(metadata)
+            payload.setdefault("run_id", run_id)
+            payload.setdefault("experiment_id", experiment_id)
+            self._write_text_atomic(
+                run_path / RUN_METADATA_FILE,
+                json.dumps(payload, indent=2, ensure_ascii=True) + "\n",
+            )
+            self._write_epochs(run_path / EPOCHS_CSV_FILE, run_id, payload.get("config_id"), epochs)
+            return run_path
 
     def _write_epochs(
         self,
@@ -262,19 +273,57 @@ class ResultsStore:
                 }
         raise FileNotFoundError(f"run '{run_id}' not found")
 
-    def delete_run(self, experiment_id: str, run_id: str) -> Path:
-        """Elimina una corrida persistida y devuelve la ruta retirada.
+    def delete_run(self, experiment_id: str, run_id: str) -> dict[str, Any]:
+        """Elimina una corrida y purga su configuración si quedó huérfana.
+
+        Primero retira el directorio completo de la corrida. Luego busca el
+        ``config_id`` que usaba y elimina su registro de ``configs.jsonl`` solo
+        si ninguna corrida restante, decisión o baseline lo referencia. Es la
+        única excepción controlada al carácter append-only de ese registro y
+        asume el modelo de un solo escritor documentado en el módulo.
 
         Solo considera directorios que ya existen dentro del experimento, así
         que un ``run_id`` con separadores de ruta no puede escapar del store.
-        Es una operación explícita del operador: no reescribe registros, retira
-        el directorio completo de la corrida.
         """
-        for _exp_id, run_path in self._iter_run_paths(experiment_id):
-            if run_path.name == run_id:
-                shutil.rmtree(run_path)
-                return run_path
+        with self._mutation_lock:
+            for _exp_id, run_path in self._iter_run_paths(experiment_id):
+                if run_path.name == run_id:
+                    metadata = self._read_json(run_path / RUN_METADATA_FILE)
+                    config_id = metadata.get("config_id")
+                    shutil.rmtree(run_path)
+                    config_removed = False
+                    if config_id:
+                        config_removed = self._purge_config_if_unreferenced(
+                            experiment_id, str(config_id)
+                        )
+                    return {
+                        "run_id": run_id,
+                        "path": str(run_path),
+                        "config_id": config_id,
+                        "config_removed": config_removed,
+                    }
         raise FileNotFoundError(f"run '{run_id}' not found")
+
+    def _purge_config_if_unreferenced(self, experiment_id: str, config_id: str) -> bool:
+        """Retira una configuración del registro solo si nada la referencia."""
+        if self.query_runs(experiment_id, config_id=config_id):
+            return False
+        if self.load_decisions(experiment_id, config_id=config_id):
+            return False
+        baseline = self.load_experiment_metadata(experiment_id).get("baseline") or {}
+        if baseline.get("config_id") == config_id:
+            return False
+
+        path = self._configs_path(experiment_id)
+        records = self._read_jsonl(path)
+        kept = [record for record in records if record.get("config_id") != config_id]
+        if len(kept) == len(records):
+            return False
+        text = "".join(
+            json.dumps(record, sort_keys=True, ensure_ascii=True) + "\n" for record in kept
+        )
+        self._write_text_atomic(path, text)
+        return True
 
     @staticmethod
     def _read_epochs(path: Path) -> list[dict[str, Any]]:
@@ -398,34 +447,35 @@ class ResultsStore:
         referencia de entidad (``run_id``/``config_id``/``group_id``).
         Esto es únicamente andamiaje manual -- no ocurre ninguna clasificación automática.
         """
-        if not str(justification).strip():
-            raise ValueError("decision justification must be a non-empty string")
-        if not str(actor).strip():
-            raise ValueError("decision actor must be a non-empty string")
-        entity = {
-            name: value
-            for name, value in (
-                ("run_id", run_id),
-                ("config_id", config_id),
-                ("group_id", group_id),
-            )
-            if value
-        }
-        if not entity:
-            raise ValueError("a decision must reference a run_id, config_id or group_id")
+        with self._mutation_lock:
+            if not str(justification).strip():
+                raise ValueError("decision justification must be a non-empty string")
+            if not str(actor).strip():
+                raise ValueError("decision actor must be a non-empty string")
+            entity = {
+                name: value
+                for name, value in (
+                    ("run_id", run_id),
+                    ("config_id", config_id),
+                    ("group_id", group_id),
+                )
+                if value
+            }
+            if not entity:
+                raise ValueError("a decision must reference a run_id, config_id or group_id")
 
-        record: dict[str, Any] = {
-            "decision_id": decision_id or new_decision_id(),
-            "entity": entity,
-            "decision_type": decision_type,
-            "label": label,
-            "justification": justification,
-            "actor": actor,
-            "timestamp": timestamp or utc_timestamp(),
-            "evidence": evidence,
-        }
-        self._append_jsonl(self._decisions_path(experiment_id), record)
-        return record
+            record: dict[str, Any] = {
+                "decision_id": decision_id or new_decision_id(),
+                "entity": entity,
+                "decision_type": decision_type,
+                "label": label,
+                "justification": justification,
+                "actor": actor,
+                "timestamp": timestamp or utc_timestamp(),
+                "evidence": evidence,
+            }
+            self._append_jsonl(self._decisions_path(experiment_id), record)
+            return record
 
     def load_decisions(
         self, experiment_id: str | None = None, **filters: Any
@@ -474,9 +524,10 @@ class ResultsStore:
     # ------------------------------------------------------------------
 
     def write_experiment_metadata(self, experiment_id: str, metadata: Mapping[str, Any]) -> Path:
-        path = self.experiment_dir(experiment_id) / EXPERIMENT_METADATA_FILE
-        self._write_text_atomic(path, json.dumps(dict(metadata), indent=2) + "\n")
-        return path
+        with self._mutation_lock:
+            path = self.experiment_dir(experiment_id) / EXPERIMENT_METADATA_FILE
+            self._write_text_atomic(path, json.dumps(dict(metadata), indent=2) + "\n")
+            return path
 
     def load_experiment_metadata(self, experiment_id: str) -> dict[str, Any]:
         path = self.experiment_dir(experiment_id) / EXPERIMENT_METADATA_FILE

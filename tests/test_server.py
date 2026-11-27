@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from prebenchmark import config as pb_config
 from prebenchmark.config import ConvergenceSpec, ExperimentConfig, PreprocessingSpec
+from prebenchmark.store import ResultsStore
 from server import app as server_app
 from server.jobs import JobRegistry
 from server.serialize import to_jsonable
@@ -513,6 +514,7 @@ def test_history_delete_removes_only_the_selected_run(client: TestClient, tmp_pa
     response = client.delete("/api/history/20260106T000000Z-dddddd")
     assert response.status_code == 200
     assert response.json()["deleted"] is True
+    assert response.json()["config_removed"] is False  # no hay registro de configs
     assert not doomed.exists()
     assert survivor.exists()
     assert stray.exists()  # un directorio que no es una corrida no se elimina
@@ -521,6 +523,82 @@ def test_history_delete_removes_only_the_selected_run(client: TestClient, tmp_pa
     assert [row["run_id"] for row in remaining["runs"]] == ["20260107T000000Z-eeeeee"]
     assert client.delete("/api/history/20260106T000000Z-dddddd").status_code == 404
     assert client.delete("/api/history/..%2F..%2Fetc").status_code == 404
+
+
+def test_delete_purges_the_config_when_it_is_unreferenced(
+    client: TestClient, tmp_path: Path
+) -> None:
+    store_root = tmp_path / "ui-store"
+    store = ResultsStore(store_root)
+    config_id = store.register_config("ui-test", ExperimentConfig())["config_id"]
+    _write_history_run(
+        store_root, "20260108T000000Z-ffffff", "20260108T000000Z", config_id=config_id
+    )
+
+    body = client.delete("/api/history/20260108T000000Z-ffffff").json()
+    assert body["config_id"] == config_id
+    assert body["config_removed"] is True
+    assert config_id not in (store_root / "ui-test" / "configs.jsonl").read_text(encoding="utf-8")
+
+
+def test_delete_keeps_a_config_shared_by_another_run(client: TestClient, tmp_path: Path) -> None:
+    store_root = tmp_path / "ui-store"
+    store = ResultsStore(store_root)
+    config_id = store.register_config("ui-test", ExperimentConfig())["config_id"]
+    first = _write_history_run(
+        store_root, "20260109T000000Z-111111", "20260109T000000Z", config_id=config_id
+    )
+    second = _write_history_run(
+        store_root, "20260110T000000Z-222222", "20260110T000000Z", config_id=config_id
+    )
+    configs_path = store_root / "ui-test" / "configs.jsonl"
+
+    first_body = client.delete(f"/api/history/{first.name}").json()
+    assert first_body["config_removed"] is False
+    assert config_id in configs_path.read_text(encoding="utf-8")
+
+    second_body = client.delete(f"/api/history/{second.name}").json()
+    assert second_body["config_removed"] is True
+    assert config_id not in configs_path.read_text(encoding="utf-8")
+
+
+def test_delete_keeps_a_config_referenced_by_a_decision(client: TestClient, tmp_path: Path) -> None:
+    store_root = tmp_path / "ui-store"
+    store = ResultsStore(store_root)
+    config_id = store.register_config("ui-test", ExperimentConfig())["config_id"]
+    run_dir = _write_history_run(
+        store_root, "20260111T000000Z-333333", "20260111T000000Z", config_id=config_id
+    )
+    store.append_decision(
+        "ui-test",
+        decision_type="validate",
+        justification="la configuración se revisó manualmente",
+        actor="analyst",
+        config_id=config_id,
+    )
+
+    body = client.delete(f"/api/history/{run_dir.name}").json()
+    assert body["config_removed"] is False
+    assert config_id in (store_root / "ui-test" / "configs.jsonl").read_text(encoding="utf-8")
+
+
+def test_delete_keeps_a_config_referenced_by_the_baseline(
+    client: TestClient, tmp_path: Path
+) -> None:
+    store_root = tmp_path / "ui-store"
+    store = ResultsStore(store_root)
+    config_id = store.register_config("ui-test", ExperimentConfig())["config_id"]
+    run_dir = _write_history_run(
+        store_root, "20260112T000000Z-444444", "20260112T000000Z", config_id=config_id
+    )
+    store.write_experiment_metadata(
+        "ui-test",
+        {"baseline": {"run_id": run_dir.name, "config_id": config_id}},
+    )
+
+    body = client.delete(f"/api/history/{run_dir.name}").json()
+    assert body["config_removed"] is False
+    assert config_id in (store_root / "ui-test" / "configs.jsonl").read_text(encoding="utf-8")
 
 
 def test_registry_refuses_more_than_one_worker() -> None:
