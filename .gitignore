@@ -29,3 +29,7 @@ results/*
 !results/exports/
 !results/reports/
 .cache/
+
+# Desktop build resources (icons, afterPack hook), not Python build output
+!desktop/build/
+!desktop/build/**

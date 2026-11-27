@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
+<title>Neural Network Benchmark</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(1200px 500px at 50% -20%, #16324f 0%, #0b1220 55%, #070d17 100%);
+    color: #e5edf7;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    user-select: none;
+  }
+  .card { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .logo { width: 92px; height: 92px; }
+  h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: .01em; }
+  p { margin: 0; font-size: 13px; color: #93a4bd; }
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(147, 164, 189, .25);
+    border-top-color: #38bdf8;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .foot { font-size: 11px; color: #5f7290; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <svg class="logo" viewBox="0 0 96 96" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="92" height="92" rx="22" fill="#0f1b2d" stroke="#1e3a5f" stroke-width="2"/>
+      <g stroke="#38bdf8" stroke-opacity=".45" stroke-width="1.6">
+        <path d="M28 30 L48 48 M28 48 L48 48 M28 66 L48 48"/>
+        <path d="M48 48 L68 32 M48 48 L68 48 M48 48 L68 64"/>
+        <path d="M48 48 L48 26 M48 48 L48 70"/>
+      </g>
+      <g fill="#38bdf8">
+        <circle cx="28" cy="30" r="5"/><circle cx="28" cy="48" r="5"/><circle cx="28" cy="66" r="5"/>
+        <circle cx="48" cy="26" r="4"/><circle cx="48" cy="48" r="5"/><circle cx="48" cy="70" r="4"/>
+      </g>
+      <g fill="#f59e0b">
+        <circle cx="68" cy="32" r="5"/><circle cx="68" cy="48" r="5"/><circle cx="68" cy="64" r="5"/>
+      </g>
+    </svg>
+    <h1>Banco de pruebas de redes neuronales</h1>
+    <div class="spinner" role="status" aria-label="Iniciando"></div>
+    <p>Iniciando el entorno de ejecución…</p>
+    <span class="foot">La primera vez puede tardar unos segundos</span>
+  </div>
+</body>
+</html>

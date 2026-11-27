@@ -1,0 +1,24 @@
+{
+  "name": "neural-network-benchmark-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for the neural-network benchmark pre-benchmark UI",
+  "author": "UTN LIS",
+  "main": "electron/main.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "electron .",
+    "stage:datasets": "python backend/stage_datasets.py",
+    "build:backend": "python -m PyInstaller backend/prebenchmark-sidecar.spec --noconfirm --distpath backend/dist --workpath backend/build",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:linux": "electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.5.0",
+    "electron-builder": "26.18.0"
+  }
+}

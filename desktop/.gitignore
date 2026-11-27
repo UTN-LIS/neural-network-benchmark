@@ -1,0 +1,5 @@
+node_modules/
+release/
+backend/dist/
+backend/build/
+*.log

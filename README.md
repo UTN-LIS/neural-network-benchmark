@@ -298,6 +298,25 @@ to loopback because the API has no authentication. See
 permissions, and the known limits (single worker, no PDF generation in the
 image).
 
+## Desktop app (Electron + Python sidecar)
+
+`desktop/` packages the same FastAPI UI and training engine as a cross-platform
+desktop application. Electron owns the window and process lifecycle; a
+PyInstaller sidecar serves the existing API on loopback and works fully offline
+(datasets and reference exports are bundled). Data lives in the per-user
+application directory, never in the installation folder.
+
+```bash
+python desktop/backend/stage_datasets.py
+python -m PyInstaller desktop/backend/prebenchmark-sidecar.spec \
+  --noconfirm --distpath desktop/backend/dist --workpath desktop/backend/build
+cd desktop && npm install && npm start
+```
+
+Installers (`nsis`, `dmg`, `AppImage`, `deb`) are built per OS with
+`npm run dist:win|mac|linux`. See [desktop/README.md](desktop/README.md) for the
+architecture, data locations, code signing and the GitHub Actions workflow.
+
 ## Resolved decisions
 
 From `openspec/changes/prebenchmark-infra/design.md` (Open Questions) — these were

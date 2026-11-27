@@ -1,0 +1,59 @@
+appId: com.utnlis.neural-network-benchmark
+productName: Neural Network Benchmark
+copyright: UTN LIS
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - electron/**/*
+  - package.json
+
+asar: true
+npmRebuild: false
+
+# The PyInstaller one-directory bundle is copied verbatim outside the asar
+# archive. Its executable is spawned by the Electron main process.
+extraResources:
+  - from: backend/dist/prebenchmark-sidecar
+    to: backend
+    filter:
+      - "**/*"
+
+afterPack: build/afterPack.js
+
+win:
+  target:
+    - nsis
+    - zip
+  icon: build/icon.ico
+  artifactName: NeuralNetworkBenchmark-${version}-win-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Neural Network Benchmark
+
+mac:
+  target:
+    - dmg
+    - zip
+  icon: build/icon.png
+  category: public.app-category.education
+  # Unsigned builds work for local distribution. Remove this line and provide
+  # a Developer ID certificate to sign and notarize for Gatekeeper.
+  identity: null
+  artifactName: NeuralNetworkBenchmark-${version}-mac-${arch}.${ext}
+
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: build/icon.png
+  category: Education
+  maintainer: UTN LIS
+  artifactName: NeuralNetworkBenchmark-${version}-linux-${arch}.${ext}
