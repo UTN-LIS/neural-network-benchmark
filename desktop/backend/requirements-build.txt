@@ -1,0 +1,2 @@
+# Build-only dependency for the desktop sidecar.
+pyinstaller==6.22.3
